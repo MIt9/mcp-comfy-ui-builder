@@ -27,6 +27,20 @@
   ],
   "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/mcp-comfy-ui-builder.git"
+  },
+  "homepage": "https://github.com/your-username/mcp-comfy-ui-builder#readme",
+  "bugs": {
+    "url": "https://github.com/your-username/mcp-comfy-ui-builder/issues"
+  },
+  "files": [
+    "dist",
+    "knowledge",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
     "@modelcontextprotocol/sdk": "^1.25.3",

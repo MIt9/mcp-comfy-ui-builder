@@ -1,0 +1,32 @@
+# Source and dev
+src/
+tests/
+scripts/
+*.ts
+!*.d.ts
+tsconfig.json
+vitest.config.ts
+
+# Env and local
+.env
+.env.local
+*.log
+
+# IDE and OS
+.idea/
+.vscode/
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Docs and planning (optional: remove if you want them in package)
+NEXT-STEPS.md
+ROADMAP.md
+TODO.md
+doc/
+examples/
+
+# Build artifacts (dist is included via "files")
+*.tgz

@@ -10,20 +10,20 @@
 
 ### Critical: Verify Implementation
 
-- [ ] **Check if code exists and works**
+- [x] **Check if code exists and works**
   ```bash
   # Test each command
-  npm run build
-  npm test
-  npm run scan:dry
-  npm run add-node
+  npm run build   # ✅ OK
+  npm test        # ✅ 26 tests pass
+  npm run scan:dry # ✅ OK (dry-run)
+  npm run add-node # interactive — test manually in Cursor
   ```
 
-- [ ] **Review core files**
-  - [ ] `src/node-discovery/scanner.ts` - all methods present?
-  - [ ] `src/node-discovery/ai-generator.ts` - Claude integration works?
-  - [ ] `src/node-discovery/updater.ts` - updates JSON files?
-  - [ ] `src/mcp-server.ts` - all 4 tools implemented?
+- [x] **Review core files**
+  - [x] `src/node-discovery/scanner.ts` — scanLiveInstance, fetchManagerList, analyzeRepository, findNewNodes
+  - [x] `src/node-discovery/ai-generator.ts` — buildPrompt, extractJson, generateDescription (Claude)
+  - [x] `src/node-discovery/updater.ts` — addNode, updateCompatibility, generateChangelog
+  - [x] `src/mcp-server.ts` — list_node_types, get_node_info, check_compatibility, suggest_nodes
 
 - [ ] **Test MCP server**
   ```bash
@@ -53,16 +53,16 @@
 
 ### Package Preparation
 
-- [ ] **Update package.json**
-  - [ ] Add repository URL
+- [x] **Update package.json**
+  - [x] Add repository URL (replace `your-username` with real GitHub username)
   - [ ] Add author name
-  - [ ] Add homepage, bugs URLs
-  - [ ] Add `files` field
+  - [x] Add homepage, bugs URLs
+  - [x] Add `files` field
 
-- [ ] **Add missing files**
-  - [ ] Create LICENSE file (MIT)
-  - [ ] Create .npmignore
-  - [ ] Test with `npm pack`
+- [x] **Add missing files**
+  - [x] Create LICENSE file (MIT)
+  - [x] Create .npmignore
+  - [x] Test with `npm pack` (dry-run OK, 37 files)
 
 ### Error Handling
 
