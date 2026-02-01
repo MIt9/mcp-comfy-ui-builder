@@ -12,7 +12,7 @@
 
 | Capability | n8n-workflow-builder | mcp-comfy-ui-builder (now) | mcp-comfy-ui-builder (next) |
 |------------|----------------------|----------------------------|-----------------------------|
-| Connect to engine | ✅ n8n API | ✅ ComfyUI API (COMFYUI_HOST, default localhost:8188) | — |
+| Connect to engine | ✅ n8n API | ✅ ComfyUI API (COMFYUI_HOST, default 127.0.0.1:8188) | — |
 | List nodes / workflows | ✅ List workflows | ✅ list_node_types, suggest_nodes, list_templates, list_saved_workflows, list_queue | — |
 | Create workflow | ✅ Create with nodes | ✅ build_workflow → ComfyUI JSON (txt2img) | more templates |
 | Execute workflow | ✅ Execute | ✅ execute_workflow (POST /prompt) | — |
@@ -31,7 +31,7 @@
   - `submitPrompt(workflow): Promise<{ prompt_id }>` — POST `/prompt`, body `{ prompt: workflow }`
   - `getHistory(promptId?): Promise<HistoryEntry[]>` — GET `/history` or `/history/{prompt_id}`
   - `getQueue(): Promise<QueueStatus>` — GET `/queue`
-  - Base URL from env `COMFYUI_HOST` (default `http://localhost:8188`)
+  - Base URL from env `COMFYUI_HOST` (default `http://127.0.0.1:8188`)
   - Timeout, retries, clear errors
 
 - [x] **Types** — `src/types/comfyui-api-types.ts` (workflow, history, queue)
@@ -148,7 +148,7 @@
 - **Reference:** @makafeli/n8n-workflow-builder — CRUD + execute workflows against live engine; we mirror that for ComfyUI (build + execute + status + queue).
 - **ComfyUI API:** POST `/prompt` (workflow JSON), GET `/history/{prompt_id}`, GET `/queue`. See [doc/comfyui-api-quick-reference.md](doc/comfyui-api-quick-reference.md).
 - **Knowledge base:** Stays seed-based; no ComfyUI required for list/get/check/suggest. ComfyUI only needed for execute and status/queue.
-- **Config:** `COMFYUI_HOST` optional (default `http://localhost:8188`); required only for execute_workflow, get_execution_status, list_queue.
+- **Config:** `COMFYUI_HOST` optional (default `http://127.0.0.1:8188`); required only for execute_workflow, get_execution_status, list_queue.
 
 ---
 

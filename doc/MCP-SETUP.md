@@ -21,19 +21,23 @@
 | **get_execution_status(prompt_id)** | Get status and image outputs (requires COMFYUI_HOST) |
 | **list_queue** | List running and pending prompts (requires COMFYUI_HOST) |
 
-Data is loaded from `knowledge/base-nodes.json` and `knowledge/node-compatibility.json` at server startup. For **execute_workflow**, **get_execution_status**, and **list_queue**, set `COMFYUI_HOST` (default `http://localhost:8188` if not set) and ensure ComfyUI is running. For list_node_types, get_node_info, check_compatibility, suggest_nodes, list_templates, build_workflow, save_workflow, list_saved_workflows, and load_workflow, no ComfyUI connection is needed.
+Data is loaded from `knowledge/base-nodes.json` and `knowledge/node-compatibility.json` at server startup. For **execute_workflow**, **get_execution_status**, and **list_queue**, set `COMFYUI_HOST` (default `http://127.0.0.1:8188` if not set) and ensure ComfyUI is running. For list_node_types, get_node_info, check_compatibility, suggest_nodes, list_templates, build_workflow, save_workflow, list_saved_workflows, and load_workflow, no ComfyUI connection is needed.
 
 ***
 
 ## Starting the server
 
-From project root (build first):
+**If installed globally** (`npm i -g mcp-comfy-ui-builder`): use the path to the installed package. Get it with:
+```bash
+node -e "const p=require('path'); console.log(p.join(p.dirname(require.resolve('mcp-comfy-ui-builder/package.json')), 'dist', 'mcp-server.js'))"
+```
+Use that path in Cursor MCP config (see below). See also [AI-ASSISTANT-GUIDE.md](AI-ASSISTANT-GUIDE.md) for a short guide for AI assistants.
 
+**From project root** (build first):
 ```bash
 npm run build
 npm run mcp
 ```
-
 Alternative: `node dist/mcp-server.js`. Server uses **stdio** (stdin/stdout).
 
 ***

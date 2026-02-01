@@ -58,6 +58,24 @@ Text-to-image: CheckpointLoaderSimple → CLIPTextEncode (positive + negative) �
 
 Example: `build_workflow("txt2img", { width: 512, height: 768, prompt: "a cat", steps: 30 })`.
 
+### img2img
+
+Image-to-image: LoadImage → VAEEncode → CheckpointLoaderSimple → CLIPTextEncode (positive + negative) → KSampler → VAEDecode → SaveImage.
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| image | string | input.png | Input image filename (in ComfyUI input folder) |
+| steps | number | 20 | Sampler steps |
+| cfg | number | 8 | CFG scale |
+| prompt | string | '' | Positive prompt |
+| negative_prompt | string | '' | Negative prompt |
+| seed | number | 0 | Random seed |
+| ckpt_name | string | sd_xl_base_1.0.safetensors | Checkpoint filename |
+| filename_prefix | string | ComfyUI_img2img | SaveImage prefix |
+| denoise | number | 0.75 | KSampler denoise (0.0-1.0, lower = more original) |
+
+Example: `build_workflow("img2img", { image: "photo.png", prompt: "oil painting style", denoise: 0.6 })`.
+
 ***
 
 ## Save / load
@@ -72,7 +90,7 @@ Flow: `build_workflow` → optional `save_workflow` → later `load_workflow` �
 
 ## Execution (requires ComfyUI)
 
-Set **COMFYUI_HOST** (default `http://localhost:8188`). Then:
+Set **COMFYUI_HOST** (default `http://127.0.0.1:8188`). Then:
 
 1. **execute_workflow(workflow)** — POST workflow to ComfyUI; returns `prompt_id`.
 2. **get_execution_status(prompt_id)** — GET history; returns status and image filenames/URLs.

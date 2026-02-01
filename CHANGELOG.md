@@ -4,6 +4,20 @@ Project change history. Knowledge base (nodes) → [knowledge/CHANGELOG.md](know
 
 ---
 
+## [0.1.1] – 2026-02-02
+
+### Added
+
+- **AI Assistant Guide** (doc/AI-ASSISTANT-GUIDE.md) — guidance for AI assistants using the MCP server.
+- **Project Insights** (doc/PROJECT-INSIGHTS.md) — project context and architecture notes.
+
+### Changed
+
+- Documentation: INDEX, MCP-SETUP, workflow-builder, README, NEXT-STEPS, TODO.
+- ComfyUI client, MCP server, workflow builder; related tests updated.
+
+---
+
 ## [0.1.0] – 2026-02-01
 
 ### Added

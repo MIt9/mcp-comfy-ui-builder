@@ -15,7 +15,7 @@
   - [x] `submitPrompt(workflowJson): Promise<{ prompt_id }>` — POST `/prompt`
   - [x] `getHistory(promptId?): Promise<HistoryEntry[]>` — GET `/history` or `/history/{id}`
   - [x] `getQueue(): Promise<QueueStatus>` — GET `/queue`
-  - [x] Base URL from `COMFYUI_HOST` (default `http://localhost:8188`)
+  - [x] Base URL from `COMFYUI_HOST` (default `http://127.0.0.1:8188`)
   - [x] Timeout, retries, clear errors
 
 - [x] **Types** for workflow JSON, history, queue (see ComfyUI API) — `src/types/comfyui-api-types.ts`
@@ -64,9 +64,9 @@
 
 ### Publication
 
-- [ ] Test locally: `npm link`
-- [ ] `npm login` → `npm publish`
-- [ ] Test install: `npm i -g mcp-comfy-ui-builder`
+- [ ] Test locally: `npm link` (optional)
+- [x] `npm login` → `npm publish` ✅
+- [ ] Test install: `npm i -g mcp-comfy-ui-builder` (optional)
 
 ### GitHub
 
@@ -96,7 +96,7 @@
 - **Reference:** [NEXT-STEPS.md](NEXT-STEPS.md) — full Workflow Builder plan (Phase 1–3 = done; Phase 4 = optional)
 - **Timeline:** [ROADMAP.md](ROADMAP.md) — phases 6–8
 - **ComfyUI API:** [doc/comfyui-api-quick-reference.md](doc/comfyui-api-quick-reference.md) — /prompt, /history, /queue
-- **Config:** `COMFYUI_HOST` default `http://localhost:8188` when not set
+- **Config:** `COMFYUI_HOST` default `http://127.0.0.1:8188` when not set
 
 ---
 

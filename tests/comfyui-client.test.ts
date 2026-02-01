@@ -75,13 +75,7 @@ describe('ComfyUI client', () => {
     ).rejects.toThrow(/500|prompt failed/);
   });
 
-  it('isComfyUIConfigured returns false when COMFYUI_HOST not set', async () => {
-    const { isComfyUIConfigured } = await import('../src/comfyui-client.js');
-    expect(isComfyUIConfigured()).toBe(false);
-  });
-
-  it('isComfyUIConfigured returns true when COMFYUI_HOST set', async () => {
-    process.env.COMFYUI_HOST = 'http://localhost:8188';
+  it('isComfyUIConfigured returns true by default (connects to local ComfyUI)', async () => {
     const { isComfyUIConfigured } = await import('../src/comfyui-client.js');
     expect(isComfyUIConfigured()).toBe(true);
   });

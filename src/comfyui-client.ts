@@ -1,6 +1,6 @@
 /**
  * ComfyUI API client: submit prompt, get history, get queue.
- * Base URL from COMFYUI_HOST (default http://localhost:8188).
+ * Base URL from COMFYUI_HOST (default http://127.0.0.1:8188).
  */
 import fetch from 'node-fetch';
 import type {
@@ -10,7 +10,7 @@ import type {
   QueueStatus,
 } from './types/comfyui-api-types.js';
 
-const DEFAULT_HOST = 'http://localhost:8188';
+const DEFAULT_HOST = 'http://127.0.0.1:8188';
 const DEFAULT_TIMEOUT_MS = 60_000;
 const MAX_RETRIES = 2;
 
@@ -108,9 +108,9 @@ export async function getQueue(): Promise<QueueStatus> {
 }
 
 /**
- * Check if ComfyUI is configured (COMFYUI_HOST set).
+ * Check if ComfyUI is configured. Always true by default — uses COMFYUI_HOST if set,
+ * otherwise http://127.0.0.1:8188. No env needed for local ComfyUI.
  */
 export function isComfyUIConfigured(): boolean {
-  const host = process.env.COMFYUI_HOST;
-  return typeof host === 'string' && host.length > 0;
+  return true;
 }

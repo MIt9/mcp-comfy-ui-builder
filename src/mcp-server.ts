@@ -18,18 +18,63 @@ const KNOWLEDGE_DIR = join(process.cwd(), 'knowledge');
 const BASE_NODES_PATH = join(KNOWLEDGE_DIR, 'base-nodes.json');
 const COMPAT_PATH = join(KNOWLEDGE_DIR, 'node-compatibility.json');
 
+// Cache for knowledge base with 5 minute TTL
+const CACHE_TTL_MS = 5 * 60 * 1000;
+let baseNodesCache: { data: BaseNodesJson; expires: number } | null = null;
+let compatCache: { data: NodeCompatibilityData; expires: number } | null = null;
+
 function loadBaseNodes(): BaseNodesJson {
+  const now = Date.now();
+  if (baseNodesCache && baseNodesCache.expires > now) {
+    return baseNodesCache.data;
+  }
   if (!existsSync(BASE_NODES_PATH)) {
     return { metadata: {}, nodes: {} };
   }
-  return JSON.parse(readFileSync(BASE_NODES_PATH, 'utf8')) as BaseNodesJson;
+  const data = JSON.parse(readFileSync(BASE_NODES_PATH, 'utf8')) as BaseNodesJson;
+  baseNodesCache = { data, expires: now + CACHE_TTL_MS };
+  return data;
 }
 
 function loadCompatibility(): NodeCompatibilityData {
+  const now = Date.now();
+  if (compatCache && compatCache.expires > now) {
+    return compatCache.data;
+  }
   if (!existsSync(COMPAT_PATH)) {
     return { metadata: {}, data_types: {} };
   }
-  return JSON.parse(readFileSync(COMPAT_PATH, 'utf8')) as NodeCompatibilityData;
+  const data = JSON.parse(readFileSync(COMPAT_PATH, 'utf8')) as NodeCompatibilityData;
+  compatCache = { data, expires: now + CACHE_TTL_MS };
+  return data;
+}
+
+/**
+ * Validate workflow node references before execution.
+ * Checks that all [nodeId, outputIndex] references point to existing nodes.
+ */
+function validateWorkflow(workflow: ComfyUIWorkflow): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  const nodeIds = new Set(Object.keys(workflow));
+
+  for (const [nodeId, nodeDef] of Object.entries(workflow)) {
+    const inputs = nodeDef.inputs ?? {};
+    for (const [inputName, inputValue] of Object.entries(inputs)) {
+      if (Array.isArray(inputValue) && inputValue.length === 2) {
+        const [refNodeId, outputIndex] = inputValue;
+        if (typeof refNodeId === 'string' && typeof outputIndex === 'number') {
+          if (!nodeIds.has(refNodeId)) {
+            errors.push(`Node "${nodeId}" input "${inputName}" references non-existent node "${refNodeId}"`);
+          }
+          if (outputIndex < 0) {
+            errors.push(`Node "${nodeId}" input "${inputName}" has invalid output index ${outputIndex}`);
+          }
+        }
+      }
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
 }
 
 const server = new McpServer(
@@ -207,7 +252,7 @@ server.registerTool(
         content: [
           {
             type: 'text',
-            text: 'ComfyUI is not configured. Set COMFYUI_HOST (e.g. http://localhost:8188) and ensure ComfyUI is running. Then retry execute_workflow.',
+            text: 'ComfyUI is not configured. Set COMFYUI_HOST (e.g. http://127.0.0.1:8188) and ensure ComfyUI is running. Then retry execute_workflow.',
           },
         ],
       };
@@ -217,6 +262,10 @@ server.registerTool(
       parsed = JSON.parse(args.workflow) as ComfyUIWorkflow;
     } catch {
       return { content: [{ type: 'text', text: 'Invalid workflow JSON.' }] };
+    }
+    const validation = validateWorkflow(parsed);
+    if (!validation.valid) {
+      return { content: [{ type: 'text', text: `Workflow validation failed:\n${validation.errors.join('\n')}` }] };
     }
     try {
       const { prompt_id } = await comfyui.submitPrompt(parsed);
@@ -269,7 +318,7 @@ server.registerTool(
         const images = (out as { images?: Array<{ filename: string; subfolder?: string }> }).images;
         if (images?.length) {
           lines.push(`node ${nodeId} images: ${images.map((i) => i.filename).join(', ')}`);
-          const base = process.env.COMFYUI_HOST?.replace(/\/$/, '') ?? 'http://localhost:8188';
+          const base = process.env.COMFYUI_HOST?.replace(/\/$/, '') ?? 'http://127.0.0.1:8188';
           for (const img of images) {
             const sub = img.subfolder ? `&subfolder=${encodeURIComponent(img.subfolder)}` : '';
             lines.push(`  view: ${base}/view?filename=${encodeURIComponent(img.filename)}&type=output${sub}`);

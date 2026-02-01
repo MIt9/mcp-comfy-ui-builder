@@ -82,7 +82,7 @@ Server provides tools for AI:
 - **get_execution_status(prompt_id)** — get status and image outputs (requires `COMFYUI_HOST`)
 - **list_queue** — list running and pending prompts (requires `COMFYUI_HOST`)
 
-For execute/status/queue, set `COMFYUI_HOST` (default `http://localhost:8188`) or leave unset to use localhost; ensure ComfyUI is running. See [.env.example](.env.example).
+For execute/status/queue, set `COMFYUI_HOST` (default `http://127.0.0.1:8188`) or leave unset; ensure ComfyUI is running. See [.env.example](.env.example).
 
 ### Running MCP
 

@@ -59,4 +59,51 @@ describe('workflow-builder', () => {
   it('buildFromTemplate throws for unknown template', () => {
     expect(() => buildFromTemplate('unknown')).toThrow(/Unknown template/);
   });
+
+  it('listTemplates includes img2img', () => {
+    const list = listTemplates();
+    expect(list).toContain('img2img');
+  });
+
+  it('buildFromTemplate("img2img") returns valid workflow with default params', () => {
+    const workflow = buildFromTemplate('img2img');
+    expect(workflow).toBeDefined();
+    expect(Object.keys(workflow).length).toBe(8);
+    expect(workflow['1'].class_type).toBe('CheckpointLoaderSimple');
+    expect(workflow['2'].class_type).toBe('LoadImage');
+    expect(workflow['3'].class_type).toBe('VAEEncode');
+    expect(workflow['6'].class_type).toBe('KSampler');
+    expect(workflow['6'].inputs).toMatchObject({
+      steps: 20,
+      cfg: 8,
+      denoise: 0.75,
+    });
+    expect(workflow['8'].class_type).toBe('SaveImage');
+  });
+
+  it('buildFromTemplate("img2img", params) fills image, prompt, denoise', () => {
+    const workflow = buildFromTemplate('img2img', {
+      image: 'test.png',
+      prompt: 'enhance this',
+      negative_prompt: 'bad quality',
+      denoise: 0.5,
+      seed: 123,
+    });
+    expect(workflow['2'].inputs).toMatchObject({ image: 'test.png' });
+    expect(workflow['4'].inputs).toMatchObject({ text: 'enhance this' });
+    expect(workflow['5'].inputs).toMatchObject({ text: 'bad quality' });
+    expect(workflow['6'].inputs).toMatchObject({ denoise: 0.5, seed: 123 });
+  });
+
+  it('buildFromTemplate("img2img") has valid references [nodeId, outputIndex]', () => {
+    const workflow = buildFromTemplate('img2img');
+    expect(workflow['3'].inputs.pixels).toEqual(['2', 0]);
+    expect(workflow['3'].inputs.vae).toEqual(['1', 2]);
+    expect(workflow['6'].inputs.model).toEqual(['1', 0]);
+    expect(workflow['6'].inputs.positive).toEqual(['4', 0]);
+    expect(workflow['6'].inputs.negative).toEqual(['5', 0]);
+    expect(workflow['6'].inputs.latent_image).toEqual(['3', 0]);
+    expect(workflow['7'].inputs.samples).toEqual(['6', 0]);
+    expect(workflow['8'].inputs.images).toEqual(['7', 0]);
+  });
 });

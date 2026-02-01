@@ -1,6 +1,6 @@
 {
   "name": "mcp-comfy-ui-builder",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "ComfyUI Node Discovery: seed knowledge base, MCP tools for Cursor/Claude",
   "type": "module",
   "main": "dist/cli.js",
