@@ -1,31 +1,31 @@
 # Knowledge Base - Node Discovery System
 
-> Структура бази знань, формати даних, як розширювати
+> Knowledge base structure, data formats, how to extend
 
 ***
 
-## 📁 Структура файлів
+## 📁 File Structure
 
 ```
 knowledge/
-├── base-nodes.json          # Базові ноди ComfyUI (KSampler, CheckpointLoader, ...)
-├── custom-nodes.json       # Кастомні node packs (ComfyUI-Manager, WAS Suite, ...)
-├── node-compatibility.json # Типи даних, producers/consumers, правила сумісності
-├── README.md               # Цей файл
-├── node-description-prompt-template.md  # Prompt для Claude (опис нод)
-└── CHANGELOG.md            # Історія змін (auto-generated при scan)
+├── base-nodes.json          # Base ComfyUI nodes (KSampler, CheckpointLoader, ...)
+├── custom-nodes.json       # Custom node packs (ComfyUI-Manager, WAS Suite, ...)
+├── node-compatibility.json # Data types, producers/consumers, compatibility rules
+├── README.md               # This file
+├── node-description-prompt-template.md  # Prompt for Claude (node descriptions)
+└── CHANGELOG.md            # Change history (auto-generated on scan)
 ```
 
 ***
 
-## Формат даних
+## Data Format
 
 ### base-nodes.json
 
 - **metadata**: version, last_updated, total_nodes, categories
-- **nodes**: об'єкт `{ "NodeClassName": { ... } }`
+- **nodes**: object `{ "NodeClassName": { ... } }`
 
-Кожна нода містить:
+Each node contains:
 
 - `display_name`, `category`, `description`
 - `input_types`: `{ required: { param: { type, description, color?, default?, notes? } }, optional? }`
@@ -35,22 +35,22 @@ knowledge/
 
 ### custom-nodes.json
 
-- Список node packs з полями: name, repo, priority, key_nodes, use_cases, models
+- List of node packs with fields: name, repo, priority, key_nodes, use_cases, models
 
 ### node-compatibility.json
 
-- **data_types**: для кожного типу (MODEL, CLIP, LATENT, IMAGE, ...): color, producers[], consumers[]
-- Може містити workflow_patterns, validation_rules
+- **data_types**: for each type (MODEL, CLIP, LATENT, IMAGE, ...): color, producers[], consumers[]
+- May contain workflow_patterns, validation_rules
 
 ***
 
-## Як додати нову ноду
+## How to Add a New Node
 
-1. **Вручну**: додати об'єкт у `base-nodes.json` → nodes.NodeClassName (або у custom-nodes як pack).
-2. **Через Claude**: використати `node-description-prompt-template.md` + JSON з `/object_info` → вставити результат у base-nodes.json.
-3. **Автоматично** (після імплементації): `npm run scan` або `npm run add-node`.
+1. **Manually**: add object to `base-nodes.json` → nodes.NodeClassName (or to custom-nodes as pack).
+2. **Via Claude**: use `node-description-prompt-template.md` + JSON from `/object_info` → insert result into base-nodes.json.
+3. **Automatically** (after implementation): `npm run scan` or `npm run add-node`.
 
-Після додавання ноди варто оновити `node-compatibility.json` (producers/consumers для типів).
+After adding a node, it's worth updating `node-compatibility.json` (producers/consumers for types).
 
 ***
 

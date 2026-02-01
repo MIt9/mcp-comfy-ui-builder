@@ -1,51 +1,49 @@
-# Документація — ComfyUI Node Discovery
+# Documentation — ComfyUI Node Discovery
 
-Єдиний вхід у документацію: орієнтуйтесь **за задачею**, потім переходьте до потрібного файлу.
-
----
-
-## Швидкий старт (5 хв)
-
-1. **Встановити:** `npm install` (з кореня проєкту).
-2. **Налаштувати:** скопіювати `.env.example` в `.env`, вказати `ANTHROPIC_API_KEY`, `COMFYUI_HOST`.
-3. **Запустити:** `npm run scan:dry` (перевірка) або `npm run add-node` (додати одну ноду).
-
-Детальніше → [GETTING-STARTED.md](GETTING-STARTED.md).
+Single entry point for documentation: navigate **by task**, then go to the needed file.
 
 ---
 
-## За задачею
+## Quick Start (5 min)
 
-| Що хочете зробити | Документ |
-|-------------------|----------|
-| **Запустити скан / додати ноду / команди під рукою** | [QUICK-REFERENCE.md](QUICK-REFERENCE.md) |
-| **Повний старт і варіанти використання** (ручно, wizard, скан) | [GETTING-STARTED.md](GETTING-STARTED.md) |
-| **Підключити MCP у Cursor або Claude Desktop** | [MCP-SETUP.md](MCP-SETUP.md) |
-| **Зрозуміти, що це за система і як працює** | [SUMMARY.md](SUMMARY.md) |
-| **Побачити архітектуру (діаграми, потік даних)** | [SYSTEM-DIAGRAM.md](SYSTEM-DIAGRAM.md) |
-| **Розробляти або інтегрувати код** | [node-discovery-system.md](node-discovery-system.md), [IMPLEMENTATION-CHECKLIST.md](IMPLEMENTATION-CHECKLIST.md) |
-| **Деталі ComfyUI API** (object_info, endpoints) | [comfyui-api-quick-reference.md](comfyui-api-quick-reference.md), [comfyui-api-detailed-guide.md](comfyui-api-detailed-guide.md) |
-| **Як використовувати базу знань у коді** | [knowledge-base-usage-guide.md](knowledge-base-usage-guide.md), [knowledge/README.md](../knowledge/README.md) |
-| **План фаз і наступні кроки** | [PLAN-NEXT-STEPS.md](PLAN-NEXT-STEPS.md) |
+1. **Install:** `npm install` (from project root).
+2. **Configure:** copy `.env.example` to `.env`, specify `ANTHROPIC_API_KEY`, `COMFYUI_HOST`.
+3. **Run:** `npm run scan:dry` (check) or `npm run add-node` (add one node).
+
+More details → [GETTING-STARTED.md](GETTING-STARTED.md).
 
 ---
 
-## Усі документи (список)
+## By Task
 
-| Файл | Призначення |
-|------|-------------|
-| [GETTING-STARTED.md](GETTING-STARTED.md) | Швидкий старт, варіанти: ручно / wizard / скан |
-| [QUICK-REFERENCE.md](QUICK-REFERENCE.md) | Команди, структури JSON, troubleshooting |
-| [MCP-SETUP.md](MCP-SETUP.md) | Запуск MCP, підключення в Cursor/Claude |
-| [SUMMARY.md](SUMMARY.md) | Огляд системи, features, структура |
-| [SYSTEM-DIAGRAM.md](SYSTEM-DIAGRAM.md) | Діаграми, flow |
-| [NODE-DISCOVERY-README.md](NODE-DISCOVERY-README.md) | Розширений гайд (встановлення, use cases) |
-| [node-discovery-system.md](node-discovery-system.md) | Архітектура, API, код |
-| [IMPLEMENTATION-CHECKLIST.md](IMPLEMENTATION-CHECKLIST.md) | Чеклист імплементації |
-| [PLAN-NEXT-STEPS.md](PLAN-NEXT-STEPS.md) | План фаз (scaffold → deploy) |
-| [comfyui-api-quick-reference.md](comfyui-api-quick-reference.md) | ComfyUI API — короткий довідник |
-| [comfyui-api-detailed-guide.md](comfyui-api-detailed-guide.md) | ComfyUI API — детальний гайд |
-| [knowledge-base-usage-guide.md](knowledge-base-usage-guide.md) | База знань у коді (Node, Python, jq) |
-| [INDEX.md](INDEX.md) | Повна навігація (таблиці, FAQ, посилання на knowledge/) |
+| What you want to do | Document |
+|---------------------|----------|
+| **Run scan / add node / commands at hand** | [QUICK-REFERENCE.md](QUICK-REFERENCE.md) |
+| **Complete start and usage options** (manual, wizard, scan) | [GETTING-STARTED.md](GETTING-STARTED.md) |
+| **Connect MCP in Cursor or Claude Desktop** | [MCP-SETUP.md](MCP-SETUP.md) |
+| **Understand what this system is and how it works** | [SUMMARY.md](SUMMARY.md) |
+| **See architecture (diagrams, data flow)** | [SYSTEM-DIAGRAM.md](SYSTEM-DIAGRAM.md) |
+| **Develop or integrate code** | [node-discovery-system.md](node-discovery-system.md), [IMPLEMENTATION-CHECKLIST.md](IMPLEMENTATION-CHECKLIST.md) |
+| **ComfyUI API details** (object_info, endpoints) | [comfyui-api-quick-reference.md](comfyui-api-quick-reference.md), [comfyui-api-detailed-guide.md](comfyui-api-detailed-guide.md) |
+| **How to use knowledge base in code** | [knowledge-base-usage-guide.md](knowledge-base-usage-guide.md), [knowledge/README.md](../knowledge/README.md) |
 
-База знань (єдине джерело правди) — папка **`knowledge/`** в корені проєкту.
+---
+
+## All Documents (List)
+
+| File | Purpose |
+|------|---------|
+| [GETTING-STARTED.md](GETTING-STARTED.md) | Quick start, options: manual / wizard / scan |
+| [QUICK-REFERENCE.md](QUICK-REFERENCE.md) | Commands, JSON structures, troubleshooting |
+| [MCP-SETUP.md](MCP-SETUP.md) | MCP launch, connect in Cursor/Claude |
+| [SUMMARY.md](SUMMARY.md) | System overview, features, structure |
+| [SYSTEM-DIAGRAM.md](SYSTEM-DIAGRAM.md) | Diagrams, flow |
+| [NODE-DISCOVERY-README.md](NODE-DISCOVERY-README.md) | Extended guide (installation, use cases) |
+| [node-discovery-system.md](node-discovery-system.md) | Architecture, API, code |
+| [IMPLEMENTATION-CHECKLIST.md](IMPLEMENTATION-CHECKLIST.md) | Implementation checklist |
+| [comfyui-api-quick-reference.md](comfyui-api-quick-reference.md) | ComfyUI API — quick reference |
+| [comfyui-api-detailed-guide.md](comfyui-api-detailed-guide.md) | ComfyUI API — detailed guide |
+| [knowledge-base-usage-guide.md](knowledge-base-usage-guide.md) | Knowledge base in code (Node, Python, jq) |
+| [INDEX.md](INDEX.md) | Complete navigation (tables, FAQ, links to knowledge/) |
+
+Knowledge base (single source of truth) — **`knowledge/`** folder at project root.

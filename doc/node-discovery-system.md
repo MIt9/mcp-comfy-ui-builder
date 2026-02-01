@@ -1,6 +1,6 @@
 # 🔧 Node Discovery System - Technical Implementation
 
-> Детальна технічна документація: архітектура, API, код, інтеграція
+> Detailed technical documentation: architecture, API, code, integration
 
 ***
 
@@ -93,34 +93,34 @@ interface NodeDescription {
 
 ### 1. NodeScanner
 
-- **scanLiveInstance()**: GET `${comfyUIHost}/object_info`, парсинг у `Map<string, RawNodeInfo>`
-- **fetchManagerList()**: завантаження ComfyUI-Manager custom-node-list.json
-- **analyzeRepository(repoUrl)**: GitHub API — README.md, __init__.py, парсинг нод
+- **scanLiveInstance()**: GET `${comfyUIHost}/object_info`, parsing into `Map<string, RawNodeInfo>`
+- **fetchManagerList()**: loading ComfyUI-Manager custom-node-list.json
+- **analyzeRepository(repoUrl)**: GitHub API — README.md, __init__.py, parsing nodes
 
 ### 2. AINodeDescriptionGenerator
 
-- **generateDescription(rawNode)**: побудова промпту з RawNodeInfo, виклик Claude, парсинг JSON у NodeDescription
-- **generateBatch(nodes, batchSize)**: batch з rate limiting (наприклад 1s між батчами)
-- **buildPrompt(node)**: шаблон з node-description-prompt-template.md + JSON input/output
+- **generateDescription(rawNode)**: building prompt from RawNodeInfo, calling Claude, parsing JSON into NodeDescription
+- **generateBatch(nodes, batchSize)**: batch with rate limiting (e.g., 1s between batches)
+- **buildPrompt(node)**: template from node-description-prompt-template.md + JSON input/output
 
 ### 3. KnowledgeBaseUpdater
 
-- **addNode(className, description, isCustom)**: додати/оновити запис у base-nodes.json або custom-nodes.json
-- **updateCompatibility(nodeClass, desc)**: оновити node-compatibility.json (producers/consumers)
-- **generateChangelog(newNodes)**: дописати в CHANGELOG.md
+- **addNode(className, description, isCustom)**: add/update entry in base-nodes.json or custom-nodes.json
+- **updateCompatibility(nodeClass, desc)**: update node-compatibility.json (producers/consumers)
+- **generateChangelog(newNodes)**: append to CHANGELOG.md
 
 ***
 
 ## 🔗 MCP Integration
 
-Tools для MCP сервера:
+Tools for MCP server:
 
-- **list_node_types**: повернути ключі з base-nodes.json (та за потреби custom-nodes.json)
-- **get_node_info(node_name)**: повернути повний об'єкт ноди з бази знань
-- **check_compatibility(from_node, to_node)**: використати node-compatibility.json для перевірки типів
-- **suggest_nodes(task_description)**: пошук по description/use_cases (або майбутній LLM)
+- **list_node_types**: return keys from base-nodes.json (and custom-nodes.json if needed)
+- **get_node_info(node_name)**: return full node object from knowledge base
+- **check_compatibility(from_node, to_node)**: use node-compatibility.json to check types
+- **suggest_nodes(task_description)**: search by description/use_cases (or future LLM)
 
-Завантаження даних:
+Loading data:
 
 ```typescript
 import baseNodes from './knowledge/base-nodes.json';
@@ -129,7 +129,7 @@ import compatibility from './knowledge/node-compatibility.json';
 
 ***
 
-## 📁 Файли проєкту
+## 📁 Project Files
 
 - `src/node-discovery/scanner.ts` — NodeScanner
 - `src/node-discovery/ai-generator.ts` — AINodeDescriptionGenerator
@@ -141,4 +141,4 @@ import compatibility from './knowledge/node-compatibility.json';
 
 *Technical Implementation v1.1.0* | *2026-02-01*
 
-**Повний чеклист**: IMPLEMENTATION-CHECKLIST.md
+**Full checklist**: IMPLEMENTATION-CHECKLIST.md

@@ -1,18 +1,18 @@
 # 📖 ComfyUI API Detailed Guide
 
-> Повний довідник по ComfyUI WebSocket та HTTP API для Node Discovery System
+> Complete reference guide for ComfyUI WebSocket and HTTP API for Node Discovery System
 
 ***
 
 ## 🔌 API Endpoints
 
-### 1. **`/object_info`** ⭐ **Найважливіший для Node Discovery**
+### 1. **`/object_info`** ⭐ **Most Important for Node Discovery**
 
 **GET** `http://127.0.0.1:8188/object_info`
 
-**Повертає**: Повний список **всіх доступних нод** з їх структурою
+**Returns**: Complete list of **all available nodes** with their structure
 
-**Структура відповіді**:
+**Response structure**:
 ```json
 {
   "NodeClassName": {
@@ -36,7 +36,7 @@
 }
 ```
 
-**Приклад**:
+**Example**:
 ```bash
 curl http://127.0.0.1:8188/object_info | jq '.KSampler'
 ```
@@ -68,9 +68,9 @@ Messages: status, executed, executing
 - `["COMBO", ["opt1", "opt2"]]` - Dropdown
 - `["MODEL"]`, `["CLIP"]`, `["LATENT"]` - Node outputs
 
-### RETURN_TYPES - Основні типи виходів
+### RETURN_TYPES - Main output types
 
-| Тип | Кольор | Приклади нод |
+| Type | Color | Example nodes |
 | :-- | :-- | :-- |
 | MODEL | #B22222 | CheckpointLoader → KSampler |
 | CLIP | #FFD700 | CheckpointLoader → CLIPTextEncode |
@@ -85,7 +85,7 @@ Messages: status, executed, executing
 ## 🔍 API Usage Examples
 
 ```bash
-# Повний список нод
+# Complete list of nodes
 curl -s http://127.0.0.1:8188/object_info | jq 'keys | length'
 
 # Node Input/Output Analysis
@@ -106,10 +106,10 @@ export NODE_SCAN_BATCH_SIZE=5
 
 ## 🔧 Troubleshooting
 
-- **Connection refused**: Запустіть ComfyUI `python main.py --listen`
-- **Invalid JSON**: Перевірте ComfyUI logs, restart
-- **Empty object_info**: Встановіть ComfyUI-Manager
-- **Missing nodes**: Перезапустіть ComfyUI після установки custom nodes
+- **Connection refused**: Start ComfyUI `python main.py --listen`
+- **Invalid JSON**: Check ComfyUI logs, restart
+- **Empty object_info**: Install ComfyUI-Manager
+- **Missing nodes**: Restart ComfyUI after installing custom nodes
 
 ***
 

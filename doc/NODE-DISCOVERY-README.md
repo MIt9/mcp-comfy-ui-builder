@@ -1,27 +1,27 @@
 # 🔍 ComfyUI Node Discovery System
 
-> Автоматична система для виявлення, аналізу та документування ComfyUI нод з AI-powered описами
+> Automated system for discovering, analyzing, and documenting ComfyUI nodes with AI-powered descriptions
 
 ***
 
-## 🎯 Огляд
+## 🎯 Overview
 
-**Проблема**: Новий custom node pack = десятки нод без документації для AI.
+**Problem**: New custom node pack = dozens of nodes without documentation for AI.
 
-**Рішення**: Система яка **автоматично**:
+**Solution**: System that **automatically**:
 
-1. **Виявляє** нові ноди з ComfyUI API
-2. **Аналізує** їх структуру (INPUT/OUTPUT types)
-3. **Генерує** детальні описи через Claude AI
-4. **Оновлює** базу знань у structured JSON
+1. **Discovers** new nodes from ComfyUI API
+2. **Analyzes** their structure (INPUT/OUTPUT types)
+3. **Generates** detailed descriptions via Claude AI
+4. **Updates** knowledge base in structured JSON
 
-**Результат**: Повна база знань для MCP сервера за 25 хвилин замість 25 годин ручної роботи.
+**Result**: Complete knowledge base for MCP server in 25 minutes instead of 25 hours of manual work.
 
 ***
 
 ## 🚀 Quick Start
 
-### Встановлення (5 хвилин)
+### Installation (5 minutes)
 
 ```bash
 git clone <your-repo>
@@ -31,7 +31,7 @@ export ANTHROPIC_API_KEY="sk-ant-your-key"
 cd ComfyUI && python main.py --listen
 ```
 
-### Перший запуск (2 хвилини)
+### First Run (2 minutes)
 
 ```bash
 npm run scan
@@ -39,14 +39,14 @@ npm run scan
 
 ***
 
-## 📦 Встановлення
+## 📦 Installation
 
 ### Prerequisites
 
 - Node.js 18+
-- ComfyUI на http://127.0.0.1:8188
+- ComfyUI at http://127.0.0.1:8188
 - Claude API key (Anthropic)
-- ComfyUI-Manager (рекомендовано)
+- ComfyUI-Manager (recommended)
 
 ### Full Setup
 
@@ -64,25 +64,25 @@ cp -r knowledge/ .
 
 ## 🛠️ CLI Commands
 
-| Команда | Опис |
+| Command | Description |
 | :-- | :-- |
-| `npm run scan` | Автоматичний скан нових нод, Claude описи, оновлення JSON |
-| `npm run scan:dry` | Dry run без змін |
-| `npm run sync-manager` | Оновлює список custom node packs з ComfyUI Manager |
-| `npm run analyze <repo-url>` | Аналізує GitHub репозиторій і додає ноди |
-| `npm run add-node` | Інтерактивний wizard для ручного додавання |
+| `npm run scan` | Automatic scan of new nodes, Claude descriptions, JSON update |
+| `npm run scan:dry` | Dry run without changes |
+| `npm run sync-manager` | Updates list of custom node packs from ComfyUI Manager |
+| `npm run analyze <repo-url>` | Analyzes GitHub repository and adds nodes |
+| `npm run add-node` | Interactive wizard for manual addition |
 
 ***
 
-## 📊 База знань
+## 📊 Knowledge Base
 
-### Структура файлів
+### File Structure
 
 ```
 knowledge/
-├── base-nodes.json          # 52 базові ноди (KSampler, ...)
+├── base-nodes.json          # 52 base nodes (KSampler, ...)
 ├── custom-nodes.json        # 15 custom packs (WAS Suite, ...)
-├── node-compatibility.json  # 11 типів даних + 150+ зв'язків
+├── node-compatibility.json  # 11 data types + 150+ connections
 ├── README.md
 └── CHANGELOG.md             # auto-generated
 ```
@@ -130,7 +130,7 @@ ComfyUI /object_info → NodeScanner → Claude Prompt → JSON Description → 
 
 ## 🧪 Use Cases
 
-### Use Case 1: Щотижневе оновлення
+### Use Case 1: Weekly Update
 
 ```bash
 npm run scan
@@ -138,11 +138,11 @@ npm run sync-manager
 git add knowledge/ && git commit -m "Weekly node update"
 ```
 
-### Use Case 2: Новий node pack
+### Use Case 2: New Node Pack
 
-Встановити в ComfyUI custom_nodes, перезапустити ComfyUI, потім `npm run scan`.
+Install in ComfyUI custom_nodes, restart ComfyUI, then `npm run scan`.
 
-### Use Case 3: Ручне додавання
+### Use Case 3: Manual Addition
 
 ```bash
 npm run add-node
@@ -154,18 +154,18 @@ npm run add-node
 
 ComfyUI /object_info → NodeScanner → AI Generator (Claude) → KnowledgeBaseUpdater → JSON Files → MCP Server
 
-**Деталі**: node-discovery-system.md
+**Details**: node-discovery-system.md
 
 ***
 
 ## 🐛 Troubleshooting
 
-| Проблема | Рішення |
+| Problem | Solution |
 | :-- | :-- |
 | Connection refused | python main.py --listen 0.0.0.0 --port 8188 |
-| Invalid JSON | Перезапустити ComfyUI, перевірити logs |
-| Claude API error | Перевірити ANTHROPIC_API_KEY |
-| Rate limit exceeded | Зменшити NODE_BATCH_SIZE |
+| Invalid JSON | Restart ComfyUI, check logs |
+| Claude API error | Check ANTHROPIC_API_KEY |
+| Rate limit exceeded | Decrease NODE_BATCH_SIZE |
 
 **Деталі**: comfyui-api-detailed-guide.md
 

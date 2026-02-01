@@ -1,53 +1,53 @@
 # Node Description Prompt Template (Claude)
 
-> Шаблон для генерації structured JSON опису ComfyUI ноди через Claude
+> Template for generating structured JSON description of ComfyUI node via Claude
 
 ***
 
-## Інструкція
+## Instructions
 
-1. Отримай RAW інфо про ноду з ComfyUI:
+1. Get RAW info about the node from ComfyUI:
    ```bash
    curl http://127.0.0.1:8188/object_info | jq '.NodeClassName' > node.json
    ```
 
-2. Нижче — промпт. Підстав замість `{{RAW_NODE_JSON}}` вміст з node.json (або встав його в чат окремо).
+2. Below is the prompt. Replace `{{RAW_NODE_JSON}}` with the content from node.json (or paste it in chat separately).
 
-3. Попроси Claude повернути **тільки валідний JSON** без markdown-кодблоків на початку/кінці (або з одним блоком ` ```json ... ``` `).
+3. Ask Claude to return **only valid JSON** without markdown code blocks at the beginning/end (or with one block ` ```json ... ``` `).
 
-4. Скопіюй результат у `knowledge/base-nodes.json` → об'єкт `nodes` → ключ `NodeClassName`.
+4. Copy the result to `knowledge/base-nodes.json` → `nodes` object → key `NodeClassName`.
 
 ***
 
-## Промпт (шаблон)
+## Prompt (template)
 
 ```
-Ти експерт по ComfyUI. Надай структурований опис ноди у вигляді JSON.
+You are an expert on ComfyUI. Provide a structured node description in JSON format.
 
-**Сирий вивід ноди з ComfyUI /object_info:**
+**Raw node output from ComfyUI /object_info:**
 
 {{RAW_NODE_JSON}}
 
-**Вимоги до JSON:**
+**JSON Requirements:**
 
-- display_name: людсько-читабельна назва
-- category: одна з loaders, conditioning, sampling, latent, image, mask або підходяща
-- description: 1-2 речення українською або англійською, що робить нода
-- input_types.required: для кожного параметра з input.required — type, description, color (hex для MODEL/CLIP/LATENT/IMAGE/CONDITIONING/VAE/MASK), default/min/max/notes де є
-- return_types, return_names, output_colors: з output/output_name; кольори для типів як у таблиці (MODEL #B22222, CLIP #FFD700, CONDITIONING #FFA931, LATENT #FF6E6E, IMAGE #64B5F6, MASK #81C784)
-- use_cases: масив 3-5 коротких сценаріїв використання
-- compatible_outputs: для кожного return type — масив назв нод, до яких можна підключати вихід
-- example_values: приклад значень для ключових параметрів
+- display_name: human-readable name
+- category: one of loaders, conditioning, sampling, latent, image, mask or appropriate
+- description: 1-2 sentences describing what the node does
+- input_types.required: for each parameter from input.required — type, description, color (hex for MODEL/CLIP/LATENT/IMAGE/CONDITIONING/VAE/MASK), default/min/max/notes where available
+- return_types, return_names, output_colors: from output/output_name; colors for types as in the table (MODEL #B22222, CLIP #FFD700, CONDITIONING #FFA931, LATENT #FF6E6E, IMAGE #64B5F6, MASK #81C784)
+- use_cases: array of 3-5 short usage scenarios
+- compatible_outputs: for each return type — array of node names to which the output can be connected
+- example_values: example values for key parameters
 - priority: "high" | "medium" | "low"
 
-Поверни тільки один JSON-об'єкт, без пояснень до нього.
+Return only one JSON object, without explanations.
 ```
 
 ***
 
-## Таблиця кольорів типів (для підстановки в prompt)
+## Type Color Table (for prompt substitution)
 
-| Тип          | Hex     |
+| Type          | Hex     |
 |-------------|---------|
 | MODEL       | #B22222 |
 | CLIP        | #FFD700 |

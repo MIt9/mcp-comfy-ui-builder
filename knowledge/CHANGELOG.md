@@ -1,6 +1,6 @@
 # Changelog – Knowledge Base
 
-Історія змін бази знань ComfyUI нод. Оновлення при `npm run scan` або ручному додаванні.
+Change history for ComfyUI node knowledge base. Updated on `npm run scan` or manual addition.
 
 ---
 

@@ -1,6 +1,6 @@
 # ✅ Implementation Checklist - Node Discovery System
 
-> Покроковий чеклист для повної імплементації (12-20 годин)
+> Step-by-step checklist for full implementation (12-20 hours)
 
 ***
 
@@ -20,19 +20,19 @@ Total: 54/67 tasks (81%) | MVP: 54/54 (100%)
 
 ***
 
-## Phase 1: Setup & Dependencies (1 год)
+## Phase 1: Setup & Dependencies (1h)
 
-### 1.1 Project Initialization (10 хв)
+### 1.1 Project Initialization (10 min)
 
 ```bash
 mkdir comfyui-node-discovery && cd comfyui-node-discovery
 npm init -y
 ```
 
-- [ ] Створено package.json
-- [ ] Додано name, version, description
+- [ ] Created package.json
+- [ ] Added name, version, description
 
-### 1.2 Install Dependencies (10 хв)
+### 1.2 Install Dependencies (10 min)
 
 ```bash
 npm install @anthropic-ai/sdk @octokit/rest commander node-fetch
@@ -42,22 +42,22 @@ npm install -D typescript @types/node tsx @types/node-fetch
 - [ ] Production deps: anthropic, octokit, commander
 - [ ] Dev deps: typescript, tsx
 
-### 1.3 TypeScript Config (10 хв)
+### 1.3 TypeScript Config (10 min)
 
 - [ ] tsconfig.json created
 - [ ] `npx tsc --noEmit` passes
 
-### 1.4 Environment Setup (10 хв)
+### 1.4 Environment Setup (10 min)
 
 ```
 .env: ANTHROPIC_API_KEY, COMFYUI_HOST, NODE_BATCH_SIZE
-.env.example committed, .env в .gitignore
+.env.example committed, .env in .gitignore
 ```
 
 - [ ] .env created
 - [ ] .env.example committed
 
-### 1.5 Project Structure (10 хв)
+### 1.5 Project Structure (10 min)
 
 ```
 src/ (cli.ts, mcp-server.ts, logger.ts)
@@ -67,12 +67,12 @@ knowledge/ (base-nodes.json, custom-nodes.json, node-compatibility.json, …)
 scripts/, tests/ (tests/*.test.ts, tests/fixtures/, tests/integration/)
 ```
 
-- [x] Структура папок створена
-- [x] knowledge/ у корені проєкту (єдине джерело правди)
+- [x] Folder structure created
+- [x] knowledge/ at project root (single source of truth)
 
 ***
 
-## Phase 2: Core Classes (6 год)
+## Phase 2: Core Classes (6 hours)
 
 ### 2.1 NodeScanner
 
@@ -103,7 +103,7 @@ scripts/, tests/ (tests/*.test.ts, tests/fixtures/, tests/integration/)
 
 ***
 
-## Phase 3: Testing (2 год) ✅
+## Phase 3: Testing (2 hours) ✅
 
 - [x] Unit tests: scanner (`tests/scanner.test.ts`), ai-generator (`tests/ai-generator.test.ts`), updater (`tests/updater.test.ts`), MCP tools (`tests/mcp-tools.test.ts`)
 - [x] Integration: scan dry-run з mock (`tests/integration/scan.test.ts`)
@@ -111,16 +111,16 @@ scripts/, tests/ (tests/*.test.ts, tests/fixtures/, tests/integration/)
 
 ***
 
-## Phase 4: Polish (2 год) ✅
+## Phase 4: Polish (2 hours) ✅
 
-- [x] Error handling: CLI повідомлення (ComfyUI недоступний, Invalid API key), `src/cli.ts`
-- [x] Logging: `src/logger.ts` ([scan], [mcp], [cli]), опційно `DEBUG=1`
-- [x] Rate limiting: затримки між викликами Claude в `generateBatch`, retry з backoff у scanner для fetch
+- [x] Error handling: CLI messages (ComfyUI unavailable, Invalid API key), `src/cli.ts`
+- [x] Logging: `src/logger.ts` ([scan], [mcp], [cli]), optionally `DEBUG=1`
+- [x] Rate limiting: delays between Claude calls in `generateBatch`, retry with backoff in scanner for fetch
 - [x] Documentation: IMPLEMENTATION-CHECKLIST, GETTING-STARTED, QUICK-REFERENCE
 
 ***
 
-## Phase 5: MCP Integration (4 год)
+## Phase 5: MCP Integration (4 hours)
 
 - [ ] MCP server setup (@modelcontextprotocol/sdk)
 - [ ] list_node_types, get_node_info, check_compatibility, suggest_nodes
@@ -129,7 +129,7 @@ scripts/, tests/ (tests/*.test.ts, tests/fixtures/, tests/integration/)
 
 ***
 
-## Phase 6: Production (2 год)
+## Phase 6: Production (2 hours)
 
 - [ ] Docker (optional)
 - [ ] CI (scan weekly)
@@ -137,7 +137,7 @@ scripts/, tests/ (tests/*.test.ts, tests/fixtures/, tests/integration/)
 
 ***
 
-## Phase 7: Deploy (1 год)
+## Phase 7: Deploy (1 hour)
 
 - [ ] npm publish or private registry
 - [ ] README, CHANGELOG
@@ -147,4 +147,4 @@ scripts/, tests/ (tests/*.test.ts, tests/fixtures/, tests/integration/)
 
 *Checklist Version: 1.1.0* | *2026-02-01*
 
-**Деталі коду**: node-discovery-system.md
+**Code details**: node-discovery-system.md

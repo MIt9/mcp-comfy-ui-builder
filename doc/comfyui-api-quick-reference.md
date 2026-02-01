@@ -1,50 +1,50 @@
 # 🚀 ComfyUI API Quick Reference
-> Швидкий довідник по всіх endpoints, прикладам curl та найпоширенішим паттернам
+> Quick reference guide for all endpoints, curl examples, and most common patterns
 ## 📋 Endpoints Table
-| Endpoint | Method | Мета | Параметри | Відповідь | Приклад curl | Use Case |
-|----------|--------|------|-----------|-----------|-------------|----------|
-| `/object_info` | **GET** | 🔍 Виявлення нод | None | JSON з усіма node definitions | `curl http://127.0.0.1:8188/object_info` | **Node Discovery** - отримати INPUT/OUTPUT типи |
-| `/prompt` | **POST** | ▶️ Виконання workflow | JSON workflow | `{"prompt_id": "..."}` | `curl -X POST -d @workflow.json http://127.0.0.1:8188/prompt` | **Основний** - запустити генерацію |
-| `/history` | **GET** | 📜 Історія | None | Масив завершених prompt | `curl http://127.0.0.1:8188/history` | Отримати результати минулих запусків |
-| `/history/{prompt_id}` | **GET** | 📋 Деталі run | prompt_id | JSON з outputs | `curl http://127.0.0.1:8188/history/prompt_id` | Отримати зображення з конкретного run |
+| Endpoint | Method | Purpose | Parameters | Response | Example curl | Use Case |
+|----------|--------|---------|-----------|-----------|-------------|----------|
+| `/object_info` | **GET** | 🔍 Node discovery | None | JSON with all node definitions | `curl http://127.0.0.1:8188/object_info` | **Node Discovery** - get INPUT/OUTPUT types |
+| `/prompt` | **POST** | ▶️ Execute workflow | JSON workflow | `{"prompt_id": "..."}` | `curl -X POST -d @workflow.json http://127.0.0.1:8188/prompt` | **Main** - start generation |
+| `/history` | **GET** | 📜 History | None | Array of completed prompts | `curl http://127.0.0.1:8188/history` | Get results from previous runs |
+| `/history/{prompt_id}` | **GET** | 📋 Run details | prompt_id | JSON with outputs | `curl http://127.0.0.1:8188/history/prompt_id` | Get images from specific run |
 | `/ws` | **WebSocket** | 📡 Live monitoring | `clientId=unique` | Real-time updates | `wscat -c ws://127.0.0.1:8188/ws?clientId=test` | **Live progress** + images |
-| `/system_stats` | **GET** | 🖥️ Системні метрики | None | GPU/VRAM/RAM | `curl http://127.0.0.1:8188/system_stats` | Моніторинг ресурсів |
-| `/queue` | **GET** | ⏳ Черга | None | Queue length | `curl http://127.0.0.1:8188/queue` | Статус черги завдань |
-| `/view` | **GET** | 🖼️ Зображення | `filename`, `type=output` | Image file | `curl "http://127.0.0.1:8188/view?filename=img.png&type=output"` | Отримати згенероване зображення |
+| `/system_stats` | **GET** | 🖥️ System metrics | None | GPU/VRAM/RAM | `curl http://127.0.0.1:8188/system_stats` | Resource monitoring |
+| `/queue` | **GET** | ⏳ Queue | None | Queue length | `curl http://127.0.0.1:8188/queue` | Task queue status |
+| `/view` | **GET** | 🖼️ Image | `filename`, `type=output` | Image file | `curl "http://127.0.0.1:8188/view?filename=img.png&type=output"` | Get generated image |
 
 ***
 
-## 💡 Найпоширеніші команди
-### 🔍 **1. Перевірити що ComfyUI працює**
+## 💡 Most Common Commands
+### 🔍 **1. Check that ComfyUI is running**
 ```bash
-# Базовий health check
+# Basic health check
 curl http://127.0.0.1:8188/system_stats
 
-# Перевірити кількість нод
+# Check number of nodes
 curl http://127.0.0.1:8188/object_info | jq 'keys | length'
 
-# Статус черги
+# Queue status
 curl http://127.0.0.1:8188/queue
 ```
 
-### 🕵️ **2. Node Discovery (для Node Discovery System)**
+### 🕵️ **2. Node Discovery (for Node Discovery System)**
 ```bash
-# Всі ноди (save to file)
+# All nodes (save to file)
 curl http://127.0.0.1:8188/object_info > all-nodes.json
 
-# Одна нода
+# One node
 curl http://127.0.0.1:8188/object_info | jq '."KSampler"'
 
 # Custom nodes only
 curl http://127.0.0.1:8188/object_info | jq 'keys | map(select(startswith("WAS_")))'
 
-# По категорії
+# By category
 curl http://127.0.0.1:8188/object_info | jq '. | to_entries[] | select(.value.category == "sampling") | .key'
 ```
 
-### ▶️ **3. Запустити workflow**
+### ▶️ **3. Run workflow**
 ```bash
-# З файлу
+# From file
 curl -X POST http://127.0.0.1:8188/prompt \
   -H "Content-Type: application/json" \
   -d @workflow.json
@@ -65,20 +65,20 @@ curl -X POST http://127.0.0.1:8188/prompt \
 # Install wscat
 npm i -g wscat
 
-# Connect (отримати clientId)
+# Connect (get clientId)
 CLIENT_ID=$(uuidgen)
 wscat -c "ws://127.0.0.1:8188/ws?clientId=$CLIENT_ID"
 
-# Після підключення відправити prompt через /prompt
-# Отримаємо live updates тут
+# After connecting, send prompt via /prompt
+# Will receive live updates here
 ```
 
-### 🖼️ **5. Отримати зображення**
+### 🖼️ **5. Get images**
 ```bash
-# З history спочатку отримати filenames
+# From history first get filenames
 curl http://127.0.0.1:8188/history | jq '.[].outputs["7"]["images"]'
 
-# Отримати конкретне зображення
+# Get specific image
 curl "http://127.0.0.1:8188/view?filename=00001.png&type=output&subfolder=output" > image.png
 ```
 
@@ -113,53 +113,53 @@ done
 watch -n 5 'curl http://127.0.0.1:8188/queue'
 ```
 
-### Pattern 3: **Node Discovery для документації**
+### Pattern 3: **Node Discovery for documentation**
 ```bash
 #!/bin/bash
-# Для Node Discovery System
+# For Node Discovery System
 curl http://127.0.0.1:8188/object_info | \
   jq '. | to_entries[] | 
       select(.key | startswith("WAS_")) | 
       {class_name: .key, input_types: .value.input, category: .value.category}' > \
   new-nodes.json
 
-# Кожна нода готова для Claude prompt
+# Each node ready for Claude prompt
 ```
 
 ***
 
-## 🔍 **JQ Cheatsheet для /object_info**
+## 🔍 **JQ Cheatsheet for /object_info**
 ```bash
-# Кількість нод
+# Number of nodes
 jq 'keys | length' object_info.json
 
-# Список всіх нод
+# List all nodes
 jq -r 'keys[]' object_info.json
 
-# Ноди по категорії
+# Nodes by category
 jq -r '. | to_entries[] | select(.value.category == "image") | .key' object_info.json
 
-# INPUT_TYPES для конкретної ноди
+# INPUT_TYPES for specific node
 jq '."KSampler".input.required' object_info.json
 
-# Пошук нод з конкретним input типом
+# Search nodes with specific input type
 jq '. | to_entries[] | 
     select(.value.input.required.model // empty) | 
     .key' object_info.json
 
-# Custom nodes (по naming convention)
+# Custom nodes (by naming convention)
 jq -r 'keys | map(select(startswith("WAS_") or startswith("Impact_")))[]' object_info.json
 ```
 
 ***
 
 ## 📡 **WebSocket Messages Reference**
-### Вхідні (Client → Server)
+### Incoming (Client → Server)
 ```json
 {"type": "status", "data": {"node_id": "6", "title": "KSampler"}}
 ```
 
-### Вихідні (Server → Client)
+### Outgoing (Server → Client)
 ```json
 // Progress
 {"type": "progress", "data": {"value": 0.5}}
@@ -186,10 +186,10 @@ jq -r 'keys | map(select(startswith("WAS_") or startswith("Impact_")))[]' object
 ***
 
 ## 🛠️ **Troubleshooting**
-| Проблема | Рішення |
-|----------|---------|
+| Problem | Solution |
+|---------|----------|
 | `Connection refused` | `python main.py --listen` |
-| `Empty /object_info` | Restart ComfyUI після custom nodes |
+| `Empty /object_info` | Restart ComfyUI after custom nodes |
 | `WebSocket: clientId required` | `?clientId=$(uuidgen)` |
 | `Out of memory` | `curl /system_stats`, unload models |
 | `Queue full` | `curl /queue`, wait or scale |
@@ -198,7 +198,7 @@ jq -r 'keys | map(select(startswith("WAS_") or startswith("Impact_")))[]' object
 ***
 
 ## ⚙️ **Configuration**
-### Запуск ComfyUI для API
+### Starting ComfyUI for API
 ```bash
 # Local development
 python main.py
@@ -222,7 +222,7 @@ docker run -it --gpus all -p 8188:8188 comfyui:latest
 
 ***
 
-## 🔗 **Пов'язані Resources**
+## 🔗 **Related Resources**
 | Resource | URL |
 |----------|-----|
 | ComfyUI GitHub | https://github.com/comfyanonymous/ComfyUI |
@@ -233,8 +233,8 @@ docker run -it --gpus all -p 8188:8188 comfyui:latest
 
 ***
 
-## 🎯 **Для Node Discovery System**
-### Швидкий extract нових нод:
+## 🎯 **For Node Discovery System**
+### Quick extract of new nodes:
 ```bash
 #!/bin/bash
 # Save current nodes

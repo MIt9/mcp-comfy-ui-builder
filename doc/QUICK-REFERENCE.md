@@ -1,12 +1,12 @@
 # 🚀 Quick Reference - Node Discovery System
 
-> Швидкий довідник команд, структур, кольорів та прикладів
+> Quick reference guide for commands, structures, colors, and examples
 
 ***
 
-## ⚡ Найчастіші команди (Copy-Paste Ready)
+## ⚡ Most common commands (Copy-Paste Ready)
 
-### 🔍 Автоматичний скан нових нод
+### 🔍 Automatic scan for new nodes
 
 ```bash
 npm run scan
@@ -15,22 +15,22 @@ npm run scan -- --host http://192.168.1.100:8188
 ANTHROPIC_API_KEY=sk-ant-... npm run scan
 ```
 
-### ➕ Додати одну ноду
+### ➕ Add a single node
 
 ```bash
 npm run add-node
 curl http://127.0.0.1:8188/object_info | jq '.NodeName' > node.json
-npm run add-node  # В wizard: "file" → node.json
+npm run add-node  # In wizard: "file" → node.json
 ```
 
-### 🔄 Синхронізація
+### 🔄 Synchronization
 
 ```bash
 npm run sync-manager
 npm run analyze https://github.com/WASasquatch/was-node-suite-comfyui
 ```
 
-### 🧪 Тести та MCP
+### 🧪 Tests and MCP
 
 ```bash
 npm test
@@ -38,11 +38,11 @@ npm run test:watch
 npm run build && npm run mcp
 ```
 
-**Змінні:** `COMFYUI_HOST`, `ANTHROPIC_API_KEY`, `GITHUB_TOKEN` (для analyze), `DEBUG=1` (детальний лог).
+**Variables:** `COMFYUI_HOST`, `ANTHROPIC_API_KEY`, `GITHUB_TOKEN` (for analyze), `DEBUG=1` (detailed logging).
 
 ***
 
-## 📁 Швидкий огляд файлів
+## 📁 Quick file overview
 
 ```
 knowledge/
@@ -51,14 +51,14 @@ knowledge/
 ├── node-compatibility.json
 └── node-description-prompt-template.md
 
-Документи: SUMMARY.md, QUICK-REFERENCE.md, GETTING-STARTED.md, SYSTEM-DIAGRAM.md
+Documents: SUMMARY.md, QUICK-REFERENCE.md, GETTING-STARTED.md, SYSTEM-DIAGRAM.md
 ```
 
 ***
 
-## 🎨 Кольори типів даних
+## 🎨 Data type colors
 
-| Тип | Hex | Producers | Consumers |
+| Type | Hex | Producers | Consumers |
 | :-- | :-- | :-- | :-- |
 | MODEL | #B22222 | CheckpointLoader | KSampler |
 | CLIP | #FFD700 | CheckpointLoader | CLIPTextEncode |
@@ -71,7 +71,7 @@ knowledge/
 
 ***
 
-## 📋 JSON структура ноди (мінімальна)
+## 📋 Node JSON structure (minimal)
 
 ```json
 {
@@ -105,13 +105,13 @@ curl http://127.0.0.1:8188/object_info | jq '.KSampler.input.required | keys'
 
 ## 🐛 Troubleshooting (Top 5)
 
-| Проблема | Рішення |
+| Problem | Solution |
 | :-- | :-- |
 | Connection refused | python main.py --listen 0.0.0.0 --port 8188 |
 | No ANTHROPIC_API_KEY | export ANTHROPIC_API_KEY=sk-ant-... |
-| Invalid JSON from Claude | Перевірити prompt template |
-| Node already exists | Нормально! Пропускається |
-| Timeout scanning | Збільшити timeout або restart ComfyUI |
+| Invalid JSON from Claude | Check prompt template |
+| Node already exists | Normal! Skipped |
+| Timeout scanning | Increase timeout or restart ComfyUI |
 
 ***
 

@@ -1,99 +1,99 @@
 # mcp-comfy-ui-builder
 
-**ComfyUI Node Discovery** — сканування нод з ComfyUI, генерація описів через Claude, оновлення бази знань та MCP tools для Cursor/Claude.
+**ComfyUI Node Discovery** — scan nodes from ComfyUI, generate descriptions via Claude, update knowledge base, and provide MCP tools for Cursor/Claude.
 
-## Що це
+## What is this
 
-- Підключення до ComfyUI API (`/object_info`) та ComfyUI-Manager (custom-node-list)
-- Визначення нових нод, генерація структурованих описів через Anthropic Claude
-- Оновлення `knowledge/base-nodes.json`, `custom-nodes.json`, `node-compatibility.json`
-- MCP-сервер з інструментами: `list_node_types`, `get_node_info`, `check_compatibility`, `suggest_nodes`
+- Connect to ComfyUI API (`/object_info`) and ComfyUI-Manager (custom-node-list)
+- Detect new nodes, generate structured descriptions via Anthropic Claude
+- Update `knowledge/base-nodes.json`, `custom-nodes.json`, `node-compatibility.json`
+- MCP server with tools: `list_node_types`, `get_node_info`, `check_compatibility`, `suggest_nodes`
 
 ## Quick start
 
-1. **Клонувати та встановити залежності**
+1. **Clone and install dependencies**
 
    ```bash
    git clone <repo-url> && cd mcp-comfy-ui-builder
    npm install
    ```
 
-2. **Налаштувати середовище**
+2. **Configure environment**
 
    ```bash
    cp .env.example .env
-   # Відредагувати .env: ANTHROPIC_API_KEY, COMFYUI_HOST (за замовчуванням http://127.0.0.1:8188)
+   # Edit .env: ANTHROPIC_API_KEY, COMFYUI_HOST (default: http://127.0.0.1:8188)
    ```
 
-3. **Перевірити збірку**
+3. **Verify build**
 
    ```bash
    npm run build
-   # або запуск без збірки:
+   # or run without build:
    npm run dev -- --help
    ```
 
-4. **Читати базу знань з коду**
+4. **Read knowledge base from code**
 
-   База знань знаходиться в `knowledge/` в корені проєкту. Приклад:
+   Knowledge base is located in `knowledge/` at project root. Example:
 
    ```ts
    import baseNodes from './knowledge/base-nodes.json' assert { type: 'json' };
    ```
 
-## Команди
+## Commands
 
-| Команда | Опис |
-|--------|------|
-| `npm run scan` | Скан ComfyUI → нові ноди → Claude → оновлення knowledge/ |
-| `npm run scan:dry` | Те саме без запису (dry-run) |
-| `npm run sync-manager` | Оновлення списку custom packs з ComfyUI-Manager |
-| `npm run analyze <url>` | Аналіз репо (GitHub): README, __init__.py |
-| `npm run add-node` | Інтерактивне додавання однієї ноди |
-| `npm test` | Запуск тестів (vitest) |
-| `npm run mcp` | Запуск MCP-сервера (після `npm run build`) |
+| Command | Description |
+|---------|-------------|
+| `npm run scan` | Scan ComfyUI → new nodes → Claude → update knowledge/ |
+| `npm run scan:dry` | Same without writing (dry-run) |
+| `npm run sync-manager` | Update custom packs list from ComfyUI-Manager |
+| `npm run analyze <url>` | Analyze repo (GitHub): README, __init__.py |
+| `npm run add-node` | Interactive wizard to add a single node |
+| `npm test` | Run tests (vitest) |
+| `npm run mcp` | Start MCP server (after `npm run build`) |
 
-## Документація
+## Documentation
 
-Єдиний вхід — **орієнтація за задачею**:
+Single entry point — **task-oriented navigation**:
 
-- **[doc/README.md](doc/README.md)** — з чого почати, навігація за задачею
-- **[doc/INDEX.md](doc/INDEX.md)** — повний список документів і посилань
-- **[doc/QUICK-REFERENCE.md](doc/QUICK-REFERENCE.md)** — команди, приклади, troubleshooting
-- **[doc/GETTING-STARTED.md](doc/GETTING-STARTED.md)** — швидкий старт (ручно / wizard / скан)
-- **[doc/MCP-SETUP.md](doc/MCP-SETUP.md)** — підключення MCP у Cursor/Claude
-- **Архітектура:** [doc/node-discovery-system.md](doc/node-discovery-system.md), [doc/PLAN-NEXT-STEPS.md](doc/PLAN-NEXT-STEPS.md)
-- **База знань:** [knowledge/README.md](knowledge/README.md), [doc/knowledge-base-usage-guide.md](doc/knowledge-base-usage-guide.md)
+- **[doc/README.md](doc/README.md)** — where to start, task-based navigation
+- **[doc/INDEX.md](doc/INDEX.md)** — complete list of documents and links
+- **[doc/QUICK-REFERENCE.md](doc/QUICK-REFERENCE.md)** — commands, examples, troubleshooting
+- **[doc/GETTING-STARTED.md](doc/GETTING-STARTED.md)** — quick start (manual / wizard / scan)
+- **[doc/MCP-SETUP.md](doc/MCP-SETUP.md)** — connect MCP in Cursor/Claude
+- **Architecture:** [doc/node-discovery-system.md](doc/node-discovery-system.md), [doc/IMPLEMENTATION-CHECKLIST.md](doc/IMPLEMENTATION-CHECKLIST.md)
+- **Knowledge base:** [knowledge/README.md](knowledge/README.md), [doc/knowledge-base-usage-guide.md](doc/knowledge-base-usage-guide.md)
 
-## Вимоги
+## Requirements
 
 - Node.js 18+
-- ComfyUI (за бажанням — запущений для `scan`)
-- Anthropic API key — для автоматичної генерації описів нод
+- ComfyUI (optional — running for `scan`)
+- Anthropic API key — for automatic node description generation
 
-## MCP-сервер (Cursor / Claude)
+## MCP Server (Cursor / Claude)
 
-Сервер надає інструменти для AI:
+Server provides tools for AI:
 
-- **list_node_types** — список нод з бази знань (опційно фільтр за category/priority)
-- **get_node_info(node_name)** — повна інформація про ноду
-- **check_compatibility(from_node, to_node)** — перевірка сумісності виходу з входом
-- **suggest_nodes(task_description | input_type)** — підказки нод за задачею або типом
+- **list_node_types** — list nodes from knowledge base (optional filter by category/priority)
+- **get_node_info(node_name)** — complete information about a node
+- **check_compatibility(from_node, to_node)** — check output-to-input compatibility
+- **suggest_nodes(task_description | input_type)** — suggest nodes by task or type
 
-### Запуск MCP
+### Running MCP
 
-З кореня проєкту спочатку зберіть проєкт, потім запустіть сервер:
+From project root, first build the project, then start the server:
 
 ```bash
 npm run build
 npm run mcp
 ```
 
-Або без npm: `node dist/mcp-server.js`. Сервер працює через **stdio** (stdin/stdout). Детальніше → [doc/MCP-SETUP.md](doc/MCP-SETUP.md).
+Or without npm: `node dist/mcp-server.js`. Server works via **stdio** (stdin/stdout). More details → [doc/MCP-SETUP.md](doc/MCP-SETUP.md).
 
-### Підключення в Cursor
+### Connect in Cursor
 
-Додайте сервер у налаштування MCP (Cursor Settings → MCP або конфіг):
+Add server to MCP settings (Cursor Settings → MCP or config):
 
 ```json
 {
@@ -106,12 +106,12 @@ npm run mcp
 }
 ```
 
-Замініть `/ABSOLUTE/PATH/TO/mcp-comfy-ui-builder` на повний шлях до клону проєкту. Перезапустіть Cursor після зміни конфігу.
+Replace `/ABSOLUTE/PATH/TO/mcp-comfy-ui-builder` with the full path to your project clone. Restart Cursor after config change.
 
-### Підключення в Claude Desktop
+### Connect in Claude Desktop
 
-Файл конфігурації: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS). Додайте той самий блок `mcpServers` і перезапустіть Claude.
+Config file: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS). Add the same `mcpServers` block and restart Claude.
 
-## Ліцензія
+## License
 
 MIT

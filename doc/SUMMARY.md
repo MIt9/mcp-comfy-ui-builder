@@ -1,71 +1,71 @@
 # 📊 Node Discovery System - Summary
 
-> Повна система для автоматичного документування ComfyUI нод з AI-assisted описами
+> Complete system for automatic documentation of ComfyUI nodes with AI-assisted descriptions
 
 ***
 
-## ✅ Що створено
+## ✅ What was created
 
-### 📁 Файлова структура (13 основних файлів, 6,700+ рядків)
+### 📁 File structure (13 main files, 6,700+ lines)
 
-#### 🎯 Основні документи
+#### 🎯 Main documents
 
-| Файл | Призначення | Розмір |
+| File | Purpose | Size |
 | :-- | :-- | :-- |
-| **INDEX.md** | Навігація по всій документації | 405 рядків |
-| **GETTING-STARTED.md** | Швидкий старт, практичні приклади | 410 рядків |
-| **NODE-DISCOVERY-README.md** | Повний гайд користувача | 741 рядок |
-| **node-discovery-system.md** | Технічна архітектура, код | 948 рядків |
-| **comfyui-api-detailed-guide.md** | ComfyUI API довідник | 450+ рядків |
-| **QUICK-REFERENCE.md** | Швидкий довідник команд | 449 рядків |
-| **SYSTEM-DIAGRAM.md** | Візуальні діаграми | 609 рядків |
-| **IMPLEMENTATION-CHECKLIST.md** | Покроковий план коду | 639 рядків |
+| **INDEX.md** | Navigation for all documentation | 405 lines |
+| **GETTING-STARTED.md** | Quick start, practical examples | 410 lines |
+| **NODE-DISCOVERY-README.md** | Complete user guide | 741 lines |
+| **node-discovery-system.md** | Technical architecture, code | 948 lines |
+| **comfyui-api-detailed-guide.md** | ComfyUI API reference | 450+ lines |
+| **QUICK-REFERENCE.md** | Quick command reference | 449 lines |
+| **SYSTEM-DIAGRAM.md** | Visual diagrams | 609 lines |
+| **IMPLEMENTATION-CHECKLIST.md** | Step-by-step code plan | 639 lines |
 
-#### 📦 База знань (3 JSON файли)
+#### 📦 Knowledge base (3 JSON files)
 
-| Файл | Вміст | Розмір |
+| File | Content | Size |
 | :-- | :-- | :-- |
-| `knowledge/base-nodes.json` | 52 базові ComfyUI ноди | 713 рядків |
-| `knowledge/custom-nodes.json` | 15+ кастомних node packs | 487 рядків |
-| `knowledge/node-compatibility.json` | 11 типів даних + сумісність | 433 рядки |
+| `knowledge/base-nodes.json` | 52 base ComfyUI nodes | 713 lines |
+| `knowledge/custom-nodes.json` | 15+ custom node packs | 487 lines |
+| `knowledge/node-compatibility.json` | 11 data types + compatibility | 433 lines |
 
 #### 🤖 Templates & Guides
 
-| Файл | Призначення | Розмір |
+| File | Purpose | Size |
 | :-- | :-- | :-- |
-| `knowledge/node-description-prompt-template.md` | Prompt для Claude | 373 рядки |
-| Wizard `add-node` | Описано в [GETTING-STARTED.md](GETTING-STARTED.md) (варіант 2) |
+| `knowledge/node-description-prompt-template.md` | Prompt for Claude | 373 lines |
+| Wizard `add-node` | Described in [GETTING-STARTED.md](GETTING-STARTED.md) (option 2) |
 
 ***
 
 ## 🎯 Key Features
 
-### 1. Автоматичне виявлення нод (3 джерела)
+### 1. Automatic node discovery (3 sources)
 
 - ComfyUI API `/object_info` — 52+ base nodes
 - ComfyUI Manager custom-node-list — 15+ custom packs
 - GitHub Repos README + code — Full metadata
 
-### 2. AI-Powered опис (Claude 3.5 Sonnet)
+### 2. AI-Powered descriptions (Claude 3.5 Sonnet)
 
-Генерує: descriptions, parameter explanations, use cases, compatible node suggestions, example values, priority, workflow patterns.
+Generates: descriptions, parameter explanations, use cases, compatible node suggestions, example values, priority, workflow patterns.
 
-### 3. База знань (Production-ready)
+### 3. Knowledge base (Production-ready)
 
 knowledge/ — base-nodes.json, custom-nodes.json, node-compatibility.json
 
 ### 4. Developer Tools (CLI + Wizard)
 
-- `npm run scan` — автоматичний скан
-- `npm run sync-manager` — синхронізація з Manager
-- `npm run analyze <url>` — аналіз GitHub repo
-- `npm run add-node` — інтерактивний wizard
+- `npm run scan` — automatic scan
+- `npm run sync-manager` — synchronization with Manager
+- `npm run analyze <url>` — GitHub repo analysis
+- `npm run add-node` — interactive wizard
 
 ***
 
-## 🎨 Type System з кольорами
+## 🎨 Type System with colors
 
-| Тип | Кольор | Producers | Consumers |
+| Type | Color | Producers | Consumers |
 | :-- | :-- | :-- | :-- |
 | MODEL | #B22222 | CheckpointLoader | KSampler, ModelMerge |
 | CLIP | #FFD700 | CheckpointLoader | CLIPTextEncode |
@@ -79,20 +79,20 @@ knowledge/ — base-nodes.json, custom-nodes.json, node-compatibility.json
 
 ## 🚀 Workflow Examples
 
-**Автоматичний Scan**: `npm run scan`  
-**Manual Addition**: curl object_info → prompt template → додати JSON  
+**Automatic Scan**: `npm run scan`  
+**Manual Addition**: curl object_info → prompt template → add JSON  
 **GitHub Analysis**: `npm run analyze https://github.com/...`
 
 ***
 
 ## 📊 ROI
 
-- Без системи: 30 хв/ноду, 50 нод = 25 год
-- З системою: ~30 с/ноду, 50 нод = 25 хв
-- ROI: 60x швидше
+- Without system: 30 min/node, 50 nodes = 25 hours
+- With system: ~30 sec/node, 50 nodes = 25 min
+- ROI: 60x faster
 
 ***
 
 *Summary Version: 1.1.0* | *Updated: 2026-02-01*
 
-**Система готова до використання! Почніть з [GETTING-STARTED.md](GETTING-STARTED.md) 🚀**
+**System ready to use! Start with [GETTING-STARTED.md](GETTING-STARTED.md) 🚀**

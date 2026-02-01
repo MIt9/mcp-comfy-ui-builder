@@ -1,100 +1,100 @@
 # 🚀 Getting Started - Node Discovery System
 
-> Швидкий старт та практичні приклади
+> Quick start and practical examples
 
 ***
 
-## Що потрібно
+## Requirements
 
 - Node.js 18+
-- ComfyUI запущений на http://127.0.0.1:8188 (або свій URL)
-- Claude API key (Anthropic) — для автоматичної генерації описів
-- ComfyUI-Manager (рекомендовано) — для повного списку нод
+- ComfyUI running on http://127.0.0.1:8188 (or your URL)
+- Claude API key (Anthropic) — for automatic description generation
+- ComfyUI-Manager (recommended) — for full node list
 
 ***
 
-## Варіант 1: Ручне додавання ноди (без коду)
+## Option 1: Manual node addition (no code)
 
-**Час: ~15 хвилин**
+**Time: ~15 minutes**
 
-1. Отримати інфо про ноду з ComfyUI:
+1. Get node info from ComfyUI:
    ```bash
    curl http://127.0.0.1:8188/object_info | jq '.NodeName' > node.json
    ```
 
-2. Відкрити **prompt template**: `knowledge/node-description-prompt-template.md`
+2. Open **prompt template**: `knowledge/node-description-prompt-template.md`
 
-3. Вставити вміст `node.json` в промпт для Claude (згідно інструкцій у template)
+3. Insert `node.json` content into the prompt for Claude (according to instructions in template)
 
-4. Отримати від Claude structured JSON і додати його в `knowledge/base-nodes.json` (в об'єкт `nodes`)
+4. Get structured JSON from Claude and add it to `knowledge/base-nodes.json` (in the `nodes` object)
 
-5. За потреби оновити `knowledge/node-compatibility.json` (типи даних, producers/consumers)
+5. Update `knowledge/node-compatibility.json` if needed (data types, producers/consumers)
 
-**Результат**: Нова нода задокументована в базі знань, готова для MCP/Claude.
+**Result**: New node documented in knowledge base, ready for MCP/Claude.
 
 ***
 
-## Варіант 2: Інтерактивний wizard (`add-node`)
+## Option 2: Interactive wizard (`add-node`)
 
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."
 npm run add-node
 ```
 
-1. Ввести **class name** ноди (наприклад `KSampler`).
-2. Система бере дані з ComfyUI (`GET /object_info`), формує промпт з шаблону `knowledge/node-description-prompt-template.md` і викликає Claude.
-3. Отриманий JSON додається в `knowledge/base-nodes.json`, оновлюються `node-compatibility.json` та CHANGELOG.
+1. Enter the node's **class name** (e.g., `KSampler`).
+2. System fetches data from ComfyUI (`GET /object_info`), forms prompt from template `knowledge/node-description-prompt-template.md` and calls Claude.
+3. Generated JSON is added to `knowledge/base-nodes.json`, `node-compatibility.json` and CHANGELOG are updated.
 
-Потрібно: ComfyUI запущений (`COMFYUI_HOST`), `ANTHROPIC_API_KEY`.
+Required: ComfyUI running (`COMFYUI_HOST`), `ANTHROPIC_API_KEY`.
 
 ***
 
-## Варіант 3: Автоматичний скан
+## Option 3: Automatic scan
 
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."
 npm run scan
 ```
 
-Система: підключиться до ComfyUI `/object_info`, знайде ноди, яких ще немає в базі, згенерує описи через Claude, оновить JSON і CHANGELOG.
+System: connects to ComfyUI `/object_info`, finds nodes not yet in the database, generates descriptions via Claude, updates JSON and CHANGELOG.
 
-**Сухий прогон (без запису):** `npm run scan:dry`
+**Dry run (no write):** `npm run scan:dry`
 
-**Змінні оточення:** `COMFYUI_HOST` (за замовчуванням `http://127.0.0.1:8188`), `ANTHROPIC_API_KEY`, `NODE_BATCH_SIZE` (опційно), `DEBUG=1` для детального логу.
+**Environment variables:** `COMFYUI_HOST` (default `http://127.0.0.1:8188`), `ANTHROPIC_API_KEY`, `NODE_BATCH_SIZE` (optional), `DEBUG=1` for detailed logging.
 
 ***
 
-## Швидкі команди ComfyUI API
+## Quick ComfyUI API commands
 
 ```bash
-# Перевірити, що ComfyUI доступний
+# Check that ComfyUI is available
 curl http://127.0.0.1:8188/system_stats | jq '.system.gpu_name'
 
-# Скільки нод доступно
+# How many nodes are available
 curl http://127.0.0.1:8188/object_info | jq 'keys | length'
 
-# Інфо про конкретну ноду
+# Info about a specific node
 curl http://127.0.0.1:8188/object_info | jq '.KSampler'
 ```
 
 ***
 
-## Тести
+## Tests
 
 ```bash
 npm test
 npm run test:watch
 ```
 
-Тести: scanner, ai-generator, updater, MCP tools (unit), scan integration (mock).
+Tests: scanner, ai-generator, updater, MCP tools (unit), scan integration (mock).
 
 ***
 
-## Наступні кроки
+## Next steps
 
-- **Навігація за задачею**: [doc/README.md](README.md)
-- **Повне розуміння**: [SUMMARY.md](SUMMARY.md) → [SYSTEM-DIAGRAM.md](SYSTEM-DIAGRAM.md)
-- **Швидкий довідник**: [QUICK-REFERENCE.md](QUICK-REFERENCE.md)
+- **Task navigation**: [doc/README.md](README.md)
+- **Full understanding**: [SUMMARY.md](SUMMARY.md) → [SYSTEM-DIAGRAM.md](SYSTEM-DIAGRAM.md)
+- **Quick reference**: [QUICK-REFERENCE.md](QUICK-REFERENCE.md)
 - **MCP**: [MCP-SETUP.md](MCP-SETUP.md)
 
 ***

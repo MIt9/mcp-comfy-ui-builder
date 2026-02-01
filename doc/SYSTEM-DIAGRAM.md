@@ -1,10 +1,10 @@
-# 🎨 Node Discovery System - Візуальна діаграма
+# 🎨 Node Discovery System - Visual Diagram
 
-> Архітектура, потоки даних, діаграми workflow
+> Architecture, data flows, workflow diagrams
 
 ***
 
-## 🏗️ Повна архітектура системи
+## 🏗️ Complete System Architecture
 
 ```
 INPUT SOURCES:
@@ -81,7 +81,7 @@ IMAGE (VAEDecode) → SaveImage
 
 ## 📊 Data Flow - JSON Examples
 
-**RawNodeInfo** (від /object_info): class_name, display_name, category, input, output, source  
+**RawNodeInfo** (from /object_info): class_name, display_name, category, input, output, source  
 **NodeDescription** (Claude output): display_name, description, input_types, use_cases, priority  
 
 ***

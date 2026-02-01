@@ -1,39 +1,39 @@
 # MCP Server — ComfyUI Node Discovery
 
-> Як підключити MCP-сервер у Cursor та Claude Desktop
+> How to connect the MCP server in Cursor and Claude Desktop
 
 ***
 
-## Що надає сервер
+## What the server provides
 
-| Tool | Опис |
+| Tool | Description |
 |------|------|
-| **list_node_types** | Список нод з knowledge (опційно: category, priority) |
-| **get_node_info(node_name)** | Повна інформація про ноду з base-nodes.json |
-| **check_compatibility(from_node, to_node)** | Чи можна з’єднати вихід однієї ноди з входом іншої |
-| **suggest_nodes(task_description \| input_type)** | Підказки нод за описом задачі або типом виходу |
+| **list_node_types** | List nodes from knowledge (optional: category, priority) |
+| **get_node_info(node_name)** | Full information about a node from base-nodes.json |
+| **check_compatibility(from_node, to_node)** | Whether output of one node can be connected to input of another |
+| **suggest_nodes(task_description \| input_type)** | Node suggestions by task description or output type |
 
-Дані беруться з `knowledge/base-nodes.json` та `knowledge/node-compatibility.json` при старті сервера.
+Data is loaded from `knowledge/base-nodes.json` and `knowledge/node-compatibility.json` at server startup.
 
 ***
 
-## Запуск сервера
+## Starting the server
 
-З кореня проєкту (спочатку збірка):
+From project root (build first):
 
 ```bash
 npm run build
 npm run mcp
 ```
 
-Альтернатива: `node dist/mcp-server.js`. Сервер використовує **stdio** (stdin/stdout).
+Alternative: `node dist/mcp-server.js`. Server uses **stdio** (stdin/stdout).
 
 ***
 
-## Підключення в Cursor
+## Connecting in Cursor
 
-1. Відкрийте налаштування MCP (Cursor Settings → MCP або відповідний конфіг).
-2. Додайте сервер (замініть шлях на свій):
+1. Open MCP settings (Cursor Settings → MCP or corresponding config).
+2. Add server (replace path with yours):
 
 ```json
 {
@@ -46,37 +46,37 @@ npm run mcp
 }
 ```
 
-3. Перезапустіть Cursor.
+3. Restart Cursor.
 
-Після підключення AI може викликати `list_node_types`, `get_node_info`, `check_compatibility`, `suggest_nodes` для побудови workflow ComfyUI.
+After connecting, AI can call `list_node_types`, `get_node_info`, `check_compatibility`, `suggest_nodes` to build ComfyUI workflows.
 
 ***
 
-## Підключення в Claude Desktop
+## Connecting in Claude Desktop
 
 - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Створіть файл, якщо його немає.
-- Додайте той самий блок `mcpServers` (з абсолютним шляхом до `dist/mcp-server.js`).
-- Перезапустіть Claude Desktop (повністю вийти з програми, не лише закрити вікно).
+- Create the file if it doesn't exist.
+- Add the same `mcpServers` block (with absolute path to `dist/mcp-server.js`).
+- Restart Claude Desktop (fully quit the application, not just close the window).
 
 ***
 
-## Перевірка
+## Verification
 
-Після підключення переконайтеся, що Cursor/Claude бачить інструменти (наприклад, у списку MCP tools). Можна запитати: «List ComfyUI node types with category loaders» або «Get info for KSampler» — AI викличе відповідні tools.
+After connecting, make sure Cursor/Claude sees the tools (e.g., in the MCP tools list). You can ask: "List ComfyUI node types with category loaders" or "Get info for KSampler" — AI will call the corresponding tools.
 
 ***
 
 ## Troubleshooting
 
-| Проблема | Що перевірити |
+| Problem | What to check |
 |----------|----------------|
-| **MCP не бачить tools** | Шлях у `args` має бути **абсолютним** до `dist/mcp-server.js`. Після зміни конфігу — повністю перезапустити Cursor/Claude. |
-| **Сервер не запускається** | Виконати `npm run build` з кореня проєкту. Переконатися, що є папка `knowledge/` з `base-nodes.json` і `node-compatibility.json`. |
-| **Порожній список нод** | Файл `knowledge/base-nodes.json` має містити об'єкт `nodes`. За потреби запустити `npm run scan` або додати ноди вручну. |
-| **Помилка ENOENT / module not found** | Запускати MCP з **кореня проєкту** (звідки видно `knowledge/` і `dist/`). У конфігу Cursor `args` — шлях саме до `dist/mcp-server.js`. |
+| **MCP doesn't see tools** | Path in `args` must be **absolute** to `dist/mcp-server.js`. After changing config — fully restart Cursor/Claude. |
+| **Server doesn't start** | Run `npm run build` from project root. Make sure there's a `knowledge/` folder with `base-nodes.json` and `node-compatibility.json`. |
+| **Empty node list** | File `knowledge/base-nodes.json` must contain `nodes` object. If needed, run `npm run scan` or add nodes manually. |
+| **ENOENT error / module not found** | Run MCP from **project root** (where `knowledge/` and `dist/` are visible). In Cursor config `args` — path specifically to `dist/mcp-server.js`. |
 
-Приклад конфігу для Cursor: [examples/cursor-mcp.json](../examples/cursor-mcp.json) (скопіювати і підставити свій шлях).
+Example config for Cursor: [examples/cursor-mcp.json](../examples/cursor-mcp.json) (copy and substitute your path).
 
 ***
 

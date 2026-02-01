@@ -1,30 +1,30 @@
 # 📚 Knowledge Base Usage Guide
 
-> Як використовувати базу знань ComfyUI нод у вашому проєкті, MCP server та AI workflows
+> How to use the ComfyUI node knowledge base in your project, MCP server, and AI workflows
 
-## 🎯 Огляд бази знань
+## 🎯 Knowledge Base Overview
 
-База знань містить **структуровану інформацію про 65+ ComfyUI нод** (базові + custom) з AI-generated описами.
+The knowledge base contains **structured information about 65+ ComfyUI nodes** (base + custom) with AI-generated descriptions.
 
-### Структура файлів
+### File Structure
 
 ```
 knowledge/
-├── base-nodes.json              # 50+ базових нод ComfyUI
-├── custom-nodes.json            # 15+ популярних custom node packs
-├── node-compatibility.json      # Типи даних, producers/consumers
-├── README.md                    # Цей гайд
+├── base-nodes.json              # 50+ base ComfyUI nodes
+├── custom-nodes.json            # 15+ popular custom node packs
+├── node-compatibility.json      # Data types, producers/consumers
+├── README.md                    # This guide
 ├── node-description-prompt-template.md  # Claude template
-└── CHANGELOG.md                 # Історія оновлень
+└── CHANGELOG.md                 # Update history
 ```
 
-**Загальний обсяг**: 2,194 рядки JSON + 581 рядок документація
+**Total volume**: 2,194 lines of JSON + 581 lines of documentation
 
 ***
 
-## 📂 Формат даних
+## 📂 Data Format
 
-### 1. **base-nodes.json** - Базові ноди
+### 1. **base-nodes.json** - Base nodes
 
 ```json
 {
@@ -121,7 +121,7 @@ knowledge/
 
 ***
 
-## 🛠️ Використання в коді
+## 🛠️ Usage in Code
 
 ### TypeScript/Node.js
 
@@ -241,13 +241,13 @@ async function executeTool(toolName: string, args: any) {
 ### Claude Desktop Usage
 
 ```
-User: "Які ноди можна підключити після KSampler?"
+User: "What nodes can be connected after KSampler?"
 
 AI: [mcp_call: find_compatible, {"input_type": "LATENT"}]
 
-AI Response: Після KSampler (видає LATENT) можна підключити:
-- VAEDecode (конвертує в IMAGE)
-- LatentUpscale (масштабування)
+AI Response: After KSampler (outputs LATENT) you can connect:
+- VAEDecode (converts to IMAGE)
+- LatentUpscale (scaling)
 - KSampler (chain sampling)
 ```
 
@@ -255,7 +255,7 @@ AI Response: Після KSampler (видає LATENT) можна підключи
 
 ## 🔍 Query Patterns
 
-### 1. **Пошук по категорії**
+### 1. **Search by category**
 
 ```typescript
 function findByCategory(category: string): NodeDescription[] {
@@ -329,7 +329,7 @@ function findWorkflowPattern(nodes: string[]): string {
 
 ## 🖥️ Web UI Integration
 
-### React/Vue компонент
+### React/Vue component
 
 ```tsx
 interface NodeInfo {
@@ -349,7 +349,7 @@ function NodeCatalog({ nodes }: { nodes: NodeInfo[] }) {
 }
 ```
 
-### Search компонент
+### Search component
 
 ```tsx
 function NodeSearch({ onSelect }: { onSelect: (node: NodeInfo) => void }) {
@@ -496,7 +496,7 @@ function validateKnowledgeBase() {
 
 ## 🚀 Deployment Patterns
 
-### 1. **Static files** (найпростіше)
+### 1. **Static files** (simplest)
 
 ```
 Copy knowledge/ to your MCP server
@@ -504,7 +504,7 @@ Load JSON on startup
 Manual updates via git pull
 ```
 
-### 2. **Live sync** (рекомендовано)
+### 2. **Live sync** (recommended)
 
 ```
 npm run scan -- --cron
@@ -525,10 +525,10 @@ Webhook notifications on updates
 ## 📈 Performance Tips
 
 ```
-✅ Load once at startup (не щоразу)
+✅ Load once at startup (not every time)
 ✅ Use object cache (Map<string, NodeInfo>)
 ✅ Index by category/priority
-✅ Compress JSON для transmission
+✅ Compress JSON for transmission
 ✅ Lazy load custom nodes
 ```
 
