@@ -1,0 +1,98 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "last_updated": "2026-02-01",
+    "description": "Type system, producers/consumers, workflow patterns, validation rules"
+  },
+  "data_types": {
+    "MODEL": {
+      "color": "#B22222",
+      "description": "Neural network diffusion model",
+      "producers": ["CheckpointLoaderSimple", "LoraLoader", "ModelMergeSimple"],
+      "consumers": ["KSampler", "KSamplerAdvanced", "VAEDecode", "ModelMergeSimple"]
+    },
+    "CLIP": {
+      "color": "#FFD700",
+      "description": "CLIP text/image encoder",
+      "producers": ["CheckpointLoaderSimple", "CLIPLoader", "LoraLoader"],
+      "consumers": ["CLIPTextEncode", "CLIPVisionEncode", "LoraLoader"]
+    },
+    "VAE": {
+      "color": "#FF6E6E",
+      "description": "Variational autoencoder for latent/image",
+      "producers": ["CheckpointLoaderSimple", "VAELoader"],
+      "consumers": ["VAEEncode", "VAEDecode"]
+    },
+    "CONDITIONING": {
+      "color": "#FFA931",
+      "description": "Encoded prompt conditioning",
+      "producers": ["CLIPTextEncode", "ConditioningCombine", "ConditioningSetArea", "ConditioningConcat", "ApplyControlNet"],
+      "consumers": ["KSampler", "KSamplerAdvanced", "ApplyControlNet"]
+    },
+    "LATENT": {
+      "color": "#FF6E6E",
+      "description": "Latent tensor (denoising space)",
+      "producers": ["KSampler", "KSamplerAdvanced", "EmptyLatentImage", "VAEEncode", "SetLatentNoiseMask", "LatentUpscale", "RepeatLatentBatch", "LatentCrop", "RandomNoise"],
+      "consumers": ["VAEDecode", "LatentUpscale", "KSampler", "KSamplerAdvanced", "SetLatentNoiseMask"]
+    },
+    "IMAGE": {
+      "color": "#64B5F6",
+      "description": "RGB/RGBA image tensor",
+      "producers": ["VAEDecode", "LoadImage", "ImageScale", "ImageCompositeMasked", "CropImage", "PadImage", "PreviewImage"],
+      "consumers": ["SaveImage", "ImageScale", "VAEEncode", "ImageToMask", "ImageCompositeMasked", "ApplyControlNet", "CropImage", "PadImage"]
+    },
+    "MASK": {
+      "color": "#81C784",
+      "description": "Alpha or channel mask",
+      "producers": ["ImageToMask", "LoadImageMask", "GrowMask"],
+      "consumers": ["SetLatentNoiseMask", "VAEDecode", "ImageCompositeMasked"]
+    },
+    "CONTROL_NET": {
+      "color": "#9C27B0",
+      "description": "ControlNet model",
+      "producers": ["ControlNetLoader"],
+      "consumers": ["ApplyControlNet"]
+    },
+    "INT": {
+      "color": "#A9A9A9",
+      "description": "Integer (steps, size, seed)",
+      "producers": [],
+      "consumers": ["KSampler", "EmptyLatentImage", "ImageScale", "LatentUpscale", "CropImage", "PadImage", "RepeatLatentBatch", "LatentCrop", "RandomNoise"]
+    },
+    "FLOAT": {
+      "color": "#A9A9A9",
+      "description": "Float (cfg, denoise, strength)",
+      "producers": [],
+      "consumers": ["KSampler", "LoraLoader", "ConditioningSetArea", "ApplyControlNet", "ModelMergeSimple"]
+    },
+    "STRING": {
+      "color": "#A9A9A9",
+      "description": "Text (prompt, filename)",
+      "producers": [],
+      "consumers": ["CLIPTextEncode", "LoadImage", "SaveImage", "CheckpointLoaderSimple", "LoraLoader", "CLIPLoader", "VAELoader", "ControlNetLoader"]
+    }
+  },
+  "workflow_patterns": [
+    "CheckpointLoaderSimple → CLIPTextEncode → KSampler → VAEDecode → SaveImage",
+    "CheckpointLoaderSimple → CLIPTextEncode → KSampler → VAEDecode → SaveImage (txt2img)",
+    "LoadImage → VAEEncode → (CheckpointLoaderSimple, CLIPTextEncode) → KSampler → VAEDecode → SaveImage (img2img)",
+    "LoadImage → ImageToMask → SetLatentNoiseMask; EmptyLatentImage → KSampler (inpainting)",
+    "CheckpointLoaderSimple → LoraLoader → CLIPTextEncode → KSampler → VAEDecode → SaveImage (LoRA)",
+    "LoadImage → ApplyControlNet; CheckpointLoaderSimple → CLIPTextEncode → ApplyControlNet → KSampler → VAEDecode → SaveImage (ControlNet)",
+    "EmptyLatentImage → KSampler → LatentUpscale → VAEDecode → SaveImage (upscale)"
+  ],
+  "validation_rules": {
+    "type_matching": "Output type of source node must match input type of target node (or be in consumers list for that type)",
+    "required_inputs": "All required inputs of a node must be connected or have default values",
+    "no_circular": "Workflow graph must be acyclic (no circular dependencies)",
+    "single_output_connection": "One output slot can connect to multiple inputs; one input slot accepts one connection",
+    "priority_ordering": "When multiple nodes could connect, prefer high-priority nodes for suggestions"
+  },
+  "common_workflows": {
+    "txt2img": ["CheckpointLoaderSimple", "CLIPTextEncode", "EmptyLatentImage", "KSampler", "VAEDecode", "SaveImage"],
+    "img2img": ["LoadImage", "VAEEncode", "CheckpointLoaderSimple", "CLIPTextEncode", "KSampler", "VAEDecode", "SaveImage"],
+    "inpainting": ["LoadImage", "ImageToMask", "SetLatentNoiseMask", "EmptyLatentImage", "CheckpointLoaderSimple", "CLIPTextEncode", "KSampler", "VAEDecode", "SaveImage"],
+    "lora_chain": ["CheckpointLoaderSimple", "LoraLoader", "CLIPTextEncode", "KSampler", "VAEDecode", "SaveImage"],
+    "controlnet": ["LoadImage", "ControlNetLoader", "ApplyControlNet", "CheckpointLoaderSimple", "CLIPTextEncode", "EmptyLatentImage", "KSampler", "VAEDecode", "SaveImage"]
+  }
+}

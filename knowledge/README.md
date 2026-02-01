@@ -8,12 +8,13 @@
 
 ```
 knowledge/
-├── base-nodes.json          # Base ComfyUI nodes (KSampler, CheckpointLoader, ...)
-├── custom-nodes.json       # Custom node packs (ComfyUI-Manager, WAS Suite, ...)
-├── node-compatibility.json # Data types, producers/consumers, compatibility rules
-├── README.md               # This file
-├── node-description-prompt-template.md  # Prompt for Claude (node descriptions)
-└── CHANGELOG.md            # Change history (auto-generated on scan)
+├── base-nodes.json              # Base ComfyUI nodes (filled by seed)
+├── seed-base-nodes.json         # Seed data for npm run seed
+├── seed-node-compatibility.json # Seed compatibility for npm run seed
+├── custom-nodes.json            # Custom node packs (ComfyUI-Manager)
+├── node-compatibility.json      # Data types, producers/consumers (filled by seed)
+├── README.md                    # This file
+└── CHANGELOG.md                 # Change history
 ```
 
 ***
@@ -44,13 +45,19 @@ Each node contains:
 
 ***
 
+## How to Fill the Knowledge Base
+
+Run **`npm run seed`** to fill `base-nodes.json` and `node-compatibility.json` from the bundled seed files.
+
+- **Merge** (default): add only missing nodes from seed to existing base.
+- **Overwrite**: `npm run seed -- --force` to replace base and compatibility with seed.
+
 ## How to Add a New Node
 
-1. **Manually**: add object to `base-nodes.json` → nodes.NodeClassName (or to custom-nodes as pack).
-2. **Via Claude**: use `node-description-prompt-template.md` + JSON from `/object_info` → insert result into base-nodes.json.
-3. **Automatically** (after implementation): `npm run scan` or `npm run add-node`.
+1. **Seed**: `npm run seed` to get the base set of nodes from seed files.
+2. **Manually**: add an object to `base-nodes.json` → `nodes.NodeClassName` (or to custom-nodes as a pack).
 
-After adding a node, it's worth updating `node-compatibility.json` (producers/consumers for types).
+After adding a node, update `node-compatibility.json` (producers/consumers for types) if needed.
 
 ***
 

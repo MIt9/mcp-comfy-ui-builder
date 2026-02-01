@@ -33,33 +33,27 @@
 
 | File | Purpose | Size |
 | :-- | :-- | :-- |
-| `knowledge/node-description-prompt-template.md` | Prompt for Claude | 373 lines |
-| Wizard `add-node` | Described in [GETTING-STARTED.md](GETTING-STARTED.md) (option 2) |
+| knowledge/README.md | Knowledge base structure, seed | — |
+| Seed + MCP | Described in [GETTING-STARTED.md](GETTING-STARTED.md) |
 
 ***
 
 ## 🎯 Key Features
 
-### 1. Automatic node discovery (3 sources)
+### 1. Knowledge base (seed)
 
-- ComfyUI API `/object_info` — 52+ base nodes
-- ComfyUI Manager custom-node-list — 15+ custom packs
-- GitHub Repos README + code — Full metadata
+- Seed files in repo → `npm run seed` fills base-nodes.json and node-compatibility.json (no external services).
+- ComfyUI-Manager custom-node-list → `npm run sync-manager` updates custom packs.
 
-### 2. AI-Powered descriptions (Claude 3.5 Sonnet)
-
-Generates: descriptions, parameter explanations, use cases, compatible node suggestions, example values, priority, workflow patterns.
-
-### 3. Knowledge base (Production-ready)
+### 2. Knowledge base (production-ready)
 
 knowledge/ — base-nodes.json, custom-nodes.json, node-compatibility.json
 
-### 4. Developer Tools (CLI + Wizard)
+### 3. CLI
 
-- `npm run scan` — automatic scan
-- `npm run sync-manager` — synchronization with Manager
-- `npm run analyze <url>` — GitHub repo analysis
-- `npm run add-node` — interactive wizard
+- `npm run seed` — fill knowledge from seed (merge or --force overwrite)
+- `npm run sync-manager` — update custom packs from ComfyUI-Manager
+- `npm run mcp` — start MCP server
 
 ***
 
@@ -79,9 +73,8 @@ knowledge/ — base-nodes.json, custom-nodes.json, node-compatibility.json
 
 ## 🚀 Workflow Examples
 
-**Automatic Scan**: `npm run scan`  
-**Manual Addition**: curl object_info → prompt template → add JSON  
-**GitHub Analysis**: `npm run analyze https://github.com/...`
+**Fill knowledge**: `npm run seed` (or `npm run build` — postbuild runs seed).  
+**Manual addition**: add node to base-nodes.json (see knowledge/README.md).
 
 ***
 

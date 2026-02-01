@@ -1,6 +1,6 @@
 # Changelog – Knowledge Base
 
-Change history for ComfyUI node knowledge base. Updated on `npm run scan` or manual addition.
+Change history for ComfyUI node knowledge base. Updated on `npm run seed` or manual addition.
 
 ---
 

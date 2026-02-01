@@ -1,0 +1,674 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "last_updated": "2026-02-01",
+    "total_nodes": 31,
+    "categories": {
+      "loaders": 8,
+      "conditioning": 6,
+      "sampling": 2,
+      "latent": 7,
+      "image": 10,
+      "mask": 4
+    }
+  },
+  "nodes": {
+    "CheckpointLoaderSimple": {
+      "display_name": "Load Checkpoint",
+      "category": "loaders",
+      "description": "Loads a Stable Diffusion checkpoint model with its CLIP and VAE components",
+      "input_types": {
+        "required": {
+          "ckpt_name": {
+            "type": "CHECKPOINT_NAME",
+            "description": "Checkpoint model file to load",
+            "color": "#B22222",
+            "notes": "Select from dropdown or drag&drop"
+          }
+        }
+      },
+      "return_types": ["MODEL", "CLIP", "VAE"],
+      "return_names": ["MODEL", "CLIP", "VAE"],
+      "output_colors": ["#B22222", "#FFD700", "#FF6E6E"],
+      "priority": "high",
+      "use_cases": [
+        "Loading base SD1.5 or SDXL models",
+        "Starting point for any workflow",
+        "Model switching in complex workflows"
+      ],
+      "compatible_outputs": {
+        "MODEL": ["KSampler", "VAEDecode", "ModelMergeSimple"],
+        "CLIP": ["CLIPTextEncode", "CLIPVisionEncode"],
+        "VAE": ["VAEEncode", "VAEDecode"]
+      },
+      "example_values": {
+        "ckpt_name": "sdxl_base.safetensors"
+      }
+    },
+    "KSampler": {
+      "display_name": "KSampler",
+      "category": "sampling",
+      "description": "Generates images by iteratively denoising latent tensors using diffusion models",
+      "input_types": {
+        "required": {
+          "model": {
+            "type": "MODEL",
+            "description": "Diffusion model for sampling",
+            "color": "#B22222"
+          },
+          "seed": {
+            "type": "INT",
+            "description": "Random seed for reproducible results",
+            "default": 0,
+            "min": 0,
+            "max": 4294967295,
+            "notes": "0 = random"
+          },
+          "steps": {
+            "type": "INT",
+            "description": "Number of denoising steps",
+            "default": 20,
+            "min": 1,
+            "max": 10000,
+            "notes": "20-30 recommended"
+          },
+          "cfg": {
+            "type": "FLOAT",
+            "description": "Classifier-Free Guidance scale",
+            "default": 8.0,
+            "min": 0.0,
+            "max": 100.0,
+            "notes": "7-12 typical range"
+          },
+          "positive": {
+            "type": "CONDITIONING",
+            "description": "Positive prompt conditioning",
+            "color": "#FFA931"
+          },
+          "negative": {
+            "type": "CONDITIONING",
+            "description": "Negative prompt conditioning",
+            "color": "#FFA931"
+          },
+          "latent_image": {
+            "type": "LATENT",
+            "description": "Starting latent tensor",
+            "color": "#FF6E6E"
+          },
+          "denoise": {
+            "type": "FLOAT",
+            "description": "Denoising strength (0.0-1.0)",
+            "default": 1.0,
+            "min": 0.0,
+            "max": 1.0,
+            "notes": "1.0 = txt2img, <1.0 = img2img"
+          }
+        }
+      },
+      "return_types": ["LATENT"],
+      "return_names": ["LATENT"],
+      "output_colors": ["#FF6E6E"],
+      "priority": "high",
+      "use_cases": [
+        "Text-to-image generation",
+        "Image-to-image with denoise < 1.0",
+        "Batch sampling with fixed seed"
+      ],
+      "compatible_outputs": {
+        "LATENT": ["VAEDecode", "LatentUpscale"]
+      },
+      "example_values": {
+        "steps": 20,
+        "cfg": 8.0,
+        "denoise": 1.0
+      }
+    },
+    "CLIPTextEncode": {
+      "display_name": "CLIP Text Encode",
+      "category": "conditioning",
+      "description": "Encodes text prompt using CLIP for conditioning",
+      "input_types": {
+        "required": {
+          "text": { "type": "STRING", "description": "Prompt text", "notes": "multiline" },
+          "clip": { "type": "CLIP", "description": "CLIP model", "color": "#FFD700" }
+        }
+      },
+      "return_types": ["CONDITIONING"],
+      "return_names": ["CONDITIONING"],
+      "output_colors": ["#FFA931"],
+      "priority": "high",
+      "use_cases": ["Text-to-image prompts", "Negative prompts", "Style text"],
+      "compatible_outputs": { "CONDITIONING": ["KSampler", "ConditioningCombine"] },
+      "example_values": {}
+    },
+    "VAEDecode": {
+      "display_name": "VAE Decode",
+      "category": "latent",
+      "description": "Decodes latent tensor to image using VAE",
+      "input_types": {
+        "required": {
+          "samples": { "type": "LATENT", "color": "#FF6E6E" },
+          "vae": { "type": "VAE", "color": "#FF6E6E" }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "high",
+      "use_cases": ["Latent to image", "Final decode in txt2img"],
+      "compatible_outputs": { "IMAGE": ["SaveImage", "ImageScale", "VAEEncode"] },
+      "example_values": {}
+    },
+    "EmptyLatentImage": {
+      "display_name": "Empty Latent Image",
+      "category": "latent",
+      "description": "Creates empty latent tensor for generation",
+      "input_types": {
+        "required": {
+          "width": { "type": "INT", "default": 1024, "min": 64 },
+          "height": { "type": "INT", "default": 1024, "min": 64 },
+          "batch_size": { "type": "INT", "default": 1 }
+        }
+      },
+      "return_types": ["LATENT"],
+      "return_names": ["LATENT"],
+      "output_colors": ["#FF6E6E"],
+      "priority": "high",
+      "use_cases": ["txt2img size", "Batch size"],
+      "compatible_outputs": { "LATENT": ["KSampler", "LatentUpscale"] },
+      "example_values": { "width": 1024, "height": 1024 }
+    },
+    "SaveImage": {
+      "display_name": "Save Image",
+      "category": "image",
+      "description": "Saves image to disk",
+      "input_types": {
+        "required": {
+          "images": { "type": "IMAGE", "color": "#64B5F6" },
+          "filename_prefix": { "type": "STRING", "description": "Output filename prefix" }
+        }
+      },
+      "return_types": [],
+      "return_names": [],
+      "output_colors": [],
+      "priority": "high",
+      "use_cases": ["Export result", "Batch save"],
+      "compatible_outputs": {},
+      "example_values": { "filename_prefix": "ComfyUI" }
+    },
+    "VAEEncode": {
+      "display_name": "VAE Encode",
+      "category": "latent",
+      "description": "Encodes image to latent for img2img",
+      "input_types": {
+        "required": {
+          "pixels": { "type": "IMAGE", "color": "#64B5F6" },
+          "vae": { "type": "VAE", "color": "#FF6E6E" }
+        }
+      },
+      "return_types": ["LATENT"],
+      "return_names": ["LATENT"],
+      "output_colors": ["#FF6E6E"],
+      "priority": "high",
+      "use_cases": ["img2img", "Inpainting latent"],
+      "compatible_outputs": { "LATENT": ["KSampler"] },
+      "example_values": {}
+    },
+    "LoadImage": {
+      "display_name": "Load Image",
+      "category": "image",
+      "description": "Loads image from file",
+      "input_types": {
+        "required": {
+          "image": { "type": "STRING", "description": "Image filename" }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "high",
+      "use_cases": ["img2img", "Reference", "ControlNet"],
+      "compatible_outputs": { "IMAGE": ["VAEEncode", "ImageScale", "ImageToMask"] },
+      "example_values": {}
+    },
+    "LoraLoader": {
+      "display_name": "Load LoRA",
+      "category": "loaders",
+      "description": "Loads LoRA weights and applies to model/CLIP",
+      "input_types": {
+        "required": {
+          "model": { "type": "MODEL", "color": "#B22222" },
+          "clip": { "type": "CLIP", "color": "#FFD700" },
+          "lora_name": { "type": "STRING" },
+          "strength_model": { "type": "FLOAT", "default": 1.0 },
+          "strength_clip": { "type": "FLOAT", "default": 1.0 }
+        }
+      },
+      "return_types": ["MODEL", "CLIP"],
+      "return_names": ["MODEL", "CLIP"],
+      "output_colors": ["#B22222", "#FFD700"],
+      "priority": "high",
+      "use_cases": ["Style LoRA", "Character LoRA", "Detail LoRA"],
+      "compatible_outputs": { "MODEL": ["KSampler"], "CLIP": ["CLIPTextEncode"] },
+      "example_values": { "strength_model": 0.8, "strength_clip": 0.8 }
+    },
+    "CLIPLoader": {
+      "display_name": "Load CLIP",
+      "category": "loaders",
+      "description": "Loads CLIP model separately",
+      "input_types": {
+        "required": { "clip_name": { "type": "STRING" } }
+      },
+      "return_types": ["CLIP"],
+      "return_names": ["CLIP"],
+      "output_colors": ["#FFD700"],
+      "priority": "medium",
+      "use_cases": ["Dual CLIP", "CLIP only workflows"],
+      "compatible_outputs": { "CLIP": ["CLIPTextEncode"] },
+      "example_values": {}
+    },
+    "VAELoader": {
+      "display_name": "Load VAE",
+      "category": "loaders",
+      "description": "Loads VAE model separately",
+      "input_types": {
+        "required": { "vae_name": { "type": "STRING" } }
+      },
+      "return_types": ["VAE"],
+      "return_names": ["VAE"],
+      "output_colors": ["#FF6E6E"],
+      "priority": "medium",
+      "use_cases": ["TAESD", "Custom VAE"],
+      "compatible_outputs": { "VAE": ["VAEEncode", "VAEDecode"] },
+      "example_values": {}
+    },
+    "ConditioningCombine": {
+      "display_name": "Conditioning Combine",
+      "category": "conditioning",
+      "description": "Combines multiple conditioning inputs",
+      "input_types": {
+        "required": {
+          "cond_1": { "type": "CONDITIONING", "color": "#FFA931" },
+          "cond_2": { "type": "CONDITIONING", "color": "#FFA931" }
+        }
+      },
+      "return_types": ["CONDITIONING"],
+      "return_names": ["CONDITIONING"],
+      "output_colors": ["#FFA931"],
+      "priority": "medium",
+      "use_cases": ["Merge prompts", "Multi-conditioning"],
+      "compatible_outputs": { "CONDITIONING": ["KSampler"] },
+      "example_values": {}
+    },
+    "ConditioningSetArea": {
+      "display_name": "Conditioning Set Area",
+      "category": "conditioning",
+      "description": "Sets area for regional conditioning",
+      "input_types": {
+        "required": {
+          "conditioning": { "type": "CONDITIONING", "color": "#FFA931" },
+          "width": { "type": "INT" },
+          "height": { "type": "INT" },
+          "x": { "type": "INT" },
+          "y": { "type": "INT" },
+          "strength": { "type": "FLOAT", "default": 1.0 }
+        }
+      },
+      "return_types": ["CONDITIONING"],
+      "return_names": ["CONDITIONING"],
+      "output_colors": ["#FFA931"],
+      "priority": "low",
+      "use_cases": ["Regional prompting", "Inpainting"],
+      "compatible_outputs": { "CONDITIONING": ["KSampler"] },
+      "example_values": {}
+    },
+    "ImageScale": {
+      "display_name": "Image Scale",
+      "category": "image",
+      "description": "Scales image to new dimensions",
+      "input_types": {
+        "required": {
+          "image": { "type": "IMAGE", "color": "#64B5F6" },
+          "upscale_method": { "type": "COMBO", "options": ["lanczos", "nearest", "bilinear"] },
+          "width": { "type": "INT" },
+          "height": { "type": "INT" }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "high",
+      "use_cases": ["Upscale", "Resize for ControlNet"],
+      "compatible_outputs": { "IMAGE": ["SaveImage", "VAEEncode"] },
+      "example_values": { "upscale_method": "lanczos" }
+    },
+    "LatentUpscale": {
+      "display_name": "Latent Upscale",
+      "category": "latent",
+      "description": "Upscales latent in latent space",
+      "input_types": {
+        "required": {
+          "samples": { "type": "LATENT", "color": "#FF6E6E" },
+          "upscale_method": { "type": "COMBO" },
+          "width": { "type": "INT" },
+          "height": { "type": "INT" }
+        }
+      },
+      "return_types": ["LATENT"],
+      "return_names": ["LATENT"],
+      "output_colors": ["#FF6E6E"],
+      "priority": "medium",
+      "use_cases": ["Latent upscale", "Resolution change"],
+      "compatible_outputs": { "LATENT": ["VAEDecode", "KSampler"] },
+      "example_values": {}
+    },
+    "ImageToMask": {
+      "display_name": "Image to Mask",
+      "category": "mask",
+      "description": "Converts image to mask (alpha or channel)",
+      "input_types": {
+        "required": {
+          "image": { "type": "IMAGE", "color": "#64B5F6" },
+          "channel": { "type": "COMBO", "options": ["alpha", "red", "green", "blue"] }
+        }
+      },
+      "return_types": ["MASK"],
+      "return_names": ["MASK"],
+      "output_colors": ["#81C784"],
+      "priority": "medium",
+      "use_cases": ["Inpainting mask", "Regional mask"],
+      "compatible_outputs": { "MASK": ["SetLatentNoiseMask", "VAEDecode"] },
+      "example_values": { "channel": "alpha" }
+    },
+    "SetLatentNoiseMask": {
+      "display_name": "Set Latent Noise Mask",
+      "category": "latent",
+      "description": "Applies mask to latent for inpainting",
+      "input_types": {
+        "required": {
+          "samples": { "type": "LATENT", "color": "#FF6E6E" },
+          "mask": { "type": "MASK", "color": "#81C784" }
+        }
+      },
+      "return_types": ["LATENT"],
+      "return_names": ["LATENT"],
+      "output_colors": ["#FF6E6E"],
+      "priority": "medium",
+      "use_cases": ["Inpainting", "Masked generation"],
+      "compatible_outputs": { "LATENT": ["KSampler"] },
+      "example_values": {}
+    },
+    "ModelMergeSimple": {
+      "display_name": "Model Merge Simple",
+      "category": "loaders",
+      "description": "Merges two models with weight",
+      "input_types": {
+        "required": {
+          "model1": { "type": "MODEL", "color": "#B22222" },
+          "model2": { "type": "MODEL", "color": "#B22222" },
+          "ratio": { "type": "FLOAT", "default": 0.5 }
+        }
+      },
+      "return_types": ["MODEL"],
+      "return_names": ["MODEL"],
+      "output_colors": ["#B22222"],
+      "priority": "low",
+      "use_cases": ["Model blend", "Checkpoint merge"],
+      "compatible_outputs": { "MODEL": ["KSampler"] },
+      "example_values": { "ratio": 0.5 }
+    },
+    "KSamplerAdvanced": {
+      "display_name": "KSampler (Advanced)",
+      "category": "sampling",
+      "description": "Advanced sampler with noise device and sigmas",
+      "input_types": {
+        "required": {
+          "model": { "type": "MODEL", "color": "#B22222" },
+          "positive": { "type": "CONDITIONING", "color": "#FFA931" },
+          "negative": { "type": "CONDITIONING", "color": "#FFA931" },
+          "latent_image": { "type": "LATENT", "color": "#FF6E6E" },
+          "noise_seed": { "type": "INT" },
+          "steps": { "type": "INT" },
+          "cfg": { "type": "FLOAT" },
+          "sampler_name": { "type": "COMBO" },
+          "scheduler": { "type": "COMBO" },
+          "denoise": { "type": "FLOAT" }
+        }
+      },
+      "return_types": ["LATENT"],
+      "return_names": ["LATENT"],
+      "output_colors": ["#FF6E6E"],
+      "priority": "medium",
+      "use_cases": ["Advanced control", "Custom sigmas"],
+      "compatible_outputs": { "LATENT": ["VAEDecode"] },
+      "example_values": {}
+    },
+    "PreviewImage": {
+      "display_name": "Preview Image",
+      "category": "image",
+      "description": "Preview image in UI (no save)",
+      "input_types": {
+        "required": { "images": { "type": "IMAGE", "color": "#64B5F6" } }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "medium",
+      "use_cases": ["Quick preview", "Debug"],
+      "compatible_outputs": {},
+      "example_values": {}
+    },
+    "LoadImageMask": {
+      "display_name": "Load Image Mask",
+      "category": "mask",
+      "description": "Loads mask from image file",
+      "input_types": {
+        "required": {
+          "image": { "type": "STRING" },
+          "channel": { "type": "COMBO", "options": ["alpha", "red", "green", "blue"] }
+        }
+      },
+      "return_types": ["MASK"],
+      "return_names": ["MASK"],
+      "output_colors": ["#81C784"],
+      "priority": "medium",
+      "use_cases": ["Inpainting mask from file"],
+      "compatible_outputs": { "MASK": ["SetLatentNoiseMask"] },
+      "example_values": {}
+    },
+    "ControlNetLoader": {
+      "display_name": "Load ControlNet",
+      "category": "loaders",
+      "description": "Loads ControlNet model",
+      "input_types": {
+        "required": { "control_net_name": { "type": "STRING" } }
+      },
+      "return_types": ["CONTROL_NET"],
+      "return_names": ["CONTROL_NET"],
+      "output_colors": ["#9C27B0"],
+      "priority": "high",
+      "use_cases": ["ControlNet pose", "Canny", "Depth"],
+      "compatible_outputs": { "CONTROL_NET": ["ApplyControlNet"] },
+      "example_values": {}
+    },
+    "ApplyControlNet": {
+      "display_name": "Apply ControlNet",
+      "category": "conditioning",
+      "description": "Applies ControlNet to conditioning",
+      "input_types": {
+        "required": {
+          "positive": { "type": "CONDITIONING", "color": "#FFA931" },
+          "negative": { "type": "CONDITIONING", "color": "#FFA931" },
+          "control_net": { "type": "CONTROL_NET", "color": "#9C27B0" },
+          "image": { "type": "IMAGE", "color": "#64B5F6" },
+          "strength": { "type": "FLOAT", "default": 1.0 }
+        }
+      },
+      "return_types": ["CONDITIONING", "CONDITIONING"],
+      "return_names": ["positive", "negative"],
+      "output_colors": ["#FFA931", "#FFA931"],
+      "priority": "high",
+      "use_cases": ["Pose control", "Edge guidance"],
+      "compatible_outputs": { "CONDITIONING": ["KSampler"] },
+      "example_values": { "strength": 1.0 }
+    },
+    "RepeatLatentBatch": {
+      "display_name": "Repeat Latent Batch",
+      "category": "latent",
+      "description": "Repeats latent batch N times",
+      "input_types": {
+        "required": {
+          "samples": { "type": "LATENT", "color": "#FF6E6E" },
+          "amount": { "type": "INT", "default": 1 }
+        }
+      },
+      "return_types": ["LATENT"],
+      "return_names": ["LATENT"],
+      "output_colors": ["#FF6E6E"],
+      "priority": "low",
+      "use_cases": ["Batch repeat"],
+      "compatible_outputs": { "LATENT": ["KSampler", "VAEDecode"] },
+      "example_values": {}
+    },
+    "ImageCompositeMasked": {
+      "display_name": "Image Composite (Masked)",
+      "category": "image",
+      "description": "Composites images using mask",
+      "input_types": {
+        "required": {
+          "destination": { "type": "IMAGE", "color": "#64B5F6" },
+          "source": { "type": "IMAGE", "color": "#64B5F6" },
+          "mask": { "type": "MASK", "color": "#81C784" },
+          "x": { "type": "INT" },
+          "y": { "type": "INT" }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "medium",
+      "use_cases": ["Inpainting composite", "Paste with mask"],
+      "compatible_outputs": { "IMAGE": ["SaveImage", "VAEEncode"] },
+      "example_values": {}
+    },
+    "GrowMask": {
+      "display_name": "Grow Mask",
+      "category": "mask",
+      "description": "Expands or contracts mask",
+      "input_types": {
+        "required": {
+          "mask": { "type": "MASK", "color": "#81C784" },
+          "expand": { "type": "INT", "default": 0 }
+        }
+      },
+      "return_types": ["MASK"],
+      "return_names": ["MASK"],
+      "output_colors": ["#81C784"],
+      "priority": "low",
+      "use_cases": ["Mask expansion", "Soften mask edge"],
+      "compatible_outputs": { "MASK": ["SetLatentNoiseMask"] },
+      "example_values": {}
+    },
+    "CropImage": {
+      "display_name": "Crop Image",
+      "category": "image",
+      "description": "Crops image to region",
+      "input_types": {
+        "required": {
+          "image": { "type": "IMAGE", "color": "#64B5F6" },
+          "width": { "type": "INT" },
+          "height": { "type": "INT" },
+          "x": { "type": "INT" },
+          "y": { "type": "INT" }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "medium",
+      "use_cases": ["Crop region", "Tile crop"],
+      "compatible_outputs": { "IMAGE": ["SaveImage", "VAEEncode"] },
+      "example_values": {}
+    },
+    "PadImage": {
+      "display_name": "Pad Image",
+      "category": "image",
+      "description": "Pads image to size",
+      "input_types": {
+        "required": {
+          "image": { "type": "IMAGE", "color": "#64B5F6" },
+          "width": { "type": "INT" },
+          "height": { "type": "INT" },
+          "x": { "type": "INT" },
+          "y": { "type": "INT" }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "low",
+      "use_cases": ["Pad to resolution"],
+      "compatible_outputs": { "IMAGE": ["SaveImage"] },
+      "example_values": {}
+    },
+    "ConditioningConcat": {
+      "display_name": "Conditioning Concat",
+      "category": "conditioning",
+      "description": "Concatenates two conditioning inputs",
+      "input_types": {
+        "required": {
+          "cond_1": { "type": "CONDITIONING", "color": "#FFA931" },
+          "cond_2": { "type": "CONDITIONING", "color": "#FFA931" }
+        }
+      },
+      "return_types": ["CONDITIONING"],
+      "return_names": ["CONDITIONING"],
+      "output_colors": ["#FFA931"],
+      "priority": "low",
+      "use_cases": ["Prompt concat"],
+      "compatible_outputs": { "CONDITIONING": ["KSampler"] },
+      "example_values": {}
+    },
+    "LatentCrop": {
+      "display_name": "Latent Crop",
+      "category": "latent",
+      "description": "Crops latent tensor",
+      "input_types": {
+        "required": {
+          "samples": { "type": "LATENT", "color": "#FF6E6E" },
+          "width": { "type": "INT" },
+          "height": { "type": "INT" },
+          "x": { "type": "INT" },
+          "y": { "type": "INT" }
+        }
+      },
+      "return_types": ["LATENT"],
+      "return_names": ["LATENT"],
+      "output_colors": ["#FF6E6E"],
+      "priority": "low",
+      "use_cases": ["Latent crop"],
+      "compatible_outputs": { "LATENT": ["KSampler", "VAEDecode"] },
+      "example_values": {}
+    },
+    "RandomNoise": {
+      "display_name": "Random Noise",
+      "category": "latent",
+      "description": "Generates random latent noise",
+      "input_types": {
+        "required": {
+          "seed": { "type": "INT" },
+          "width": { "type": "INT" },
+          "height": { "type": "INT" },
+          "batch_size": { "type": "INT", "default": 1 }
+        }
+      },
+      "return_types": ["LATENT"],
+      "return_names": ["LATENT"],
+      "output_colors": ["#FF6E6E"],
+      "priority": "low",
+      "use_cases": ["Custom noise input"],
+      "compatible_outputs": { "LATENT": ["KSampler"] },
+      "example_values": {}
+    }
+  }
+}

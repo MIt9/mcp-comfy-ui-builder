@@ -1,6 +1,7 @@
 /**
- * MCP server: list_node_types, get_node_info, check_compatibility, suggest_nodes.
- * Loads knowledge/ at startup. Use stdio transport (no console.log — use console.error for logs).
+ * MCP server: list_node_types, get_node_info, check_compatibility, suggest_nodes;
+ * list_templates, build_workflow, save_workflow, list_saved_workflows, load_workflow;
+ * execute_workflow, get_execution_status, list_queue (require COMFYUI_HOST).
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -8,6 +9,10 @@ import { z } from 'zod';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { BaseNodesJson, NodeCompatibilityData, NodeDescription } from './types/node-types.js';
+import { buildFromTemplate, listTemplates } from './workflow/workflow-builder.js';
+import { saveWorkflow, listSavedWorkflows, loadWorkflow } from './workflow/workflow-storage.js';
+import * as comfyui from './comfyui-client.js';
+import type { ComfyUIWorkflow } from './types/comfyui-api-types.js';
 
 const KNOWLEDGE_DIR = join(process.cwd(), 'knowledge');
 const BASE_NODES_PATH = join(KNOWLEDGE_DIR, 'base-nodes.json');
@@ -150,6 +155,233 @@ server.registerTool(
     return {
       content: [{ type: 'text', text: list.length ? list.join('\n') : 'No matching nodes.' }],
     };
+  }
+);
+
+server.registerTool(
+  'list_templates',
+  {
+    description: 'List available workflow template ids (e.g. txt2img). No ComfyUI connection needed.',
+    inputSchema: {},
+  },
+  () => {
+    const list = listTemplates();
+    return { content: [{ type: 'text', text: list.length ? list.join(', ') : 'No templates.' }] };
+  }
+);
+
+server.registerTool(
+  'build_workflow',
+  {
+    description:
+      'Build a ComfyUI workflow from a template and parameters. Returns workflow JSON ready to execute or save. No ComfyUI connection needed.',
+    inputSchema: {
+      template: z.string().describe('Template id (e.g. txt2img). Use list_templates to see available.'),
+      params: z.record(z.string(), z.unknown()).optional().describe('Optional: width, height, steps, cfg, prompt, negative_prompt, seed, ckpt_name, filename_prefix, batch_size, denoise'),
+    },
+  },
+  (args) => {
+    try {
+      const workflow = buildFromTemplate(args.template, args.params ?? {});
+      const text = JSON.stringify(workflow, null, 2);
+      return { content: [{ type: 'text', text }] };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `build_workflow failed: ${msg}` }] };
+    }
+  }
+);
+
+server.registerTool(
+  'execute_workflow',
+  {
+    description:
+      'Submit a ComfyUI workflow to run. Returns prompt_id. Use get_execution_status(prompt_id) to check result. Requires COMFYUI_HOST and ComfyUI running.',
+    inputSchema: {
+      workflow: z.string().describe('Workflow JSON string (from build_workflow or loaded file)'),
+    },
+  },
+  async (args) => {
+    if (!comfyui.isComfyUIConfigured()) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: 'ComfyUI is not configured. Set COMFYUI_HOST (e.g. http://localhost:8188) and ensure ComfyUI is running. Then retry execute_workflow.',
+          },
+        ],
+      };
+    }
+    let parsed: ComfyUIWorkflow;
+    try {
+      parsed = JSON.parse(args.workflow) as ComfyUIWorkflow;
+    } catch {
+      return { content: [{ type: 'text', text: 'Invalid workflow JSON.' }] };
+    }
+    try {
+      const { prompt_id } = await comfyui.submitPrompt(parsed);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Workflow queued. prompt_id: ${prompt_id}. Use get_execution_status with this prompt_id to check result.`,
+          },
+        ],
+      };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `execute_workflow failed: ${msg}` }] };
+    }
+  }
+);
+
+server.registerTool(
+  'get_execution_status',
+  {
+    description:
+      'Get execution status and outputs for a prompt. Returns status, image filenames, and view URLs. Requires COMFYUI_HOST.',
+    inputSchema: {
+      prompt_id: z.string().describe('Prompt id returned by execute_workflow'),
+    },
+  },
+  async (args) => {
+    if (!comfyui.isComfyUIConfigured()) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: 'ComfyUI is not configured. Set COMFYUI_HOST to use get_execution_status.',
+          },
+        ],
+      };
+    }
+    try {
+      const entries = await comfyui.getHistory(args.prompt_id);
+      if (entries.length === 0) {
+        return { content: [{ type: 'text', text: `No history found for prompt_id: ${args.prompt_id}. It may still be running or not yet recorded.` }] };
+      }
+      const entry = entries[0];
+      const outputs = entry.outputs ?? {};
+      const lines: string[] = [`prompt_id: ${args.prompt_id}`];
+      const statusStr = (entry.status as { status_str?: string })?.status_str;
+      if (statusStr) lines.push(`status: ${statusStr}`);
+      for (const [nodeId, out] of Object.entries(outputs)) {
+        const images = (out as { images?: Array<{ filename: string; subfolder?: string }> }).images;
+        if (images?.length) {
+          lines.push(`node ${nodeId} images: ${images.map((i) => i.filename).join(', ')}`);
+          const base = process.env.COMFYUI_HOST?.replace(/\/$/, '') ?? 'http://localhost:8188';
+          for (const img of images) {
+            const sub = img.subfolder ? `&subfolder=${encodeURIComponent(img.subfolder)}` : '';
+            lines.push(`  view: ${base}/view?filename=${encodeURIComponent(img.filename)}&type=output${sub}`);
+          }
+        }
+      }
+      return { content: [{ type: 'text', text: lines.join('\n') }] };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `get_execution_status failed: ${msg}` }] };
+    }
+  }
+);
+
+server.registerTool(
+  'list_queue',
+  {
+    description: 'List current ComfyUI queue (running and pending prompts). Requires COMFYUI_HOST.',
+    inputSchema: {},
+  },
+  async () => {
+    if (!comfyui.isComfyUIConfigured()) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: 'ComfyUI is not configured. Set COMFYUI_HOST to use list_queue.',
+          },
+        ],
+      };
+    }
+    try {
+      const queue = await comfyui.getQueue();
+      const text = JSON.stringify(
+        { queue_running: queue.queue_running, queue_pending: queue.queue_pending },
+        null,
+        2
+      );
+      return { content: [{ type: 'text', text }] };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `list_queue failed: ${msg}` }] };
+    }
+  }
+);
+
+server.registerTool(
+  'save_workflow',
+  {
+    description:
+      'Save a workflow JSON to file (workflows/<name>.json). Returns path. Use after build_workflow to persist for later load_workflow or execute_workflow.',
+    inputSchema: {
+      name: z.string().describe('Name for the workflow file (alphanumeric, dash, underscore; .json added automatically)'),
+      workflow: z.string().describe('Workflow JSON string (from build_workflow or load_workflow)'),
+    },
+  },
+  async (args) => {
+    let parsed: ComfyUIWorkflow;
+    try {
+      parsed = JSON.parse(args.workflow) as ComfyUIWorkflow;
+    } catch {
+      return { content: [{ type: 'text', text: 'Invalid workflow JSON.' }] };
+    }
+    try {
+      const path = await saveWorkflow(args.name, parsed);
+      return { content: [{ type: 'text', text: `Saved to ${path}` }] };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `save_workflow failed: ${msg}` }] };
+    }
+  }
+);
+
+server.registerTool(
+  'list_saved_workflows',
+  {
+    description: 'List saved workflows (names and paths) from workflows/ directory.',
+    inputSchema: {},
+  },
+  async () => {
+    try {
+      const list = await listSavedWorkflows();
+      if (list.length === 0) {
+        return { content: [{ type: 'text', text: 'No saved workflows. Use save_workflow to save one.' }] };
+      }
+      const text = list.map((e) => `${e.name}: ${e.path}`).join('\n');
+      return { content: [{ type: 'text', text }] };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `list_saved_workflows failed: ${msg}` }] };
+    }
+  }
+);
+
+server.registerTool(
+  'load_workflow',
+  {
+    description:
+      'Load a saved workflow by name (from workflows/<name>.json) or by path. Returns workflow JSON for use with execute_workflow or save_workflow.',
+    inputSchema: {
+      name_or_path: z.string().describe('Workflow name (filename without .json) or full path to .json file'),
+    },
+  },
+  async (args) => {
+    try {
+      const workflow = await loadWorkflow(args.name_or_path);
+      const text = JSON.stringify(workflow, null, 2);
+      return { content: [{ type: 'text', text }] };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `load_workflow failed: ${msg}` }] };
+    }
   }
 );
 

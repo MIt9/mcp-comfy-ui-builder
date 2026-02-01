@@ -1,96 +1,97 @@
 # 🗺️ Project Roadmap
 
-> Visual roadmap for mcp-comfy-ui-builder development
+> mcp-comfy-ui-builder: from **knowledge-only** MCP to **workflow builder** (like @makafeli/n8n-workflow-builder for ComfyUI)
 
 ---
 
-## 📍 Current Position: MVP Complete ✅
+## 📍 Current Position: Knowledge Base + 4 MCP Tools ✅
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Phase 1-5: MVP COMPLETE ✅                                 │
-│  ├─ Core functionality (scanner, AI, updater)               │
-│  ├─ CLI commands (scan, sync, analyze, add)                 │
-│  ├─ MCP server (4 tools)                                    │
-│  ├─ Tests (unit + integration)                              │
-│  └─ Documentation (English)                                 │
+│  Phases 1–5: DONE ✅                                        │
+│  ├─ Seed knowledge base (no ComfyUI/API)                    │
+│  ├─ CLI: seed, sync-manager                                  │
+│  ├─ MCP: list_node_types, get_node_info,                    │
+│  │       check_compatibility, suggest_nodes                  │
+│  ├─ Tests (scanner, updater, mcp-tools)                      │
+│  └─ Docs (README, doc/, knowledge/)                          │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+**Gap vs n8n-workflow-builder:** We do **not** yet create or execute workflows. Next phases add that.
 
 ---
 
 ## 🎯 Roadmap Timeline
 
-### ⚡ Phase 6: Production Ready (Week 1-2)
+### ⚡ Phase 6: Workflow Builder — ComfyUI API & Build (Weeks 1–2)
 
-**Goal:** Make it production-ready and publish to npm
+**Goal:** ComfyUI client + workflow JSON builder; no MCP execute yet.
 
 ```
-Week 1: Code Verification & Testing
-├─ Day 1-2: Verify implementations match docs
-├─ Day 3-4: Fill knowledge base with real data
-├─ Day 5-6: Error handling & validation
-└─ Day 7:   Configuration & flexibility
+Week 1: ComfyUI API client
+├─ ComfyUI client module (submit /prompt, GET /history, GET /queue)
+├─ Types: workflow JSON, history, queue
+├─ Config: COMFYUI_HOST (optional)
+└─ Tests (mocked fetch)
 
-Week 2: Publication
-├─ Day 8-9:  Package preparation (metadata, LICENSE)
-├─ Day 10-11: npm publication
-├─ Day 12-13: GitHub setup & documentation
-└─ Day 14:    CI/CD pipeline (optional)
+Week 2: Workflow builder
+├─ Workflow format (node id → class_type, inputs)
+├─ buildFromTemplate("txt2img", params) → ComfyUI JSON
+├─ Use knowledge base for node defs
+└─ Tests (builder output valid)
 ```
 
 **Deliverables:**
-- ✅ Published npm package
-- ✅ Populated knowledge base (50+ nodes)
-- ✅ Production-grade error handling
-- ✅ GitHub repository with CI/CD
+- ✅ `src/comfyui-client.ts` (or workflow/comfyui-api.ts)
+- ✅ `src/workflow/workflow-builder.ts` — template → JSON
+- ✅ At least one template: txt2img
+- ✅ Tests for client and builder
 
 ---
 
-### 🚀 Phase 7: Enhancement (Month 2)
+### 🚀 Phase 7: Workflow Builder — MCP Tools (Weeks 3–4)
 
-**Goal:** Add advanced features and improve UX
+**Goal:** AI can build and execute workflows via MCP (like n8n-workflow-builder).
 
 ```
-Weeks 3-4: Core Enhancements
-├─ Additional MCP tools (search, validate, generate)
-├─ Knowledge base versioning
-├─ Performance optimizations
-└─ Docker support
+Week 3: MCP tools
+├─ build_workflow(template, params) → workflow JSON
+├─ execute_workflow(workflow) → prompt_id
+├─ get_execution_status(prompt_id) → status, outputs
+└─ list_queue() → running + pending
 
-Weeks 5-6: User Experience
-├─ Web interface (node browser)
-├─ Visual workflow builder
-├─ Better CLI experience
-└─ Scheduled updates automation
+Week 4: Polish & docs
+├─ Graceful "ComfyUI not configured" for execute/status/queue
+├─ README + MCP-SETUP: new tools, COMFYUI_HOST
+├─ Tests for new MCP tools (mocked client)
+└─ Optional: E2E with real ComfyUI
 ```
 
 **Deliverables:**
-- ✅ 8+ MCP tools (vs 4 now)
-- ✅ Web UI for browsing nodes
-- ✅ Docker images
-- ✅ Automated updates
+- ✅ 4 new MCP tools: build_workflow, execute_workflow, get_execution_status, list_queue
+- ✅ MCP server works with or without ComfyUI (read-only tools always; execute when COMFYUI_HOST set)
+- ✅ Documentation updated
+- ✅ Tests for new tools
 
 ---
 
-### 🌟 Phase 8: Ecosystem (Month 3+)
+### 🌟 Phase 8: Optional — Save/Load & More (Month 2+)
 
-**Goal:** Build community and integrations
+**Goal:** Persist workflows, more templates, better UX.
 
 ```
-Month 3+: Community & Growth
-├─ Plugin system for custom node sources
-├─ Integration with ComfyUI Manager
-├─ Workflow marketplace integration
-├─ Community contributions
-└─ Advanced AI features (workflow generation)
+Month 2: Optional features
+├─ save_workflow / list_saved_workflows / load_workflow
+├─ Templates: img2img, inpainting (if needed)
+├─ doc/workflow-builder.md (templates, params, format)
+└─ npm publish, CI/CD (if not done earlier)
 ```
 
 **Deliverables:**
-- ✅ Plugin ecosystem
-- ✅ 100+ community nodes documented
-- ✅ Active contributor community
-- ✅ AI workflow generation
+- ✅ Optional save/load workflows
+- ✅ More templates (img2img, etc.)
+- ✅ Published package, CI/CD
 
 ---
 
@@ -99,127 +100,54 @@ Month 3+: Community & Growth
 ### Implementation Status
 
 ```
-MVP (Phases 1-5)         [████████████████████] 100% ✅
-Production Ready (P6)    [░░░░░░░░░░░░░░░░░░░░]   0%
-Enhancement (P7)         [░░░░░░░░░░░░░░░░░░░░]   0%
-Ecosystem (P8)           [░░░░░░░░░░░░░░░░░░░░]   0%
+Knowledge base + 4 MCP tools   [████████████████████] 100% ✅
+ComfyUI client + builder      [░░░░░░░░░░░░░░░░░░░░]   0%
+MCP build/execute/status      [░░░░░░░░░░░░░░░░░░░░]   0%
+Save/load + more templates    [░░░░░░░░░░░░░░░░░░░░]   0%
 ```
 
 ### Feature Roadmap
 
 | Feature | Status | Priority | ETA |
 |---------|--------|----------|-----|
-| Core functionality | ✅ Complete | P0 | Done |
-| CLI commands | ✅ Complete | P0 | Done |
-| MCP server (4 tools) | ✅ Complete | P0 | Done |
-| Tests & docs | ✅ Complete | P0 | Done |
-| **Error handling** | 🔄 Planned | P1 | Week 1 |
-| **npm publication** | 🔄 Planned | P1 | Week 2 |
-| **Knowledge base (50+ nodes)** | 🔄 Planned | P1 | Week 1 |
-| **CI/CD pipeline** | 🔄 Planned | P2 | Week 2 |
-| Additional MCP tools | 📋 Backlog | P2 | Month 2 |
-| Web interface | 📋 Backlog | P3 | Month 2 |
-| Docker support | 📋 Backlog | P2 | Month 2 |
-| Plugin system | 💡 Idea | P4 | Month 3+ |
-| AI workflow generation | 💡 Idea | P4 | Month 3+ |
+| Seed knowledge base | ✅ Done | P0 | — |
+| MCP: list, get_info, check, suggest | ✅ Done | P0 | — |
+| ComfyUI API client | 🔄 Planned | P1 | Phase 6 |
+| Workflow builder (template → JSON) | 🔄 Planned | P1 | Phase 6 |
+| MCP: build_workflow | 🔄 Planned | P1 | Phase 7 |
+| MCP: execute_workflow | 🔄 Planned | P1 | Phase 7 |
+| MCP: get_execution_status | 🔄 Planned | P1 | Phase 7 |
+| MCP: list_queue | 🔄 Planned | P1 | Phase 7 |
+| Save/load workflows | 📋 Backlog | P2 | Phase 8 |
+| More templates (img2img, etc.) | 📋 Backlog | P2 | Phase 8 |
+| npm publish, CI/CD | 📋 Backlog | P2 | Phase 8 |
 
-**Legend:**
-- ✅ Complete
-- 🔄 In Progress / Planned
-- 📋 Backlog
-- 💡 Future Idea
+**Legend:** ✅ Done | 🔄 Planned | 📋 Backlog
 
 ---
 
 ## 🎯 Milestones
 
-### Milestone 1: MVP ✅ (Completed)
-- All core features working
-- Documentation complete
-- Tests passing
+### Milestone 1: Knowledge MCP ✅
+- Seed-based knowledge, 4 read-only MCP tools, tests, docs.
 
-### Milestone 2: v0.2.0 (Week 2)
-- Published to npm
-- Production-ready error handling
-- 50+ nodes in knowledge base
-- GitHub Actions CI/CD
+### Milestone 2: Workflow Builder (v0.2.0)
+- ComfyUI client + workflow builder (template → JSON).
+- MCP: build_workflow, execute_workflow, get_execution_status, list_queue.
+- Works like n8n-workflow-builder but for ComfyUI.
 
-### Milestone 3: v0.3.0 (Month 2)
-- 8+ MCP tools
-- Docker support
-- Web interface (beta)
-- Automated updates
-
-### Milestone 4: v1.0.0 (Month 3)
-- Stable API
-- 100+ nodes documented
-- Plugin system
-- Active community
-
----
-
-## 🚦 Decision Points
-
-### Week 1 Decision: Implementation Status
-**Question:** Are all documented features actually implemented?
-- ✅ Yes → Continue to Week 2
-- ❌ No → Implement missing features first
-
-### Week 2 Decision: Publication Ready?
-**Question:** Is the package ready for npm?
-- ✅ Yes → Publish v0.2.0
-- ❌ No → Fix critical issues first
-
-### Month 2 Decision: Feature Priority
-**Question:** What to build next?
-- Option A: Web interface (better UX)
-- Option B: More MCP tools (better AI integration)
-- Option C: Docker support (easier deployment)
-- Decision based on user feedback
-
----
-
-## 📈 Success Metrics
-
-### Short-term (Month 1)
-- [ ] npm package published
-- [ ] 10+ downloads
-- [ ] 0 critical bugs
-- [ ] 3+ GitHub stars
-
-### Mid-term (Month 2-3)
-- [ ] 100+ npm downloads
-- [ ] 20+ GitHub stars
-- [ ] 5+ community contributions
-- [ ] Featured in ComfyUI community
-
-### Long-term (6+ months)
-- [ ] 1000+ npm downloads
-- [ ] 100+ GitHub stars
-- [ ] Active plugin ecosystem
-- [ ] Used in production workflows
+### Milestone 3: v0.3.0 (optional)
+- Save/load workflows, more templates, npm publish, CI/CD.
 
 ---
 
 ## 🔗 Quick Links
 
-- **Detailed Plan:** [NEXT-STEPS.md](NEXT-STEPS.md)
-- **Implementation Checklist:** [doc/IMPLEMENTATION-CHECKLIST.md](doc/IMPLEMENTATION-CHECKLIST.md)
-- **Documentation:** [doc/README.md](doc/README.md)
-- **Contributing:** (TODO: Create CONTRIBUTING.md)
+- **Detailed plan:** [NEXT-STEPS.md](NEXT-STEPS.md)
+- **Tasks:** [TODO.md](TODO.md)
+- **ComfyUI API:** [doc/comfyui-api-quick-reference.md](doc/comfyui-api-quick-reference.md)
+- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 
-## 💬 Feedback & Contributions
-
-This is a living roadmap. Priorities may shift based on:
-- User feedback
-- Community needs
-- Technical discoveries
-- Resource availability
-
-**Want to contribute?** Check [NEXT-STEPS.md](NEXT-STEPS.md) for immediate tasks!
-
----
-
-*Roadmap Version: 1.0 | Last Updated: 2025-02-01*
+*Roadmap v2.0 | Workflow Builder focus | 2026-02-01*

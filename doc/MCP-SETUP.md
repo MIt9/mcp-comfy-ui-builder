@@ -12,8 +12,16 @@
 | **get_node_info(node_name)** | Full information about a node from base-nodes.json |
 | **check_compatibility(from_node, to_node)** | Whether output of one node can be connected to input of another |
 | **suggest_nodes(task_description \| input_type)** | Node suggestions by task description or output type |
+| **list_templates** | List workflow template ids (e.g. txt2img) |
+| **build_workflow(template, params?)** | Build ComfyUI workflow JSON from template (no ComfyUI needed) |
+| **save_workflow(name, workflow)** | Save workflow to workflows/\<name\>.json; returns path |
+| **list_saved_workflows** | List saved workflows (names and paths) from workflows/ |
+| **load_workflow(name_or_path)** | Load workflow by name or path; returns JSON for execute_workflow |
+| **execute_workflow(workflow)** | Submit workflow to ComfyUI; returns prompt_id (requires COMFYUI_HOST) |
+| **get_execution_status(prompt_id)** | Get status and image outputs (requires COMFYUI_HOST) |
+| **list_queue** | List running and pending prompts (requires COMFYUI_HOST) |
 
-Data is loaded from `knowledge/base-nodes.json` and `knowledge/node-compatibility.json` at server startup.
+Data is loaded from `knowledge/base-nodes.json` and `knowledge/node-compatibility.json` at server startup. For **execute_workflow**, **get_execution_status**, and **list_queue**, set `COMFYUI_HOST` (default `http://localhost:8188` if not set) and ensure ComfyUI is running. For list_node_types, get_node_info, check_compatibility, suggest_nodes, list_templates, build_workflow, save_workflow, list_saved_workflows, and load_workflow, no ComfyUI connection is needed.
 
 ***
 
@@ -48,7 +56,7 @@ Alternative: `node dist/mcp-server.js`. Server uses **stdio** (stdin/stdout).
 
 3. Restart Cursor.
 
-After connecting, AI can call `list_node_types`, `get_node_info`, `check_compatibility`, `suggest_nodes` to build ComfyUI workflows.
+After connecting, AI can call the tools above. For workflow execution (execute_workflow, get_execution_status, list_queue), set `COMFYUI_HOST` in the environment or in a `.env` file in the project root (see [.env.example](../.env.example)).
 
 ***
 
@@ -73,7 +81,7 @@ After connecting, make sure Cursor/Claude sees the tools (e.g., in the MCP tools
 |----------|----------------|
 | **MCP doesn't see tools** | Path in `args` must be **absolute** to `dist/mcp-server.js`. After changing config — fully restart Cursor/Claude. |
 | **Server doesn't start** | Run `npm run build` from project root. Make sure there's a `knowledge/` folder with `base-nodes.json` and `node-compatibility.json`. |
-| **Empty node list** | File `knowledge/base-nodes.json` must contain `nodes` object. If needed, run `npm run scan` or add nodes manually. |
+| **Empty node list** | File `knowledge/base-nodes.json` must contain `nodes` object. Run `npm run seed` or add nodes manually. |
 | **ENOENT error / module not found** | Run MCP from **project root** (where `knowledge/` and `dist/` are visible). In Cursor config `args` — path specifically to `dist/mcp-server.js`. |
 
 Example config for Cursor: [examples/cursor-mcp.json](../examples/cursor-mcp.json) (copy and substitute your path).

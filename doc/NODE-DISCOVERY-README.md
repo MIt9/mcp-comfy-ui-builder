@@ -1,64 +1,31 @@
 # 🔍 ComfyUI Node Discovery System
 
-> Automated system for discovering, analyzing, and documenting ComfyUI nodes with AI-powered descriptions
+> Seed knowledge base and MCP tools for ComfyUI nodes (Cursor/Claude)
 
 ***
 
 ## 🎯 Overview
 
-**Problem**: New custom node pack = dozens of nodes without documentation for AI.
-
-**Solution**: System that **automatically**:
-
-1. **Discovers** new nodes from ComfyUI API
-2. **Analyzes** their structure (INPUT/OUTPUT types)
-3. **Generates** detailed descriptions via Claude AI
-4. **Updates** knowledge base in structured JSON
-
-**Result**: Complete knowledge base for MCP server in 25 minutes instead of 25 hours of manual work.
+- **Seed** `knowledge/base-nodes.json` and `node-compatibility.json` from bundled seed (no external services).
+- **Sync** custom packs list from ComfyUI-Manager (GitHub).
+- **MCP server** with tools: list_node_types, get_node_info, check_compatibility, suggest_nodes.
 
 ***
 
 ## 🚀 Quick Start
 
-### Installation (5 minutes)
-
 ```bash
-git clone <your-repo>
-cd comfyui-node-discovery
+git clone https://github.com/MIt9/mcp-comfy-ui-builder.git && cd mcp-comfy-ui-builder
 npm install
-export ANTHROPIC_API_KEY="sk-ant-your-key"
-cd ComfyUI && python main.py --listen
-```
-
-### First Run (2 minutes)
-
-```bash
-npm run scan
+npm run build   # postbuild fills knowledge from seed
+npm run mcp
 ```
 
 ***
 
-## 📦 Installation
-
-### Prerequisites
+## 📦 Prerequisites
 
 - Node.js 18+
-- ComfyUI at http://127.0.0.1:8188
-- Claude API key (Anthropic)
-- ComfyUI-Manager (recommended)
-
-### Full Setup
-
-```bash
-mkdir comfyui-node-discovery && cd comfyui-node-discovery
-npm init -y
-npm install @anthropic-ai/sdk @octokit/rest commander node-fetch
-npm install -D typescript @types/node tsx
-echo 'ANTHROPIC_API_KEY=your-key-here' > .env
-echo 'COMFYUI_HOST=http://127.0.0.1:8188' >> .env
-cp -r knowledge/ .
-```
 
 ***
 
@@ -66,11 +33,9 @@ cp -r knowledge/ .
 
 | Command | Description |
 | :-- | :-- |
-| `npm run scan` | Automatic scan of new nodes, Claude descriptions, JSON update |
-| `npm run scan:dry` | Dry run without changes |
-| `npm run sync-manager` | Updates list of custom node packs from ComfyUI Manager |
-| `npm run analyze <repo-url>` | Analyzes GitHub repository and adds nodes |
-| `npm run add-node` | Interactive wizard for manual addition |
+| `npm run seed` | Fill knowledge from seed. Use `--force` to overwrite. |
+| `npm run sync-manager` | Update custom packs list from ComfyUI-Manager |
+| `npm run mcp` | Start MCP server (after `npm run build`) |
 
 ***
 
@@ -120,11 +85,9 @@ knowledge/
 
 ***
 
-## 🤖 AI Generation Pipeline
+## 🤖 Knowledge base pipeline
 
-ComfyUI /object_info → NodeScanner → Claude Prompt → JSON Description → Knowledge Base
-
-**Prompt Template**: knowledge/node-description-prompt-template.md
+Seed files → `npm run seed` → base-nodes.json + node-compatibility.json → MCP server
 
 ***
 
@@ -133,26 +96,26 @@ ComfyUI /object_info → NodeScanner → Claude Prompt → JSON Description → 
 ### Use Case 1: Weekly Update
 
 ```bash
-npm run scan
+npm run seed
 npm run sync-manager
 git add knowledge/ && git commit -m "Weekly node update"
 ```
 
 ### Use Case 2: New Node Pack
 
-Install in ComfyUI custom_nodes, restart ComfyUI, then `npm run scan`.
+Run `npm run seed` to fill knowledge from seed.
 
 ### Use Case 3: Manual Addition
 
 ```bash
-npm run add-node
+npm run seed
 ```
 
 ***
 
 ## 🏗️ Architecture
 
-ComfyUI /object_info → NodeScanner → AI Generator (Claude) → KnowledgeBaseUpdater → JSON Files → MCP Server
+Seed files → CLI seed → base-nodes.json, node-compatibility.json → MCP server. Sync-manager fetches custom packs from GitHub.
 
 **Details**: node-discovery-system.md
 
@@ -162,10 +125,8 @@ ComfyUI /object_info → NodeScanner → AI Generator (Claude) → KnowledgeBase
 
 | Problem | Solution |
 | :-- | :-- |
-| Connection refused | python main.py --listen 0.0.0.0 --port 8188 |
-| Invalid JSON | Restart ComfyUI, check logs |
-| Claude API error | Check ANTHROPIC_API_KEY |
-| Rate limit exceeded | Decrease NODE_BATCH_SIZE |
+| Seed file not found | Run from project root (where `knowledge/` is). |
+| Empty node list | Run `npm run seed` or `npm run build` (postbuild runs seed). |
 
 **Деталі**: comfyui-api-detailed-guide.md
 

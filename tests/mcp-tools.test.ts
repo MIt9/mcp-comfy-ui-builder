@@ -1,8 +1,9 @@
 /**
- * Unit tests for MCP tool logic: list_node_types, get_node_info, check_compatibility.
- * Uses fixture JSON; replicates the same logic as mcp-server handlers.
+ * Unit tests for MCP tool logic: list_node_types, get_node_info, check_compatibility,
+ * list_templates, build_workflow (replicated handler logic).
  */
 import { describe, it, expect } from 'vitest';
+import { buildFromTemplate, listTemplates } from '../src/workflow/workflow-builder.js';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { BaseNodesJson, NodeCompatibilityData, NodeDescription } from '../src/types/node-types.js';
@@ -124,5 +125,18 @@ describe('MCP tools logic (fixture data)', () => {
   it('check_compatibility returns missing node for unknown', () => {
     const text = checkCompatibility(base, compat, 'UnknownNode', 'KSampler');
     expect(text).toContain('Missing node');
+  });
+
+  it('list_templates returns txt2img', () => {
+    const list = listTemplates();
+    expect(list).toContain('txt2img');
+  });
+
+  it('build_workflow (buildFromTemplate) returns valid JSON for txt2img', () => {
+    const workflow = buildFromTemplate('txt2img', { width: 512, prompt: 'test' });
+    expect(workflow).toBeDefined();
+    expect(workflow['1'].class_type).toBe('CheckpointLoaderSimple');
+    expect(workflow['2'].inputs).toMatchObject({ text: 'test' });
+    expect(workflow['4'].inputs).toMatchObject({ width: 512 });
   });
 });

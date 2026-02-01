@@ -1,315 +1,155 @@
-# 🚀 Next Steps — ComfyUI MCP Node Discovery
+# 🚀 Next Steps — Workflow Builder (like n8n-workflow-builder)
 
-> Roadmap for production readiness and future enhancements
+> Roadmap: MCP server that **creates and executes** ComfyUI workflows (like @makafeli/n8n-workflow-builder for n8n)
 
-**Current Status:** MVP Complete (v0.1.0)  
-**Last Updated:** 2025-02-01
-
----
-
-## 📊 Current State
-
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Core functionality | ✅ Complete | Scanner, AI generator, updater working |
-| CLI commands | ✅ Complete | scan, sync-manager, analyze, add-node |
-| MCP server | ✅ Complete | 4 tools: list, get, check, suggest |
-| Tests | ✅ Complete | Unit + integration tests with vitest |
-| Documentation | ✅ Complete | All docs translated to English |
-| Knowledge base | ✅ Complete | 50+ base nodes, 15+ custom packs |
+**Current Status:** Full workflow lifecycle — build → save/load → execute → status ✅ (Phase 1–3 + save/load done)  
+**Next:** More templates (img2img, inpainting)  
+**Last Updated:** 2026-02-01
 
 ---
 
-## 🎯 Immediate Next Steps (Priority 1)
+## 📊 Current State vs Target
 
-### 1. Code Implementation Verification (2-3h)
-
-**Goal:** Ensure all documented features are actually implemented in code.
-
-- [ ] **Verify core classes exist and match documentation**
-  - [ ] Check `src/node-discovery/scanner.ts` has all methods (scanLiveInstance, fetchManagerList, analyzeRepository, findNewNodes)
-  - [ ] Check `src/node-discovery/ai-generator.ts` has generateDescription, generateBatch, buildPrompt
-  - [ ] Check `src/node-discovery/updater.ts` has addNode, updateCompatibility, generateChangelog
-  - [ ] Verify `src/types/node-types.ts` matches documented interfaces
-
-- [ ] **Verify CLI commands work**
-  - [ ] Test `npm run scan` with real ComfyUI instance
-  - [ ] Test `npm run scan:dry` 
-  - [ ] Test `npm run sync-manager`
-  - [ ] Test `npm run add-node` (interactive wizard)
-  - [ ] Test `npm run analyze <github-url>`
-
-- [ ] **Verify MCP server**
-  - [ ] Check `src/mcp-server.ts` implements all 4 tools
-  - [ ] Test MCP connection in Cursor
-  - [ ] Test each tool: list_node_types, get_node_info, check_compatibility, suggest_nodes
-
-- [ ] **Run all tests**
-  - [ ] `npm test` should pass
-  - [ ] Check test coverage
-
-**Deliverable:** List of missing implementations or bugs to fix.
+| Capability | n8n-workflow-builder | mcp-comfy-ui-builder (now) | mcp-comfy-ui-builder (next) |
+|------------|----------------------|----------------------------|-----------------------------|
+| Connect to engine | ✅ n8n API | ✅ ComfyUI API (COMFYUI_HOST, default localhost:8188) | — |
+| List nodes / workflows | ✅ List workflows | ✅ list_node_types, suggest_nodes, list_templates, list_saved_workflows, list_queue | — |
+| Create workflow | ✅ Create with nodes | ✅ build_workflow → ComfyUI JSON (txt2img) | more templates |
+| Execute workflow | ✅ Execute | ✅ execute_workflow (POST /prompt) | — |
+| Get execution status | ✅ Status | ✅ get_execution_status (GET /history) | — |
+| Manage lifecycle | ✅ Activate/deactivate/delete | ✅ queue status, save/load workflows | — |
 
 ---
 
-### 2. Fill Knowledge Base (1-2h)
+## 🎯 Phase 1: ComfyUI API Client (foundation) ✅
 
-**Goal:** Populate knowledge base with real node data.
+**Goal:** Module to talk to ComfyUI — submit workflow, get history, queue.
 
-- [ ] **Run initial scan**
-  - [ ] Start ComfyUI instance
-  - [ ] Set ANTHROPIC_API_KEY in .env
-  - [ ] Run `npm run scan` to populate base-nodes.json
-  - [ ] Verify generated descriptions quality
+### 1.1 ComfyUI client module
 
-- [ ] **Sync custom nodes**
-  - [ ] Run `npm run sync-manager`
-  - [ ] Review custom-nodes.json
+- [x] **`src/comfyui-client.ts`**
+  - `submitPrompt(workflow): Promise<{ prompt_id }>` — POST `/prompt`, body `{ prompt: workflow }`
+  - `getHistory(promptId?): Promise<HistoryEntry[]>` — GET `/history` or `/history/{prompt_id}`
+  - `getQueue(): Promise<QueueStatus>` — GET `/queue`
+  - Base URL from env `COMFYUI_HOST` (default `http://localhost:8188`)
+  - Timeout, retries, clear errors
 
-- [ ] **Update compatibility matrix**
-  - [ ] Review node-compatibility.json
-  - [ ] Add missing data types if needed
-  - [ ] Verify producers/consumers lists
+- [x] **Types** — `src/types/comfyui-api-types.ts` (workflow, history, queue)
 
-**Deliverable:** Fully populated knowledge base with 50+ nodes.
+- [x] **Config** — README and `.env.example` (COMFYUI_HOST optional; only for execute/status)
 
----
+### 1.2 Tests
 
-### 3. Package Metadata (30min)
+- [x] Unit tests with mocked fetch — `tests/comfyui-client.test.ts`
+- [ ] Optional: integration test with real ComfyUI (skip if COMFYUI_HOST not set).
 
-**Goal:** Prepare for npm publication.
-
-- [ ] **Update package.json**
-  - [ ] Add repository URL
-  - [ ] Add author information
-  - [ ] Add homepage, bugs URLs
-  - [ ] Review keywords
-  - [ ] Add files field (what to publish)
-
-- [ ] **Add LICENSE file**
-  - [ ] Create LICENSE (MIT already specified)
-
-- [ ] **Add .npmignore**
-  - [ ] Exclude tests/, doc/, examples/ from npm package
-  - [ ] Keep only src/, dist/, knowledge/, README, LICENSE
-
-**Deliverable:** Ready for `npm publish`.
+**Deliverable:** ✅ ComfyUI API client; MCP tools use it when COMFYUI_HOST set.
 
 ---
 
-## 🔧 Production Readiness (Priority 2)
+## 🎯 Phase 2: Workflow Builder (JSON from task/nodes) ✅
 
-### 4. Error Handling & Validation (2-3h)
+**Goal:** From template + params produce valid ComfyUI workflow JSON.
 
-- [ ] **Input validation**
-  - [ ] Validate COMFYUI_HOST format
-  - [ ] Check ComfyUI availability before scan
-  - [ ] Validate ANTHROPIC_API_KEY format
-  - [ ] Handle missing .env gracefully
+### 2.1 Workflow format
 
-- [ ] **API error handling**
-  - [ ] Handle ComfyUI API errors (404, 500, timeout)
-  - [ ] Handle Claude API errors (rate limit, invalid key, quota)
-  - [ ] Handle GitHub API errors (rate limit, 404)
-  - [ ] Add retry logic with exponential backoff
+- [x] **ComfyUI workflow structure** — node id → `{ class_type, inputs }`; inputs literal or `[nodeId, outputIndex]`.
+- [x] **Reference** — base-nodes.json, node-compatibility.json, comfyui-api-quick-reference.md.
 
-- [ ] **Data validation**
-  - [ ] Validate JSON structure from Claude
-  - [ ] Validate node descriptions completeness
-  - [ ] Check for required fields before saving
+### 2.2 Builder API
 
-- [ ] **User-friendly error messages**
-  - [ ] Clear messages for common errors
-  - [ ] Suggestions for fixes
-  - [ ] Debug mode with verbose logging
+- [x] **`src/workflow/workflow-builder.ts`**
+  - `buildFromTemplate(templateId, params?)` — returns ComfyUI-ready object.
+  - `listTemplates()` — available template ids.
+- [x] **Templates** — **txt2img** (CheckpointLoaderSimple → CLIPTextEncode ×2 → EmptyLatentImage → KSampler → VAEDecode → SaveImage).
+- [ ] Optional: `buildFromNodeChain`; img2img, inpainting (Phase 4).
+
+### 2.3 Tests
+
+- [x] buildFromTemplate("txt2img", params) produces valid workflow JSON — `tests/workflow-builder.test.ts`.
+- [ ] Optional: submit via client to real ComfyUI.
+
+**Deliverable:** ✅ Generate ComfyUI workflow JSON from template txt2img.
 
 ---
 
-### 5. Configuration & Flexibility (1-2h)
+## 🎯 Phase 3: MCP Tools — Build & Execute ✅
 
-- [ ] **Configuration file**
-  - [ ] Create `comfy-mcp.config.json` schema
-  - [ ] Support custom knowledge base path
-  - [ ] Support custom prompt template
-  - [ ] Allow overriding default settings
+**Goal:** AI can create and run workflows via MCP (like n8n-workflow-builder).
 
-- [ ] **Environment variables**
-  - [ ] Document all env vars in README
-  - [ ] Add validation for required vars
-  - [ ] Support .env.local for local overrides
+### 3.1 New MCP tools
 
-- [ ] **CLI flags**
-  - [ ] Add `--verbose` flag for detailed logging
-  - [ ] Add `--quiet` flag for minimal output
-  - [ ] Add `--config <path>` for custom config
+- [x] **`list_templates`** — list available template ids (e.g. txt2img).
+- [x] **`build_workflow`** — template + params → workflow JSON (no ComfyUI needed).
+- [x] **`execute_workflow`** — workflow (JSON string) → submitPrompt → prompt_id; requires COMFYUI_HOST.
+- [x] **`get_execution_status`** — prompt_id → status, outputs, view URLs for images.
+- [x] **`list_queue`** — queue_running, queue_pending.
 
----
+### 3.2 MCP server updates
 
-### 6. Performance & Optimization (1-2h)
+- [x] ComfyUI client used only when a tool that needs it is called.
+- [x] Graceful "ComfyUI not configured" for execute_workflow, get_execution_status, list_queue (friendly message, no crash).
+- [x] README and MCP-SETUP: COMFYUI_HOST for execute/status/queue; list_node_types / get_node_info / check_compatibility / suggest_nodes / list_templates / build_workflow need no ComfyUI.
 
-- [ ] **Caching**
-  - [ ] Cache ComfyUI /object_info response
-  - [ ] Cache GitHub API responses
-  - [ ] Add cache invalidation strategy
+### 3.3 Tests
 
-- [ ] **Batch processing**
-  - [ ] Optimize batch size for Claude API
-  - [ ] Parallel processing where possible
-  - [ ] Progress indicators for long operations
+- [ ] MCP tool tests with mocked client (optional; client tests cover submit/history/queue).
+- [ ] Optional: E2E with real ComfyUI.
 
-- [ ] **Rate limiting**
-  - [ ] Implement proper rate limiting for Claude API
-  - [ ] Respect GitHub API rate limits
-  - [ ] Add configurable delays between requests
+**Deliverable:** ✅ AI can build workflow → execute → check status via MCP.
 
 ---
 
-## 📦 Distribution & Deployment (Priority 3)
+## 🎯 Phase 4: Optional — Save/Load & More Templates
 
-### 7. npm Publication (1h)
+**Goal:** Persist workflows, more templates, better UX.
 
-- [ ] **Pre-publish checklist**
-  - [ ] Run `npm run build` successfully
-  - [ ] Run `npm test` - all pass
-  - [ ] Test package locally with `npm link`
-  - [ ] Verify package contents with `npm pack`
+### 4.1 Save/Load workflows (optional)
 
-- [ ] **Publish to npm**
-  - [ ] Create npm account (if needed)
-  - [ ] Run `npm login`
-  - [ ] Run `npm publish`
-  - [ ] Verify package on npmjs.com
+- [x] **`save_workflow`** — save workflow JSON to file (`workflows/<name>.json`) and return path. ✅
+- [x] **`list_saved_workflows`** — list names/paths of saved workflows. ✅
+- [x] **`load_workflow`** — load by name/path and return JSON (for use with execute_workflow). ✅
 
-- [ ] **Post-publish**
-  - [ ] Test installation: `npm install -g mcp-comfy-ui-builder`
-  - [ ] Update README with installation instructions
-  - [ ] Add npm badge to README
+### 4.2 More templates
 
----
+- [ ] **img2img** — LoadImage → VAEEncode → … → KSampler → VAEDecode → SaveImage.
+- [ ] **inpainting** — mask + image path, etc. (if time permits).
 
-### 8. GitHub Repository Setup (1h)
+### 4.3 Docs & UX
 
-- [ ] **Repository configuration**
-  - [ ] Add description and topics
-  - [ ] Add README badges (npm version, license, build status)
-  - [ ] Configure GitHub Actions (optional)
-  - [ ] Add CONTRIBUTING.md
+- [x] Update README: "Workflow Builder" section — save/load, build_workflow, execute_workflow, get_execution_status, list_queue; COMFYUI_HOST for execution. ✅
+- [x] Update doc/MCP-SETUP.md with new tools and config. ✅
+- [x] Add doc/workflow-builder.md: templates, params, ComfyUI workflow format. ✅
 
-- [ ] **Issue templates**
-  - [ ] Bug report template
-  - [ ] Feature request template
-  - [ ] Question template
-
-- [ ] **GitHub Pages (optional)**
-  - [ ] Deploy documentation to GitHub Pages
-  - [ ] Create landing page
+**Deliverable:** Optional save/load; more templates; docs aligned with workflow builder.
 
 ---
 
-### 9. CI/CD Pipeline (2-3h, optional)
+## 📋 Summary Checklist (Workflow Builder)
 
-- [ ] **GitHub Actions**
-  - [ ] Workflow for tests on push/PR
-  - [ ] Workflow for build verification
-  - [ ] Workflow for npm publish on release
-  - [ ] Workflow for documentation deployment
-
-- [ ] **Quality checks**
-  - [ ] ESLint configuration
-  - [ ] Prettier configuration
-  - [ ] TypeScript strict mode
-  - [ ] Test coverage reporting
-
----
-
-## 🚀 Future Enhancements (Priority 4)
-
-### 10. Additional Features
-
-**MCP Tools Enhancement (2-3h)**
-- [ ] Add `search_workflows(query)` tool
-- [ ] Add `validate_workflow(json)` tool
-- [ ] Add `generate_workflow(description)` tool (AI-powered)
-- [ ] Add `optimize_workflow(json)` tool
-
-**Knowledge Base Versioning (2-3h)**
-- [ ] Git-based versioning for knowledge base
-- [ ] Release tags for stable versions
-- [ ] Changelog generation automation
-- [ ] Rollback capability
-
-**Web Interface (8-12h)**
-- [ ] Simple web UI for browsing nodes
-- [ ] Visual workflow builder
-- [ ] Node search and filter
-- [ ] Export/import workflows
-
-**Docker Support (2-3h)**
-- [ ] Create Dockerfile
-- [ ] Docker Compose with ComfyUI
-- [ ] Pre-built images on Docker Hub
-- [ ] Documentation for Docker usage
-
-**Scheduled Updates (2-3h)**
-- [ ] Cron job for periodic scanning
-- [ ] Automated PR with knowledge base updates
-- [ ] Notification system for new nodes
-- [ ] Weekly/monthly update reports
+| Step | Description | Status |
+|------|-------------|--------|
+| 1.1 | ComfyUI API client (submit, history, queue) | ✅ |
+| 1.2 | Tests for client | ✅ |
+| 2.1 | Workflow format + types | ✅ |
+| 2.2 | workflow-builder.ts (template → JSON) | ✅ |
+| 2.3 | Tests for builder | ✅ |
+| 3.1 | MCP: list_templates, build_workflow, execute_workflow, get_execution_status, list_queue | ✅ |
+| 3.2 | MCP: graceful "no ComfyUI" for execute/status/queue | ✅ |
+| 3.3 | Tests for new MCP tools | optional |
+| 4.1 | Save/load workflows | ✅ |
+| 4.2 | More templates (img2img, inpainting) | next |
+| 4.3 | doc/workflow-builder.md | ✅ |
 
 ---
 
-## 📋 Quick Action Checklist
+## 📝 Notes
 
-**Today (2-4h):**
-- [ ] Verify all code implementations match documentation
-- [ ] Run full test suite and fix any failures
-- [ ] Do initial scan to populate knowledge base
-- [ ] Update package.json metadata
-
-**This Week (4-6h):**
-- [ ] Add comprehensive error handling
-- [ ] Create configuration file support
-- [ ] Add LICENSE and .npmignore
-- [ ] Test MCP server in Cursor/Claude
-
-**Next Week (2-3h):**
-- [ ] Publish to npm
-- [ ] Set up GitHub repository properly
-- [ ] Add CI/CD pipeline (optional)
-- [ ] Create demo video or screenshots
+- **Reference:** @makafeli/n8n-workflow-builder — CRUD + execute workflows against live engine; we mirror that for ComfyUI (build + execute + status + queue).
+- **ComfyUI API:** POST `/prompt` (workflow JSON), GET `/history/{prompt_id}`, GET `/queue`. See [doc/comfyui-api-quick-reference.md](doc/comfyui-api-quick-reference.md).
+- **Knowledge base:** Stays seed-based; no ComfyUI required for list/get/check/suggest. ComfyUI only needed for execute and status/queue.
+- **Config:** `COMFYUI_HOST` optional (default `http://localhost:8188`); required only for execute_workflow, get_execution_status, list_queue.
 
 ---
 
-## 🎯 Success Metrics
-
-**MVP Success (Current):**
-- ✅ Core functionality works
-- ✅ Documentation complete
-- ✅ Tests passing
-- ✅ MCP tools functional
-
-**Production Ready:**
-- [ ] Published on npm
-- [ ] 50+ nodes in knowledge base
-- [ ] Zero critical bugs
-- [ ] Comprehensive error handling
-- [ ] Used by 5+ people successfully
-
-**Long-term Success:**
-- [ ] 100+ npm downloads/week
-- [ ] 50+ GitHub stars
-- [ ] Active community contributions
-- [ ] Integration with popular ComfyUI workflows
-
----
-
-## 📚 Resources
-
-- **Documentation:** [doc/README.md](doc/README.md)
-- **Implementation Guide:** [doc/IMPLEMENTATION-CHECKLIST.md](doc/IMPLEMENTATION-CHECKLIST.md)
-- **API Reference:** [doc/comfyui-api-quick-reference.md](doc/comfyui-api-quick-reference.md)
-- **MCP Setup:** [doc/MCP-SETUP.md](doc/MCP-SETUP.md)
-
----
-
-*Plan Version: 1.0 | Created: 2025-02-01 | Status: MVP Complete, Ready for Production*
+*Next Steps v2.2 | Phase 1–3 + save/load + doc done; more templates next | 2026-02-01*

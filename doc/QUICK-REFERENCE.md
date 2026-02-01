@@ -6,28 +6,17 @@
 
 ## ⚡ Most common commands (Copy-Paste Ready)
 
-### 🔍 Automatic scan for new nodes
+### 🌱 Seed knowledge base
 
 ```bash
-npm run scan
-npm run scan:dry
-npm run scan -- --host http://192.168.1.100:8188
-ANTHROPIC_API_KEY=sk-ant-... npm run scan
+npm run seed
+npm run seed -- --force
 ```
 
-### ➕ Add a single node
-
-```bash
-npm run add-node
-curl http://127.0.0.1:8188/object_info | jq '.NodeName' > node.json
-npm run add-node  # In wizard: "file" → node.json
-```
-
-### 🔄 Synchronization
+### 🔄 Sync custom packs
 
 ```bash
 npm run sync-manager
-npm run analyze https://github.com/WASasquatch/was-node-suite-comfyui
 ```
 
 ### 🧪 Tests and MCP
@@ -38,8 +27,6 @@ npm run test:watch
 npm run build && npm run mcp
 ```
 
-**Variables:** `COMFYUI_HOST`, `ANTHROPIC_API_KEY`, `GITHUB_TOKEN` (for analyze), `DEBUG=1` (detailed logging).
-
 ***
 
 ## 📁 Quick file overview
@@ -47,9 +34,10 @@ npm run build && npm run mcp
 ```
 knowledge/
 ├── base-nodes.json
+├── seed-base-nodes.json
+├── seed-node-compatibility.json
 ├── custom-nodes.json
-├── node-compatibility.json
-└── node-description-prompt-template.md
+└── node-compatibility.json
 
 Documents: SUMMARY.md, QUICK-REFERENCE.md, GETTING-STARTED.md, SYSTEM-DIAGRAM.md
 ```
@@ -103,15 +91,13 @@ curl http://127.0.0.1:8188/object_info | jq '.KSampler.input.required | keys'
 
 ***
 
-## 🐛 Troubleshooting (Top 5)
+## 🐛 Troubleshooting
 
 | Problem | Solution |
 | :-- | :-- |
-| Connection refused | python main.py --listen 0.0.0.0 --port 8188 |
-| No ANTHROPIC_API_KEY | export ANTHROPIC_API_KEY=sk-ant-... |
-| Invalid JSON from Claude | Check prompt template |
-| Node already exists | Normal! Skipped |
-| Timeout scanning | Increase timeout or restart ComfyUI |
+| Seed file not found | Run from project root (where `knowledge/` is). |
+| Empty node list | Run `npm run seed` or `npm run build` (postbuild runs seed). |
+| MCP doesn't see tools | Use absolute path to `dist/mcp-server.js`, restart Cursor/Claude. |
 
 ***
 

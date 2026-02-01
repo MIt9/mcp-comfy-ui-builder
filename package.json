@@ -1,19 +1,16 @@
 {
   "name": "mcp-comfy-ui-builder",
   "version": "0.1.0",
-  "description": "ComfyUI Node Discovery: scan nodes, generate descriptions via Claude, update knowledge base, MCP tools for Cursor/Claude",
+  "description": "ComfyUI Node Discovery: seed knowledge base, MCP tools for Cursor/Claude",
   "type": "module",
   "main": "dist/cli.js",
   "scripts": {
     "build": "tsc",
+    "postbuild": "node dist/cli.js seed",
     "start": "node dist/cli.js",
     "dev": "tsx src/cli.ts",
-    "scan": "tsx src/cli.ts scan",
-    "scan:dry": "tsx src/cli.ts scan --dry-run",
     "sync-manager": "tsx src/cli.ts sync-manager",
-    "analyze": "tsx src/cli.ts analyze",
-    "add-node": "tsx src/cli.ts add-node",
-    "run-one-node": "tsx scripts/run-one-node.ts",
+    "seed": "tsx src/cli.ts seed",
     "mcp": "node dist/mcp-server.js",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -42,9 +39,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.1",
     "@modelcontextprotocol/sdk": "^1.25.3",
-    "@octokit/rest": "^21.0.2",
     "commander": "^12.1.0",
     "node-fetch": "^3.3.2",
     "zod": "^4.3.6"

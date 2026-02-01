@@ -9,8 +9,9 @@
 | Task | Document |
 |------|----------|
 | Quick launch, commands at hand | [QUICK-REFERENCE.md](QUICK-REFERENCE.md) |
-| Complete start, options (manual / wizard / scan) | [GETTING-STARTED.md](GETTING-STARTED.md) |
+| Complete start, seed + MCP | [GETTING-STARTED.md](GETTING-STARTED.md) |
 | Connect MCP (Cursor / Claude Desktop) | [MCP-SETUP.md](MCP-SETUP.md) |
+| Workflow Builder — templates, save/load, execute | [workflow-builder.md](workflow-builder.md) |
 | Understand system, architecture | [SUMMARY.md](SUMMARY.md), [SYSTEM-DIAGRAM.md](SYSTEM-DIAGRAM.md) |
 | Develop / integrate code | [node-discovery-system.md](node-discovery-system.md), [IMPLEMENTATION-CHECKLIST.md](IMPLEMENTATION-CHECKLIST.md) |
 | ComfyUI API, knowledge base in code | [comfyui-api-quick-reference.md](comfyui-api-quick-reference.md), [comfyui-api-detailed-guide.md](comfyui-api-detailed-guide.md), [knowledge-base-usage-guide.md](knowledge-base-usage-guide.md) |
@@ -24,9 +25,10 @@
 | Document | Purpose |
 |----------|---------|
 | [README.md](README.md) | Documentation entry, task-based navigation |
-| [GETTING-STARTED.md](GETTING-STARTED.md) | Quick start, three usage options |
+| [GETTING-STARTED.md](GETTING-STARTED.md) | Quick start, seed + MCP |
 | [QUICK-REFERENCE.md](QUICK-REFERENCE.md) | Commands, JSON, troubleshooting |
 | [MCP-SETUP.md](MCP-SETUP.md) | MCP launch, Cursor/Claude config |
+| [workflow-builder.md](workflow-builder.md) | Templates, params, save/load, ComfyUI workflow format |
 | [NODE-DISCOVERY-README.md](NODE-DISCOVERY-README.md) | Extended guide (use cases, installation) |
 
 ### Architecture & Development
@@ -45,8 +47,7 @@
 | [comfyui-api-quick-reference.md](comfyui-api-quick-reference.md) | ComfyUI API — brief |
 | [comfyui-api-detailed-guide.md](comfyui-api-detailed-guide.md) | ComfyUI API — detailed |
 | [knowledge-base-usage-guide.md](knowledge-base-usage-guide.md) | Knowledge base in code (Node, Python, jq) |
-| [knowledge/README.md](../knowledge/README.md) | Knowledge base structure, formats |
-| [knowledge/node-description-prompt-template.md](../knowledge/node-description-prompt-template.md) | Claude prompt template |
+| [knowledge/README.md](../knowledge/README.md) | Knowledge base structure, seed, formats |
 
 ### Knowledge Base (files at project root)
 
@@ -63,6 +64,6 @@
 ## Quick Answers (FAQ)
 
 - **Where to start?** → [README.md](README.md) → [GETTING-STARTED.md](GETTING-STARTED.md) or [QUICK-REFERENCE.md](QUICK-REFERENCE.md).
-- **How to add a node?** Automatically: `npm run scan`. Interactively: `npm run add-node`. Manually: curl object_info + prompt template + add to base-nodes.json.
+- **How to add a node?** Run `npm run seed` to fill from seed. Manually: add to base-nodes.json (see knowledge/README.md).
 - **How to connect MCP?** → [MCP-SETUP.md](MCP-SETUP.md).
 - **Where is knowledge base?** At project root: `knowledge/` folder.

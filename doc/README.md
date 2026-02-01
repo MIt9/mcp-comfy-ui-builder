@@ -7,8 +7,8 @@ Single entry point for documentation: navigate **by task**, then go to the neede
 ## Quick Start (5 min)
 
 1. **Install:** `npm install` (from project root).
-2. **Configure:** copy `.env.example` to `.env`, specify `ANTHROPIC_API_KEY`, `COMFYUI_HOST`.
-3. **Run:** `npm run scan:dry` (check) or `npm run add-node` (add one node).
+2. **Build:** `npm run build` (postbuild fills knowledge from seed).
+3. **Run MCP:** `npm run mcp`. Connect in Cursor/Claude — see [MCP-SETUP.md](MCP-SETUP.md).
 
 More details → [GETTING-STARTED.md](GETTING-STARTED.md).
 
@@ -18,8 +18,8 @@ More details → [GETTING-STARTED.md](GETTING-STARTED.md).
 
 | What you want to do | Document |
 |---------------------|----------|
-| **Run scan / add node / commands at hand** | [QUICK-REFERENCE.md](QUICK-REFERENCE.md) |
-| **Complete start and usage options** (manual, wizard, scan) | [GETTING-STARTED.md](GETTING-STARTED.md) |
+| **Commands at hand** (seed, sync-manager, mcp) | [QUICK-REFERENCE.md](QUICK-REFERENCE.md) |
+| **Complete start** (seed + MCP) | [GETTING-STARTED.md](GETTING-STARTED.md) |
 | **Connect MCP in Cursor or Claude Desktop** | [MCP-SETUP.md](MCP-SETUP.md) |
 | **Understand what this system is and how it works** | [SUMMARY.md](SUMMARY.md) |
 | **See architecture (diagrams, data flow)** | [SYSTEM-DIAGRAM.md](SYSTEM-DIAGRAM.md) |
@@ -33,7 +33,7 @@ More details → [GETTING-STARTED.md](GETTING-STARTED.md).
 
 | File | Purpose |
 |------|---------|
-| [GETTING-STARTED.md](GETTING-STARTED.md) | Quick start, options: manual / wizard / scan |
+| [GETTING-STARTED.md](GETTING-STARTED.md) | Quick start, seed + MCP |
 | [QUICK-REFERENCE.md](QUICK-REFERENCE.md) | Commands, JSON structures, troubleshooting |
 | [MCP-SETUP.md](MCP-SETUP.md) | MCP launch, connect in Cursor/Claude |
 | [SUMMARY.md](SUMMARY.md) | System overview, features, structure |

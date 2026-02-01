@@ -1,41 +1,34 @@
 # mcp-comfy-ui-builder
 
-**ComfyUI Node Discovery** — scan nodes from ComfyUI, generate descriptions via Claude, update knowledge base, and provide MCP tools for Cursor/Claude.
+[![CI](https://github.com/MIt9/mcp-comfy-ui-builder/actions/workflows/ci.yml/badge.svg)](https://github.com/MIt9/mcp-comfy-ui-builder/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/mcp-comfy-ui-builder.svg)](https://www.npmjs.com/package/mcp-comfy-ui-builder)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+**ComfyUI Node Discovery** — seed knowledge base and MCP tools for Cursor/Claude.
 
 ## What is this
 
-- Connect to ComfyUI API (`/object_info`) and ComfyUI-Manager (custom-node-list)
-- Detect new nodes, generate structured descriptions via Anthropic Claude
-- Update `knowledge/base-nodes.json`, `custom-nodes.json`, `node-compatibility.json`
-- MCP server with tools: `list_node_types`, `get_node_info`, `check_compatibility`, `suggest_nodes`
+- Seed `knowledge/base-nodes.json` and `node-compatibility.json` from bundled seed (no external services)
+- Sync custom packs list from ComfyUI-Manager (GitHub)
+- MCP server with tools: `list_node_types`, `get_node_info`, `check_compatibility`, `suggest_nodes`; **Workflow Builder:** `list_templates`, `build_workflow`, `save_workflow`, `list_saved_workflows`, `load_workflow`, `execute_workflow`, `get_execution_status`, `list_queue` (require `COMFYUI_HOST` for execute/status/queue)
 
 ## Quick start
 
-1. **Clone and install dependencies**
+1. **Clone and install**
 
    ```bash
    git clone https://github.com/MIt9/mcp-comfy-ui-builder.git && cd mcp-comfy-ui-builder
    npm install
    ```
 
-2. **Configure environment**
-
-   ```bash
-   cp .env.example .env
-   # Edit .env: ANTHROPIC_API_KEY, COMFYUI_HOST (default: http://127.0.0.1:8188)
-   ```
-
-3. **Verify build**
+2. **Build** (postbuild fills knowledge from seed)
 
    ```bash
    npm run build
-   # or run without build:
-   npm run dev -- --help
+   npm run mcp
    ```
 
-4. **Read knowledge base from code**
-
-   Knowledge base is located in `knowledge/` at project root. Example:
+3. **Use knowledge in code**
 
    ```ts
    import baseNodes from './knowledge/base-nodes.json' assert { type: 'json' };
@@ -45,11 +38,8 @@
 
 | Command | Description |
 |---------|-------------|
-| `npm run scan` | Scan ComfyUI → new nodes → Claude → update knowledge/ |
-| `npm run scan:dry` | Same without writing (dry-run) |
+| `npm run seed` | Fill knowledge from seed. Use `--force` to overwrite. |
 | `npm run sync-manager` | Update custom packs list from ComfyUI-Manager |
-| `npm run analyze <url>` | Analyze repo (GitHub): README, __init__.py |
-| `npm run add-node` | Interactive wizard to add a single node |
 | `npm test` | Run tests (vitest) |
 | `npm run mcp` | Start MCP server (after `npm run build`) |
 
@@ -60,17 +50,17 @@ Single entry point — **task-oriented navigation**:
 - **[doc/README.md](doc/README.md)** — where to start, task-based navigation
 - **[doc/INDEX.md](doc/INDEX.md)** — complete list of documents and links
 - **[doc/QUICK-REFERENCE.md](doc/QUICK-REFERENCE.md)** — commands, examples, troubleshooting
-- **[doc/GETTING-STARTED.md](doc/GETTING-STARTED.md)** — quick start (manual / wizard / scan)
+- **[doc/GETTING-STARTED.md](doc/GETTING-STARTED.md)** — quick start
 - **[doc/MCP-SETUP.md](doc/MCP-SETUP.md)** — connect MCP in Cursor/Claude
 - **Architecture:** [doc/node-discovery-system.md](doc/node-discovery-system.md), [doc/IMPLEMENTATION-CHECKLIST.md](doc/IMPLEMENTATION-CHECKLIST.md)
 - **Knowledge base:** [knowledge/README.md](knowledge/README.md), [doc/knowledge-base-usage-guide.md](doc/knowledge-base-usage-guide.md)
+- **Workflow Builder:** [doc/workflow-builder.md](doc/workflow-builder.md) — templates, params, save/load, ComfyUI format
 - **Planning:** [ROADMAP.md](ROADMAP.md), [NEXT-STEPS.md](NEXT-STEPS.md), [TODO.md](TODO.md)
+- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Requirements
 
 - Node.js 18+
-- ComfyUI (optional — running for `scan`)
-- Anthropic API key — for automatic node description generation
 
 ## MCP Server (Cursor / Claude)
 
@@ -80,6 +70,19 @@ Server provides tools for AI:
 - **get_node_info(node_name)** — complete information about a node
 - **check_compatibility(from_node, to_node)** — check output-to-input compatibility
 - **suggest_nodes(task_description | input_type)** — suggest nodes by task or type
+
+**Workflow Builder** (build, save, load, run ComfyUI workflows):
+
+- **list_templates** — list available workflow template ids (e.g. txt2img)
+- **build_workflow(template, params?)** — build workflow JSON from template (no ComfyUI needed)
+- **save_workflow(name, workflow)** — save workflow to workflows/\<name\>.json
+- **list_saved_workflows** — list saved workflows (names and paths)
+- **load_workflow(name_or_path)** — load workflow JSON for execute or save
+- **execute_workflow(workflow)** — submit workflow to ComfyUI; returns `prompt_id` (requires `COMFYUI_HOST`)
+- **get_execution_status(prompt_id)** — get status and image outputs (requires `COMFYUI_HOST`)
+- **list_queue** — list running and pending prompts (requires `COMFYUI_HOST`)
+
+For execute/status/queue, set `COMFYUI_HOST` (default `http://localhost:8188`) or leave unset to use localhost; ensure ComfyUI is running. See [.env.example](.env.example).
 
 ### Running MCP
 
