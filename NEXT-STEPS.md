@@ -2,9 +2,9 @@
 
 > Roadmap: MCP server that **creates and executes** ComfyUI workflows (like @makafeli/n8n-workflow-builder for n8n)
 
-**Current Status:** Full workflow lifecycle — build → save/load → execute → status ✅ (Phase 1–3 + save/load done)  
-**Next:** More templates (img2img, inpainting)  
-**Last Updated:** 2026-02-01
+**Current Status:** Full workflow lifecycle — build → save/load → execute → status ✅ (Phase 1–4 done)  
+**Next:** Розширення шаблонів та Dynamic Workflow Builder згідно [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md)  
+**Last Updated:** 2026-02-02
 
 ---
 
@@ -100,28 +100,65 @@
 
 ---
 
-## 🎯 Phase 4: Optional — Save/Load & More Templates
+## 🎯 Phase 4: Save/Load & Docs ✅
 
-**Goal:** Persist workflows, more templates, better UX.
+**Goal:** Persist workflows, docs, better UX.
 
-### 4.1 Save/Load workflows (optional)
+### 4.1 Save/Load workflows ✅
 
 - [x] **`save_workflow`** — save workflow JSON to file (`workflows/<name>.json`) and return path. ✅
 - [x] **`list_saved_workflows`** — list names/paths of saved workflows. ✅
 - [x] **`load_workflow`** — load by name/path and return JSON (for use with execute_workflow). ✅
 
-### 4.2 More templates
-
-- [ ] **img2img** — LoadImage → VAEEncode → … → KSampler → VAEDecode → SaveImage.
-- [ ] **inpainting** — mask + image path, etc. (if time permits).
-
-### 4.3 Docs & UX
+### 4.2 Docs & UX ✅
 
 - [x] Update README: "Workflow Builder" section — save/load, build_workflow, execute_workflow, get_execution_status, list_queue; COMFYUI_HOST for execution. ✅
 - [x] Update doc/MCP-SETUP.md with new tools and config. ✅
 - [x] Add doc/workflow-builder.md: templates, params, ComfyUI workflow format. ✅
 
-**Deliverable:** Optional save/load; more templates; docs aligned with workflow builder.
+**Deliverable:** ✅ Save/load; docs aligned with workflow builder.
+
+---
+
+## 📐 Далі: IMPROVEMENT-PLAN (6 фаз)
+
+Детальний план — **[IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md)**. Коротко:
+
+### Фаза 1: Розширення шаблонів (наступний фокус)
+
+- [ ] **Inpainting** — LoadImage + LoadImageMask → SetLatentNoiseMask → VAEEncode → … → SaveImage.
+- [ ] **Upscaling** — LoadImage → UpscaleModelLoader → ImageUpscaleWithModel (опційно + refinement).
+- [ ] **LoRA** — txt2img з ланцюжком LoraLoader, параметр `loras: [{name, strength_model, strength_clip}]`.
+- [ ] **ControlNet** — control_image + ControlNetLoader → ControlNetApply → KSampler.
+- [ ] **Batch** — серія зображень з варіаціями (base_params + variations).
+
+Файли: `src/workflow/workflow-builder.ts`, `knowledge/base-nodes.json`, тести.
+
+### Фаза 2: Dynamic Workflow Builder
+
+- API: `createWorkflow`, `addNode`, `connectNodes`, `removeNode`, `setNodeInput`, `getWorkflow`, `validateWorkflow`.
+- In-memory store з TTL (`workflow-store.ts`).
+- MCP: `create_workflow`, `add_node`, `connect_nodes`, `remove_node`, `set_node_input`, `get_workflow_json`, `validate_workflow`, `finalize_workflow`.
+
+### Фаза 3: Node Discovery Enhancement
+
+- Live discovery з ComfyUI (`getObjectInfo`), hybrid discovery (cache + knowledge base).
+- MCP: `discover_nodes_live`, `search_nodes`, `get_node_inputs`, `get_node_outputs`, `list_node_categories`, `sync_nodes_to_knowledge`.
+
+### Фаза 4: Execution Improvements
+
+- WebSocket клієнт (`comfyui-ws-client.ts`), batch executor, output manager.
+- MCP: `execute_workflow_sync`, `get_execution_progress`, `execute_batch`, `list_outputs`, `download_output`, `download_all_outputs`.
+
+### Фаза 5: Model Management
+
+- Model manager: list/get/check моделей по типу, аналіз workflow на потрібні моделі.
+- MCP: `list_models`, `get_model_info`, `check_model_exists`, `get_workflow_models`, `check_workflow_models`.
+
+### Фаза 6: Workflow Composition
+
+- Parameterized templates, macros (sub-workflows), workflow chaining.
+- MCP: `create_template`, `apply_template`, `list_macros`, `insert_macro`, `execute_chain`.
 
 ---
 
@@ -138,8 +175,9 @@
 | 3.2 | MCP: graceful "no ComfyUI" for execute/status/queue | ✅ |
 | 3.3 | Tests for new MCP tools | optional |
 | 4.1 | Save/load workflows | ✅ |
-| 4.2 | More templates (img2img, inpainting) | next |
-| 4.3 | doc/workflow-builder.md | ✅ |
+| 4.2 | doc/workflow-builder.md | ✅ |
+| — | **IMPROVEMENT-PLAN Фаза 1:** шаблони (inpainting, upscale, lora, controlnet, batch) | next |
+| — | **IMPROVEMENT-PLAN Фази 2–6:** dynamic builder, discovery, execution, models, composition | backlog |
 
 ---
 
@@ -152,4 +190,4 @@
 
 ---
 
-*Next Steps v2.2 | Phase 1–3 + save/load + doc done; more templates next | 2026-02-01*
+*Next Steps v2.3 | Phase 1–4 done; IMPROVEMENT-PLAN Phase 1 (templates) next | 2026-02-02*

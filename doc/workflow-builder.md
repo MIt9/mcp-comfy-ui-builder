@@ -86,6 +86,99 @@ Image-to-text (caption): LoadImage → BLIPCaption. **Requires a custom node pac
 
 Example: `build_workflow("image_caption", { image: "ComfyUI_00001.png" })`. See [GENERATE-AND-VERIFY.md](GENERATE-AND-VERIFY.md).
 
+### inpainting
+
+Edit part of an image by mask: LoadImage + LoadImageMask → VAEEncode + SetLatentNoiseMask → CheckpointLoaderSimple → CLIPTextEncode → KSampler → VAEDecode → SaveImage.
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| image | string | input.png | Input image filename |
+| mask | string | mask.png | Mask filename (white = edit area) |
+| prompt | string | '' | Positive prompt |
+| negative_prompt | string | '' | Negative prompt |
+| steps | number | 20 | Sampler steps |
+| cfg | number | 7 | CFG scale |
+| seed | number | 0 | Random seed |
+| denoise | number | 0.85 | Edit strength |
+| ckpt_name | string | sd_xl_base_1.0.safetensors | Checkpoint filename |
+| filename_prefix | string | ComfyUI_inpaint | SaveImage prefix |
+
+Example: `build_workflow("inpainting", { image: "photo.png", mask: "mask.png", prompt: "blue sky" })`.
+
+### upscale
+
+Upscale image: LoadImage → UpscaleModelLoader → ImageUpscaleWithModel → SaveImage. Optionally **refine** (upscale + KSampler denoise) for detail refinement.
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| image | string | input.png | Input image filename |
+| upscale_model | string | RealESRGAN_x4plus.pth | Upscale model filename |
+| scale | number | 4 | Scale factor (informational) |
+| refine | boolean | false | If true, add VAEEncode → KSampler → VAEDecode after upscale |
+| denoise | number | 0.3 | Refinement denoise (when refine=true) |
+| prompt | string | '' | Refinement prompt (when refine=true) |
+| negative_prompt | string | '' | Refinement negative prompt |
+| steps | number | 20 | Refinement steps |
+| cfg | number | 7 | Refinement CFG |
+| seed | number | 0 | Random seed |
+| ckpt_name | string | sd_xl_base_1.0.safetensors | Checkpoint (when refine=true) |
+| filename_prefix | string | ComfyUI_upscale | SaveImage prefix |
+
+Example: `build_workflow("upscale", { image: "lowres.png" })` or `build_workflow("upscale", { image: "lowres.png", refine: true, prompt: "detailed" })`.
+
+### txt2img_lora
+
+Text-to-image with LoRA(s): CheckpointLoaderSimple → LoraLoader chain → CLIPTextEncode → EmptyLatentImage → KSampler → VAEDecode → SaveImage.
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| prompt | string | '' | Positive prompt |
+| negative_prompt | string | '' | Negative prompt |
+| loras | array | required | LoRA items: `[{ name, strength_model?, strength_clip? }]` |
+| width | number | 1024 | Latent width |
+| height | number | 1024 | Latent height |
+| steps | number | 20 | Sampler steps |
+| cfg | number | 7 | CFG scale |
+| seed | number | 0 | Random seed |
+| ckpt_name | string | sd_xl_base_1.0.safetensors | Checkpoint filename |
+| filename_prefix | string | ComfyUI_lora | SaveImage prefix |
+| batch_size | number | 1 | EmptyLatentImage batch |
+
+Example: `build_workflow("txt2img_lora", { prompt: "a landscape", loras: [{ name: "detail.safetensors", strength_model: 0.8, strength_clip: 0.8 }] })`.
+
+### controlnet
+
+Structure-guided generation: LoadImage (control image) → ControlNetLoader → ApplyControlNet; CheckpointLoaderSimple → CLIPTextEncode → ApplyControlNet → KSampler → VAEDecode → SaveImage.
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| control_image | string | control.png | Control image filename (e.g. Canny, depth, pose) |
+| controlnet_name | string | control_v11p_sd15_canny.pth | ControlNet model filename |
+| strength | number | 1 | Control strength (0.0–2.0) |
+| prompt | string | '' | Positive prompt |
+| negative_prompt | string | '' | Negative prompt |
+| width | number | 1024 | Latent width |
+| height | number | 1024 | Latent height |
+| steps | number | 20 | Sampler steps |
+| cfg | number | 7 | CFG scale |
+| seed | number | 0 | Random seed |
+| ckpt_name | string | sd_xl_base_1.0.safetensors | Checkpoint filename |
+| filename_prefix | string | ComfyUI_controlnet | SaveImage prefix |
+
+Example: `build_workflow("controlnet", { control_image: "canny.png", controlnet_name: "control_v11p_sd15_canny.pth", prompt: "a cat" })`.
+
+### batch
+
+Returns the **first** workflow from a batch of variations. Use **buildBatch** (exported from workflow-builder) to get an array of workflows; execute each separately.
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| base_params | object | {} | Base txt2img params (width, height, prompt, etc.) |
+| variations | array | [{ seed: 0 }] | Overrides per run: `[{ seed?, prompt? }, ...]` |
+| batch_size | number | 1 | Not used in single workflow |
+
+Example: `build_workflow("batch", { base_params: { width: 512, prompt: "x" }, variations: [{ seed: 1 }, { seed: 2, prompt: "y" }] })` returns the first variation. To get all: use **buildBatch** from the package.
+
 ***
 
 ## Save / load

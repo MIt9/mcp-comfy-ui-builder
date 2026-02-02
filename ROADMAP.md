@@ -4,94 +4,51 @@
 
 ---
 
-## 📍 Current Position: Knowledge Base + 4 MCP Tools ✅
+## 📍 Current Position: Workflow Builder + Execute + Save/Load ✅
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Phases 1–5: DONE ✅                                        │
+│  Knowledge base + Workflow Builder: DONE ✅                  │
 │  ├─ Seed knowledge base (no ComfyUI/API)                    │
-│  ├─ CLI: seed, sync-manager                                  │
-│  ├─ MCP: list_node_types, get_node_info,                    │
-│  │       check_compatibility, suggest_nodes                  │
-│  ├─ Tests (scanner, updater, mcp-tools)                      │
-│  └─ Docs (README, doc/, knowledge/)                          │
+│  ├─ MCP: list_node_types, get_node_info, check_compatibility│
+│  │       suggest_nodes, list_templates, build_workflow       │
+│  ├─ ComfyUI client: submit, history, queue                   │
+│  ├─ MCP: execute_workflow, get_execution_status, list_queue │
+│  ├─ Save/load: save_workflow, list_saved_workflows, load_workflow │
+│  └─ Docs (README, doc/, workflow-builder.md)                 │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Gap vs n8n-workflow-builder:** We do **not** yet create or execute workflows. Next phases add that.
+**Далі:** Розширення шаблонів, Dynamic Builder, Execution/Discovery покращення — згідно **[IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md)**.
 
 ---
 
 ## 🎯 Roadmap Timeline
 
-### ⚡ Phase 6: Workflow Builder — ComfyUI API & Build (Weeks 1–2)
+### ✅ Phase 6–7: Workflow Builder & MCP Tools (Done)
 
-**Goal:** ComfyUI client + workflow JSON builder; no MCP execute yet.
+- ComfyUI client (submit, history, queue), workflow builder (txt2img), MCP: build_workflow, execute_workflow, get_execution_status, list_queue, save/load workflows, docs.
 
-```
-Week 1: ComfyUI API client
-├─ ComfyUI client module (submit /prompt, GET /history, GET /queue)
-├─ Types: workflow JSON, history, queue
-├─ Config: COMFYUI_HOST (optional)
-└─ Tests (mocked fetch)
+### ✅ Phase 8: Save/Load & Docs (Done)
 
-Week 2: Workflow builder
-├─ Workflow format (node id → class_type, inputs)
-├─ buildFromTemplate("txt2img", params) → ComfyUI JSON
-├─ Use knowledge base for node defs
-└─ Tests (builder output valid)
-```
-
-**Deliverables:**
-- ✅ `src/comfyui-client.ts` (or workflow/comfyui-api.ts)
-- ✅ `src/workflow/workflow-builder.ts` — template → JSON
-- ✅ At least one template: txt2img
-- ✅ Tests for client and builder
+- save_workflow, list_saved_workflows, load_workflow; doc/workflow-builder.md.
 
 ---
 
-### 🚀 Phase 7: Workflow Builder — MCP Tools (Weeks 3–4)
+### 📐 Далі: IMPROVEMENT-PLAN (6 фаз)
 
-**Goal:** AI can build and execute workflows via MCP (like n8n-workflow-builder).
+Детальний план — **[IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md)**. Короткий огляд:
 
-```
-Week 3: MCP tools
-├─ build_workflow(template, params) → workflow JSON
-├─ execute_workflow(workflow) → prompt_id
-├─ get_execution_status(prompt_id) → status, outputs
-└─ list_queue() → running + pending
+| Фаза | Назва | Ключові deliverables |
+|------|--------|----------------------|
+| **1** | Розширення шаблонів | Inpainting, Upscaling, LoRA, ControlNet, Batch templates; base-nodes + workflow-builder |
+| **2** | Dynamic Workflow Builder | dynamic-builder.ts, workflow-store.ts; MCP: create_workflow, add_node, connect_nodes, … |
+| **3** | Node Discovery Enhancement | getObjectInfo, hybrid-discovery.ts; MCP: discover_nodes_live, search_nodes, sync_nodes_to_knowledge |
+| **4** | Execution Improvements | comfyui-ws-client.ts, batch-executor, output-manager; execute_workflow_sync, execute_batch, list_outputs |
+| **5** | Model Management | model-manager.ts; list_models, get_workflow_models, check_workflow_models |
+| **6** | Workflow Composition | workflow-template, macro, chainer; create_template, insert_macro, execute_chain |
 
-Week 4: Polish & docs
-├─ Graceful "ComfyUI not configured" for execute/status/queue
-├─ README + MCP-SETUP: new tools, COMFYUI_HOST
-├─ Tests for new MCP tools (mocked client)
-└─ Optional: E2E with real ComfyUI
-```
-
-**Deliverables:**
-- ✅ 4 new MCP tools: build_workflow, execute_workflow, get_execution_status, list_queue
-- ✅ MCP server works with or without ComfyUI (read-only tools always; execute when COMFYUI_HOST set)
-- ✅ Documentation updated
-- ✅ Tests for new tools
-
----
-
-### 🌟 Phase 8: Optional — Save/Load & More (Month 2+)
-
-**Goal:** Persist workflows, more templates, better UX.
-
-```
-Month 2: Optional features
-├─ save_workflow / list_saved_workflows / load_workflow
-├─ Templates: img2img, inpainting (if needed)
-├─ doc/workflow-builder.md (templates, params, format)
-└─ npm publish, CI/CD (if not done earlier)
-```
-
-**Deliverables:**
-- ✅ Optional save/load workflows
-- ✅ More templates (img2img, etc.)
-- ✅ Published package, CI/CD
+**Порядок:** Фаза 1 → Фаза 2 (і паралельно Фаза 3) → Фаза 4 (і паралельно Фаза 5) → Фаза 6.
 
 ---
 
@@ -101,9 +58,11 @@ Month 2: Optional features
 
 ```
 Knowledge base + 4 MCP tools   [████████████████████] 100% ✅
-ComfyUI client + builder      [░░░░░░░░░░░░░░░░░░░░]   0%
-MCP build/execute/status      [░░░░░░░░░░░░░░░░░░░░]   0%
-Save/load + more templates    [░░░░░░░░░░░░░░░░░░░░]   0%
+ComfyUI client + builder      [████████████████████] 100% ✅
+MCP build/execute/status       [████████████████████] 100% ✅
+Save/load + docs               [████████████████████] 100% ✅
+IMPROVEMENT-PLAN Phase 1       [░░░░░░░░░░░░░░░░░░░░]   0% (next)
+IMPROVEMENT-PLAN Phases 2–6    [░░░░░░░░░░░░░░░░░░░░]   0% (backlog)
 ```
 
 ### Feature Roadmap
@@ -112,17 +71,15 @@ Save/load + more templates    [░░░░░░░░░░░░░░░░�
 |---------|--------|----------|-----|
 | Seed knowledge base | ✅ Done | P0 | — |
 | MCP: list, get_info, check, suggest | ✅ Done | P0 | — |
-| ComfyUI API client | 🔄 Planned | P1 | Phase 6 |
-| Workflow builder (template → JSON) | 🔄 Planned | P1 | Phase 6 |
-| MCP: build_workflow | 🔄 Planned | P1 | Phase 7 |
-| MCP: execute_workflow | 🔄 Planned | P1 | Phase 7 |
-| MCP: get_execution_status | 🔄 Planned | P1 | Phase 7 |
-| MCP: list_queue | 🔄 Planned | P1 | Phase 7 |
-| Save/load workflows | 📋 Backlog | P2 | Phase 8 |
-| More templates (img2img, etc.) | 📋 Backlog | P2 | Phase 8 |
-| npm publish, CI/CD | 📋 Backlog | P2 | Phase 8 |
+| ComfyUI API client | ✅ Done | P1 | — |
+| Workflow builder (txt2img) | ✅ Done | P1 | — |
+| MCP: build_workflow, execute_workflow, status, list_queue | ✅ Done | P1 | — |
+| Save/load workflows | ✅ Done | P2 | — |
+| **IMPROVEMENT-PLAN: Phase 1 templates** (inpainting, upscale, lora, controlnet, batch) | 🔄 Next | P1 | Phase 1 |
+| **IMPROVEMENT-PLAN: Phase 2** Dynamic Builder | 📋 Backlog | P2 | Phase 2 |
+| **IMPROVEMENT-PLAN: Phases 3–6** Discovery, Execution, Models, Composition | 📋 Backlog | P2 | Phases 3–6 |
 
-**Legend:** ✅ Done | 🔄 Planned | 📋 Backlog
+**Legend:** ✅ Done | 🔄 Next | 📋 Backlog
 
 ---
 
@@ -131,23 +88,27 @@ Save/load + more templates    [░░░░░░░░░░░░░░░░�
 ### Milestone 1: Knowledge MCP ✅
 - Seed-based knowledge, 4 read-only MCP tools, tests, docs.
 
-### Milestone 2: Workflow Builder (v0.2.0)
+### Milestone 2: Workflow Builder (v0.2.0) ✅
 - ComfyUI client + workflow builder (template → JSON).
 - MCP: build_workflow, execute_workflow, get_execution_status, list_queue.
-- Works like n8n-workflow-builder but for ComfyUI.
+- Save/load workflows. Works like n8n-workflow-builder but for ComfyUI.
 
-### Milestone 3: v0.3.0 (optional)
-- Save/load workflows, more templates, npm publish, CI/CD.
+### Milestone 3: v0.3.0 (IMPROVEMENT-PLAN Phase 1)
+- More templates: inpainting, upscaling, LoRA, ControlNet, batch.
+
+### Milestone 4: v0.4.0+ (IMPROVEMENT-PLAN Phases 2–6)
+- Dynamic workflow builder, hybrid discovery, WebSocket execution, model manager, workflow composition.
 
 ---
 
 ## 🔗 Quick Links
 
-- **Detailed plan:** [NEXT-STEPS.md](NEXT-STEPS.md)
-- **Tasks:** [TODO.md](TODO.md)
+- **План покращень (6 фаз):** [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md)
+- **Детальний план:** [NEXT-STEPS.md](NEXT-STEPS.md)
+- **Задачі:** [TODO.md](TODO.md)
 - **ComfyUI API:** [doc/comfyui-api-quick-reference.md](doc/comfyui-api-quick-reference.md)
 - **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 
-*Roadmap v2.0 | Workflow Builder focus | 2026-02-01*
+*Roadmap v2.1 | Phase 6–8 done; IMPROVEMENT-PLAN next | 2026-02-02*

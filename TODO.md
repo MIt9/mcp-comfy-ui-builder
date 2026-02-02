@@ -2,8 +2,8 @@
 
 > Workflow Builder plan (like @makafeli/n8n-workflow-builder for ComfyUI)
 
-**Last Updated:** 2026-02-01  
-**Status:** Phase 6–7 done ✅; Phase 8 save/load done ✅. Next: This Week (publish) or Phase 8 rest (more templates).
+**Last Updated:** 2026-02-02  
+**Status:** Phase 6–8 done ✅; IMPROVEMENT-PLAN Phase 1 (шаблони) done ✅. Next: Phase 2 (Dynamic Workflow Builder) або Phase 3 (Node Discovery). Детальний план — [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md).
 
 ---
 
@@ -74,12 +74,34 @@
 
 ---
 
-## 💡 Phase 8 — Optional (Backlog)
+## 💡 Phase 8 — Save/Load & Docs ✅
 
 - [x] **Save/Load workflows** — save_workflow, list_saved_workflows, load_workflow (workflows/*.json) ✅
-- [ ] **More templates** — img2img, inpainting
 - [x] **doc/workflow-builder.md** — templates, params, ComfyUI workflow format ✅
-- [ ] Web UI, Docker, plugin system (later)
+
+---
+
+## 📐 IMPROVEMENT-PLAN Phase 1 — Розширення шаблонів ✅
+
+Деталі: [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md) § Фаза 1.
+
+- [x] **Inpainting** — buildInpainting(); LoadImage + LoadImageMask → SetLatentNoiseMask → VAEEncode → … → SaveImage. base-nodes: LoadImageMask, SetLatentNoiseMask. ✅
+- [x] **Upscaling** — buildUpscale(); LoadImage → UpscaleModelLoader → ImageUpscaleWithModel (опційно + refinement). base-nodes: UpscaleModelLoader, ImageUpscaleWithModel. ✅
+- [x] **LoRA** — txt2img_lora з LoraLoader chain (loras: [{name, strength_model, strength_clip}]). ✅
+- [x] **ControlNet** — controlnet template: control_image + ControlNetLoader → ApplyControlNet → KSampler. ✅
+- [x] **Batch** — buildBatch(base_params, variations); template "batch" повертає перший workflow. ✅
+- [x] Тести для нових шаблонів у `tests/workflow-builder.test.ts`. ✅
+
+---
+
+## 📐 IMPROVEMENT-PLAN Phases 2–6 (Backlog)
+
+- [ ] **Phase 2:** dynamic-builder.ts, workflow-store.ts; MCP: create_workflow, add_node, connect_nodes, remove_node, set_node_input, get_workflow_json, validate_workflow, finalize_workflow.
+- [ ] **Phase 3:** getObjectInfo у comfyui-client; hybrid-discovery.ts; MCP: discover_nodes_live, search_nodes, get_node_inputs, get_node_outputs, list_node_categories, sync_nodes_to_knowledge.
+- [ ] **Phase 4:** comfyui-ws-client.ts, batch-executor.ts, output-manager.ts; MCP: execute_workflow_sync, get_execution_progress, execute_batch, list_outputs, download_output, download_all_outputs.
+- [ ] **Phase 5:** model-manager.ts; MCP: list_models, get_model_info, check_model_exists, get_workflow_models, check_workflow_models.
+- [ ] **Phase 6:** workflow-template.ts, macro.ts, chainer.ts; MCP: create_template, apply_template, list_macros, insert_macro, execute_chain.
+- [ ] Web UI, Docker, plugin system (пізніше)
 
 ---
 
@@ -93,8 +115,9 @@
 
 ## 📝 Notes
 
-- **Reference:** [NEXT-STEPS.md](NEXT-STEPS.md) — full Workflow Builder plan (Phase 1–3 = done; Phase 4 = optional)
-- **Timeline:** [ROADMAP.md](ROADMAP.md) — phases 6–8
+- **План покращень:** [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md) — 6 фаз (шаблони, dynamic builder, discovery, execution, models, composition)
+- **Reference:** [NEXT-STEPS.md](NEXT-STEPS.md) — full Workflow Builder plan (Phase 1–4 done)
+- **Timeline:** [ROADMAP.md](ROADMAP.md) — Phase 6–8 done; IMPROVEMENT-PLAN next
 - **ComfyUI API:** [doc/comfyui-api-quick-reference.md](doc/comfyui-api-quick-reference.md) — /prompt, /history, /queue
 - **Config:** `COMFYUI_HOST` default `http://127.0.0.1:8188` when not set
 
@@ -104,3 +127,5 @@
 1. `npm test && npm run build` (postbuild runs seed)
 2. `npm run mcp` — use list_node_types, get_node_info, check_compatibility, suggest_nodes, list_templates, build_workflow, save_workflow, list_saved_workflows, load_workflow
 3. For execute/status/queue: set COMFYUI_HOST (e.g. in .env) and use execute_workflow, get_execution_status, list_queue
+
+**Next:** IMPROVEMENT-PLAN Phase 1 — шаблони inpainting, upscale, lora, controlnet, batch (see [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md)).

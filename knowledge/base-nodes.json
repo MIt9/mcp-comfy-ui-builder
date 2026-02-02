@@ -2,13 +2,13 @@
   "metadata": {
     "version": "1.0.0",
     "last_updated": "2026-02-02",
-    "total_nodes": 31,
+    "total_nodes": 33,
     "categories": {
-      "loaders": 8,
+      "loaders": 9,
       "conditioning": 6,
       "sampling": 2,
       "latent": 7,
-      "image": 10,
+      "image": 11,
       "mask": 4
     }
   },
@@ -1359,6 +1359,83 @@
       "compatible_outputs": {
         "LATENT": [
           "KSampler"
+        ]
+      },
+      "example_values": {}
+    },
+    "UpscaleModelLoader": {
+      "display_name": "Load Upscale Model",
+      "category": "loaders",
+      "description": "Loads pre-trained upscale model (e.g. RealESRGAN)",
+      "input_types": {
+        "required": {
+          "model_name": {
+            "type": "STRING",
+            "description": "Upscale model filename",
+            "notes": "e.g. RealESRGAN_x4plus.pth, 4x-UltraSharp.pth"
+          }
+        }
+      },
+      "return_types": [
+        "UPSCALE_MODEL"
+      ],
+      "return_names": [
+        "UPSCALE_MODEL"
+      ],
+      "output_colors": [
+        "#9C27B0"
+      ],
+      "priority": "high",
+      "use_cases": [
+        "Image upscaling",
+        "Detail restoration"
+      ],
+      "compatible_outputs": {
+        "UPSCALE_MODEL": [
+          "ImageUpscaleWithModel"
+        ]
+      },
+      "example_values": {
+        "model_name": "RealESRGAN_x4plus.pth"
+      }
+    },
+    "ImageUpscaleWithModel": {
+      "display_name": "Image Upscale With Model",
+      "category": "image",
+      "description": "Upscales image using loaded upscale model",
+      "input_types": {
+        "required": {
+          "upscale_model": {
+            "type": "UPSCALE_MODEL",
+            "description": "Loaded upscale model",
+            "color": "#9C27B0"
+          },
+          "image": {
+            "type": "IMAGE",
+            "description": "Image to upscale",
+            "color": "#64B5F6"
+          }
+        }
+      },
+      "return_types": [
+        "IMAGE"
+      ],
+      "return_names": [
+        "IMAGE"
+      ],
+      "output_colors": [
+        "#64B5F6"
+      ],
+      "priority": "high",
+      "use_cases": [
+        "Upscale resolution",
+        "Enhance details"
+      ],
+      "compatible_outputs": {
+        "IMAGE": [
+          "SaveImage",
+          "VAEEncode",
+          "ImageScale"
         ]
       },
       "example_values": {}
