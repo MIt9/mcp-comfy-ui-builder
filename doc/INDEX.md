@@ -14,6 +14,7 @@
 | Workflow Builder — templates, save/load, execute | [workflow-builder.md](workflow-builder.md) |
 | AI assistant guide — how to use the package (e.g. after npm i -g) | [AI-ASSISTANT-GUIDE.md](AI-ASSISTANT-GUIDE.md) |
 | Generate and verify (image → caption, check result) | [GENERATE-AND-VERIFY.md](GENERATE-AND-VERIFY.md) |
+| Install custom nodes and models (LoRA, checkpoints, VAE) | [INSTALL-NODES-AND-MODELS.md](INSTALL-NODES-AND-MODELS.md) |
 | ComfyUI API, knowledge base in code | [comfyui-api-quick-reference.md](comfyui-api-quick-reference.md), [comfyui-api-detailed-guide.md](comfyui-api-detailed-guide.md), [knowledge-base-usage-guide.md](knowledge-base-usage-guide.md) |
 
 ---
@@ -31,6 +32,7 @@
 | [workflow-builder.md](workflow-builder.md) | Templates, params, save/load, ComfyUI workflow format |
 | [AI-ASSISTANT-GUIDE.md](AI-ASSISTANT-GUIDE.md) | AI assistant guide (npm i -g) |
 | [GENERATE-AND-VERIFY.md](GENERATE-AND-VERIFY.md) | Generate and verify workflow |
+| [INSTALL-NODES-AND-MODELS.md](INSTALL-NODES-AND-MODELS.md) | Install custom nodes and models via MCP |
 
 ### Reference
 

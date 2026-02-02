@@ -23,8 +23,10 @@
 | **interrupt_execution(prompt_id?)** | Stop current run or specific prompt (requires COMFYUI_HOST) |
 | **clear_queue** | Clear all pending and running (requires COMFYUI_HOST) |
 | **delete_queue_items(prompt_ids)** | Remove items from queue by prompt_id (requires COMFYUI_HOST) |
+| **install_custom_node(node_names, channel?, mode?)** | Install custom node packs via ComfyUI-Manager cm-cli (requires COMFYUI_PATH) |
+| **install_model(url, model_type?)** | Download model/LoRA/VAE by URL to ComfyUI models folder (requires COMFYUI_PATH) |
 
-Data is loaded from `knowledge/base-nodes.json` and `knowledge/node-compatibility.json` at server startup. For **execute_workflow**, **get_execution_status**, **list_queue**, **interrupt_execution**, **clear_queue**, and **delete_queue_items**, set `COMFYUI_HOST` (default `http://127.0.0.1:8188` if not set) and ensure ComfyUI is running. For list_node_types, get_node_info, check_compatibility, suggest_nodes, list_templates, build_workflow, save_workflow, list_saved_workflows, and load_workflow, no ComfyUI connection is needed.
+Data is loaded from `knowledge/base-nodes.json` and `knowledge/node-compatibility.json` at server startup. For **execute_workflow**, **get_execution_status**, **list_queue**, **interrupt_execution**, **clear_queue**, and **delete_queue_items**, set `COMFYUI_HOST` (default `http://127.0.0.1:8188` if not set) and ensure ComfyUI is running. For **install_custom_node** and **install_model**, set `COMFYUI_PATH` to your ComfyUI installation directory (e.g. `/path/to/ComfyUI`); install_custom_node also requires ComfyUI-Manager in `custom_nodes`. See [INSTALL-NODES-AND-MODELS.md](INSTALL-NODES-AND-MODELS.md). For list_node_types, get_node_info, check_compatibility, suggest_nodes, list_templates, build_workflow, save_workflow, list_saved_workflows, and load_workflow, no ComfyUI connection is needed.
 
 ***
 

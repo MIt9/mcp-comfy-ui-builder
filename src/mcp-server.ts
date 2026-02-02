@@ -12,6 +12,7 @@ import type { BaseNodesJson, NodeCompatibilityData, NodeDescription } from './ty
 import { buildFromTemplate, listTemplates } from './workflow/workflow-builder.js';
 import { saveWorkflow, listSavedWorkflows, loadWorkflow } from './workflow/workflow-storage.js';
 import * as comfyui from './comfyui-client.js';
+import * as managerCli from './manager-cli.js';
 import type { ComfyUIWorkflow } from './types/comfyui-api-types.js';
 
 const KNOWLEDGE_DIR = join(process.cwd(), 'knowledge');
@@ -503,6 +504,91 @@ server.registerTool(
       const msg = e instanceof Error ? e.message : String(e);
       return { content: [{ type: 'text', text: `delete_queue_items failed: ${msg}` }] };
     }
+  }
+);
+
+server.registerTool(
+  'install_custom_node',
+  {
+    description:
+      'Install one or more custom nodes via ComfyUI-Manager cm-cli (e.g. ComfyUI-Blip, WAS-Node-Suite). Requires COMFYUI_PATH and ComfyUI-Manager installed in custom_nodes. Restart ComfyUI after install to load new nodes.',
+    inputSchema: {
+      node_names: z
+        .array(z.string())
+        .describe('Node pack names as in ComfyUI-Manager (e.g. ComfyUI-Blip, ComfyUI-Impact-Pack)'),
+      channel: z.string().optional().describe('Optional channel (see cm-cli docs)'),
+      mode: z.enum(['remote', 'local', 'cache']).optional().describe('Optional mode'),
+    },
+  },
+  async (args) => {
+    if (!managerCli.getComfyPath()) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: 'COMFYUI_PATH is not set. Set it to your ComfyUI installation directory to install custom nodes.',
+          },
+        ],
+      };
+    }
+    const cliArgs = ['install', ...args.node_names];
+    if (args.channel) cliArgs.push('--channel', args.channel);
+    if (args.mode) cliArgs.push('--mode', args.mode);
+    const result = managerCli.runCmCli(cliArgs);
+    const text = [
+      result.ok ? 'Install completed.' : 'Install failed.',
+      result.stdout ? `stdout:\n${result.stdout}` : '',
+      result.stderr ? `stderr:\n${result.stderr}` : '',
+      result.code != null ? `exit code: ${result.code}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+    return { content: [{ type: 'text', text }] };
+  }
+);
+
+server.registerTool(
+  'install_model',
+  {
+    description:
+      'Download and install a model (checkpoint, LoRA, VAE, etc.) by URL. Requires COMFYUI_PATH. Uses comfy-cli if available (pip install comfy-cli), otherwise fetches the file directly. model_type: checkpoint, lora, vae, controlnet, clip, embeddings, hypernetwork, upscale_models, clip_vision, unet, diffusers.',
+    inputSchema: {
+      url: z.string().url().describe('Direct download URL (e.g. from Civitai, HuggingFace)'),
+      model_type: z
+        .string()
+        .default('checkpoint')
+        .describe('Type: checkpoint, lora, vae, controlnet, clip, embeddings, hypernetwork, upscale_models, clip_vision, unet, diffusers'),
+    },
+  },
+  async (args) => {
+    if (!managerCli.getComfyPath()) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: 'COMFYUI_PATH is not set. Set it to your ComfyUI installation directory to install models.',
+          },
+        ],
+      };
+    }
+    const relativePath = managerCli.getRelativePathForModelType(args.model_type);
+    if (managerCli.isComfyCliAvailable()) {
+      const result = managerCli.runComfyModelDownload(args.url, relativePath);
+      const text = [
+        result.ok ? 'Model download completed (comfy-cli).' : 'Model download failed (comfy-cli).',
+        result.stdout ? `stdout:\n${result.stdout}` : '',
+        result.stderr ? `stderr:\n${result.stderr}` : '',
+        result.code != null ? `exit code: ${result.code}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
+      return { content: [{ type: 'text', text }] };
+    }
+    const download = await managerCli.downloadModelToDir(args.url, relativePath);
+    if (download.ok) {
+      return { content: [{ type: 'text', text: `Model saved to ${download.path}. Restart ComfyUI if needed to see it.` }] };
+    }
+    return { content: [{ type: 'text', text: `install_model failed: ${download.error}` }] };
   }
 );
 

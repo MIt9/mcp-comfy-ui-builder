@@ -4,6 +4,21 @@ Project change history. Knowledge base (nodes) → [knowledge/CHANGELOG.md](know
 
 ---
 
+## [0.2.0] – 2026-02-02
+
+### Added
+
+- **install_custom_node(node_names, channel?, mode?)** — install custom node packs via ComfyUI-Manager cm-cli (requires COMFYUI_PATH).
+- **install_model(url, model_type?)** — download model/LoRA/VAE/controlnet/etc. by URL to ComfyUI models folder (requires COMFYUI_PATH); uses comfy-cli if in PATH, else direct fetch.
+- **manager-cli.ts** — run cm-cli (custom nodes), comfy model download, and direct model fetch; getComfyPath, getRelativePathForModelType, MODEL_TYPE_PATHS.
+- **Doc:** [INSTALL-NODES-AND-MODELS.md](doc/INSTALL-NODES-AND-MODELS.md) — COMFYUI_PATH, install flow, model types.
+
+### Changed
+
+- MCP-SETUP.md: install_custom_node, install_model in tools table; COMFYUI_PATH note. INDEX: link to INSTALL-NODES-AND-MODELS.
+
+---
+
 ## [0.1.3] – 2026-02-02
 
 ### Added
