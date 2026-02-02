@@ -9,6 +9,7 @@ import type {
   HistoryEntry,
   HistoryNodeOutput,
   QueueStatus,
+  ObjectInfo,
 } from './types/comfyui-api-types.js';
 
 const DEFAULT_HOST = 'http://127.0.0.1:8188';
@@ -90,6 +91,21 @@ export async function getHistory(promptId?: string): Promise<HistoryEntry[]> {
     return [data as HistoryEntry];
   }
   return Array.isArray(data) ? (data as HistoryEntry[]) : [];
+}
+
+/**
+ * Get node definitions from running ComfyUI. GET /object_info.
+ * Returns map of class name -> { input, output, output_name, category, description }.
+ * Requires ComfyUI to be running; throws if request fails.
+ */
+export async function getObjectInfo(): Promise<ObjectInfo> {
+  const res = await fetchWithRetry('/object_info', { method: 'GET' });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`ComfyUI /object_info failed (${res.status}): ${text || res.statusText}`);
+  }
+  const data = (await res.json()) as ObjectInfo;
+  return data ?? {};
 }
 
 /**

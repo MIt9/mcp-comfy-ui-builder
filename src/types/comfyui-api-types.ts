@@ -43,3 +43,23 @@ export interface QueueStatus {
   queue_running: unknown[];
   queue_pending: unknown[];
 }
+
+/** One node from ComfyUI GET /object_info (input values: type string or [type, config]). */
+export interface ObjectInfoNode {
+  input?: {
+    required?: Record<string, unknown>;
+    optional?: Record<string, unknown>;
+    hidden?: Record<string, unknown>;
+  };
+  output?: string[];
+  output_name?: string[];
+  output_is_list?: boolean[];
+  name?: string;
+  display_name?: string;
+  description?: string;
+  category?: string;
+  output_node?: boolean;
+}
+
+/** GET /object_info response: class name -> node definition. */
+export type ObjectInfo = Record<string, ObjectInfoNode>;

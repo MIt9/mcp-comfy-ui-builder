@@ -1,6 +1,8 @@
 /**
  * MCP server: list_node_types, get_node_info, check_compatibility, suggest_nodes;
+ * discover_nodes_live, search_nodes, get_node_inputs, get_node_outputs, list_node_categories, sync_nodes_to_knowledge (Node Discovery);
  * list_templates, build_workflow, save_workflow, list_saved_workflows, load_workflow;
+ * create_workflow, add_node, connect_nodes, remove_node, set_node_input, get_workflow_json, validate_workflow, finalize_workflow (dynamic workflow);
  * execute_workflow, get_execution_status, list_queue, interrupt_execution, clear_queue, delete_queue_items (require COMFYUI_HOST for execution/queue tools).
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -11,6 +13,16 @@ import { join } from 'node:path';
 import type { BaseNodesJson, NodeCompatibilityData, NodeDescription } from './types/node-types.js';
 import { buildFromTemplate, listTemplates } from './workflow/workflow-builder.js';
 import { saveWorkflow, listSavedWorkflows, loadWorkflow } from './workflow/workflow-storage.js';
+import {
+  addNode,
+  connectNodes,
+  removeNode,
+  setNodeInput,
+  getWorkflow as getWorkflowFromContext,
+  validateWorkflow as validateWorkflowContext,
+} from './workflow/dynamic-builder.js';
+import { getWorkflowStore } from './workflow/workflow-store.js';
+import { setHybridDiscoveryOptions, getHybridDiscovery } from './node-discovery/hybrid-discovery.js';
 import * as comfyui from './comfyui-client.js';
 import * as managerCli from './manager-cli.js';
 import type { ComfyUIWorkflow } from './types/comfyui-api-types.js';
@@ -23,6 +35,10 @@ const COMPAT_PATH = join(KNOWLEDGE_DIR, 'node-compatibility.json');
 const CACHE_TTL_MS = 5 * 60 * 1000;
 let baseNodesCache: { data: BaseNodesJson; expires: number } | null = null;
 let compatCache: { data: NodeCompatibilityData; expires: number } | null = null;
+
+function invalidateBaseNodesCache(): void {
+  baseNodesCache = null;
+}
 
 function loadBaseNodes(): BaseNodesJson {
   const now = Date.now();
@@ -49,6 +65,12 @@ function loadCompatibility(): NodeCompatibilityData {
   compatCache = { data, expires: now + CACHE_TTL_MS };
   return data;
 }
+
+// Initialize hybrid node discovery (live ComfyUI + knowledge base)
+setHybridDiscoveryOptions({
+  getObjectInfo: () => comfyui.getObjectInfo(),
+  loadBaseNodes,
+});
 
 /**
  * Validate workflow node references before execution.
@@ -204,6 +226,167 @@ server.registerTool(
   }
 );
 
+// --- Node Discovery (Phase 3): live ComfyUI + knowledge base ---
+server.registerTool(
+  'discover_nodes_live',
+  {
+    description:
+      'Get all node definitions from the running ComfyUI instance (GET /object_info). Returns class names and categories. Requires ComfyUI to be running at COMFYUI_HOST.',
+    inputSchema: {},
+  },
+  async () => {
+    try {
+      const objectInfo = await comfyui.getObjectInfo();
+      const entries = Object.entries(objectInfo).map(([name, node]) => `${name}: ${node.category ?? 'unknown'}`);
+      const text =
+        entries.length > 0
+          ? `Total nodes: ${entries.length}\n` + entries.slice(0, 200).join('\n') + (entries.length > 200 ? `\n... and ${entries.length - 200} more` : '')
+          : 'No nodes returned from ComfyUI.';
+      return { content: [{ type: 'text', text }] };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `discover_nodes_live failed (is ComfyUI running?): ${msg}` }] };
+    }
+  }
+);
+
+server.registerTool(
+  'search_nodes',
+  {
+    description:
+      'Search nodes by query string and optional filters (category, input_type, output_type). Searches both live ComfyUI and knowledge base; live overrides KB for same class.',
+    inputSchema: {
+      query: z.string().optional().describe('Search in class name, display name, description, category'),
+      category: z.string().optional().describe('Filter by category (e.g. loaders, sampling)'),
+      input_type: z.string().optional().describe('Filter by input type (e.g. MODEL, IMAGE)'),
+      output_type: z.string().optional().describe('Filter by output type (e.g. LATENT, IMAGE)'),
+    },
+  },
+  async (args) => {
+    const hybrid = getHybridDiscovery();
+    if (!hybrid) {
+      return { content: [{ type: 'text', text: 'Node discovery not initialized.' }] };
+    }
+    try {
+      const list = await hybrid.searchNodes(args.query ?? '', {
+        category: args.category,
+        input_type: args.input_type,
+        output_type: args.output_type,
+      });
+      const text = list
+        .slice(0, 100)
+        .map((n) => `${n.class_name}: ${n.display_name} (${n.category}) [${n.source}]`)
+        .join('\n');
+      return {
+        content: [
+          {
+            type: 'text',
+            text: list.length ? `Found ${list.length} node(s):\n${text}` + (list.length > 100 ? `\n... and ${list.length - 100} more` : '') : 'No nodes match.',
+          },
+        ],
+      };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `search_nodes failed: ${msg}` }] };
+    }
+  }
+);
+
+server.registerTool(
+  'get_node_inputs',
+  {
+    description: 'Get detailed input definitions for a node (required and optional). Uses live ComfyUI if available, otherwise knowledge base.',
+    inputSchema: {
+      node_name: z.string().describe('Node class name (e.g. KSampler, CheckpointLoaderSimple)'),
+    },
+  },
+  async (args) => {
+    const hybrid = getHybridDiscovery();
+    if (!hybrid) {
+      return { content: [{ type: 'text', text: 'Node discovery not initialized.' }] };
+    }
+    const node = await hybrid.getNode(args.node_name);
+    if (!node) {
+      return { content: [{ type: 'text', text: `Node "${args.node_name}" not found in live ComfyUI or knowledge base.` }] };
+    }
+    const payload = { required: node.input.required ?? {}, optional: node.input.optional ?? {}, source: node.source };
+    return { content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }] };
+  }
+);
+
+server.registerTool(
+  'get_node_outputs',
+  {
+    description: 'Get output types and names for a node. Uses live ComfyUI if available, otherwise knowledge base.',
+    inputSchema: {
+      node_name: z.string().describe('Node class name (e.g. KSampler, CheckpointLoaderSimple)'),
+    },
+  },
+  async (args) => {
+    const hybrid = getHybridDiscovery();
+    if (!hybrid) {
+      return { content: [{ type: 'text', text: 'Node discovery not initialized.' }] };
+    }
+    const node = await hybrid.getNode(args.node_name);
+    if (!node) {
+      return { content: [{ type: 'text', text: `Node "${args.node_name}" not found in live ComfyUI or knowledge base.` }] };
+    }
+    const payload = { output: node.output, output_name: node.output_name, source: node.source };
+    return { content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }] };
+  }
+);
+
+server.registerTool(
+  'list_node_categories',
+  {
+    description: 'List all node categories from live ComfyUI and knowledge base (merged, unique).',
+    inputSchema: {},
+  },
+  async () => {
+    const hybrid = getHybridDiscovery();
+    if (!hybrid) {
+      return { content: [{ type: 'text', text: 'Node discovery not initialized.' }] };
+    }
+    try {
+      const categories = await hybrid.listNodeCategories();
+      const text = categories.length ? categories.join('\n') : 'No categories found.';
+      return { content: [{ type: 'text', text }] };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `list_node_categories failed: ${msg}` }] };
+    }
+  }
+);
+
+server.registerTool(
+  'sync_nodes_to_knowledge',
+  {
+    description:
+      'Sync node definitions from running ComfyUI to the knowledge base. Adds only nodes that are not already in base-nodes.json. Requires ComfyUI to be running.',
+    inputSchema: {},
+  },
+  async () => {
+    const hybrid = getHybridDiscovery();
+    if (!hybrid) {
+      return { content: [{ type: 'text', text: 'Node discovery not initialized.' }] };
+    }
+    try {
+      const result = await hybrid.syncToKnowledgeBase();
+      invalidateBaseNodesCache();
+      const lines = [
+        `Added: ${result.added.length} node(s)`,
+        result.added.length ? result.added.join(', ') : '',
+        `Skipped (already in KB): ${result.skipped}`,
+        result.errors.length ? `Errors: ${result.errors.join('; ')}` : '',
+      ].filter(Boolean);
+      return { content: [{ type: 'text', text: lines.join('\n') }] };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `sync_nodes_to_knowledge failed: ${msg}` }] };
+    }
+  }
+);
+
 server.registerTool(
   'list_templates',
   {
@@ -235,6 +418,184 @@ server.registerTool(
       const msg = e instanceof Error ? e.message : String(e);
       return { content: [{ type: 'text', text: `build_workflow failed: ${msg}` }] };
     }
+  }
+);
+
+// --- Dynamic workflow tools (Phase 2) ---
+const workflowStore = getWorkflowStore();
+
+server.registerTool(
+  'create_workflow',
+  {
+    description:
+      'Create a new empty workflow context. Returns workflow_id to use with add_node, connect_nodes, get_workflow_json, validate_workflow, finalize_workflow, execute_workflow.',
+    inputSchema: {},
+  },
+  () => {
+    const workflowId = workflowStore.create();
+    workflowStore.cleanup(); // remove expired
+    return { content: [{ type: 'text', text: workflowId }] };
+  }
+);
+
+server.registerTool(
+  'add_node',
+  {
+    description: 'Add a node to a dynamic workflow. Returns the new node id (e.g. "1", "2").',
+    inputSchema: {
+      workflow_id: z.string().describe('Workflow id from create_workflow'),
+      class_type: z.string().describe('ComfyUI node class (e.g. CheckpointLoaderSimple, CLIPTextEncode)'),
+      inputs: z.record(z.string(), z.unknown()).optional().describe('Node inputs (literal values; use connect_nodes for links)'),
+    },
+  },
+  (args) => {
+    const ctx = workflowStore.get(args.workflow_id);
+    if (!ctx) {
+      return { content: [{ type: 'text', text: `Workflow "${args.workflow_id}" not found or expired.` }] };
+    }
+    try {
+      const nodeId = addNode(ctx, args.class_type, args.inputs ?? {});
+      return { content: [{ type: 'text', text: nodeId }] };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `add_node failed: ${msg}` }] };
+    }
+  }
+);
+
+server.registerTool(
+  'connect_nodes',
+  {
+    description: 'Connect an output of one node to an input of another in a dynamic workflow.',
+    inputSchema: {
+      workflow_id: z.string().describe('Workflow id from create_workflow'),
+      from_node: z.string().describe('Source node id (e.g. "1")'),
+      output_idx: z.number().int().min(0).describe('Output index (usually 0)'),
+      to_node: z.string().describe('Target node id'),
+      input_name: z.string().describe('Target input name (e.g. model, clip, positive)'),
+    },
+  },
+  (args) => {
+    const ctx = workflowStore.get(args.workflow_id);
+    if (!ctx) {
+      return { content: [{ type: 'text', text: `Workflow "${args.workflow_id}" not found or expired.` }] };
+    }
+    try {
+      connectNodes(ctx, args.from_node, args.output_idx, args.to_node, args.input_name);
+      return { content: [{ type: 'text', text: 'ok' }] };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `connect_nodes failed: ${msg}` }] };
+    }
+  }
+);
+
+server.registerTool(
+  'remove_node',
+  {
+    description: 'Remove a node from a dynamic workflow. Does not fix references (validation will report dangling refs).',
+    inputSchema: {
+      workflow_id: z.string().describe('Workflow id from create_workflow'),
+      node_id: z.string().describe('Node id to remove'),
+    },
+  },
+  (args) => {
+    const ctx = workflowStore.get(args.workflow_id);
+    if (!ctx) {
+      return { content: [{ type: 'text', text: `Workflow "${args.workflow_id}" not found or expired.` }] };
+    }
+    try {
+      removeNode(ctx, args.node_id);
+      return { content: [{ type: 'text', text: 'ok' }] };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `remove_node failed: ${msg}` }] };
+    }
+  }
+);
+
+server.registerTool(
+  'set_node_input',
+  {
+    description: 'Set a literal input on a node in a dynamic workflow (overwrites existing value or link).',
+    inputSchema: {
+      workflow_id: z.string().describe('Workflow id from create_workflow'),
+      node_id: z.string().describe('Node id'),
+      input_name: z.string().describe('Input name (e.g. text, ckpt_name, seed)'),
+      value: z.union([z.string(), z.number(), z.boolean(), z.array(z.unknown()), z.record(z.string(), z.unknown())]).describe('Value (string, number, boolean, or [nodeId, outputIndex] for links)'),
+    },
+  },
+  (args) => {
+    const ctx = workflowStore.get(args.workflow_id);
+    if (!ctx) {
+      return { content: [{ type: 'text', text: `Workflow "${args.workflow_id}" not found or expired.` }] };
+    }
+    try {
+      setNodeInput(ctx, args.node_id, args.input_name, args.value);
+      return { content: [{ type: 'text', text: 'ok' }] };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `set_node_input failed: ${msg}` }] };
+    }
+  }
+);
+
+server.registerTool(
+  'get_workflow_json',
+  {
+    description: 'Get the current workflow JSON for a dynamic workflow (for execute_workflow or save_workflow).',
+    inputSchema: {
+      workflow_id: z.string().describe('Workflow id from create_workflow'),
+    },
+  },
+  (args) => {
+    const ctx = workflowStore.get(args.workflow_id);
+    if (!ctx) {
+      return { content: [{ type: 'text', text: `Workflow "${args.workflow_id}" not found or expired.` }] };
+    }
+    const workflow = getWorkflowFromContext(ctx);
+    const text = JSON.stringify(workflow, null, 2);
+    return { content: [{ type: 'text', text }] };
+  }
+);
+
+server.registerTool(
+  'validate_workflow',
+  {
+    description: 'Validate a dynamic workflow: checks that all node references exist and output indices are valid.',
+    inputSchema: {
+      workflow_id: z.string().describe('Workflow id from create_workflow'),
+    },
+  },
+  (args) => {
+    const ctx = workflowStore.get(args.workflow_id);
+    if (!ctx) {
+      return { content: [{ type: 'text', text: `Workflow "${args.workflow_id}" not found or expired.` }] };
+    }
+    const result = validateWorkflowContext(ctx);
+    const text = result.valid
+      ? 'valid'
+      : `invalid:\n${result.errors.join('\n')}`;
+    return { content: [{ type: 'text', text }] };
+  }
+);
+
+server.registerTool(
+  'finalize_workflow',
+  {
+    description: 'Get the workflow JSON for a dynamic workflow (same as get_workflow_json). Use with execute_workflow or save_workflow.',
+    inputSchema: {
+      workflow_id: z.string().describe('Workflow id from create_workflow'),
+    },
+  },
+  (args) => {
+    const ctx = workflowStore.get(args.workflow_id);
+    if (!ctx) {
+      return { content: [{ type: 'text', text: `Workflow "${args.workflow_id}" not found or expired.` }] };
+    }
+    const workflow = getWorkflowFromContext(ctx);
+    const text = JSON.stringify(workflow, null, 2);
+    return { content: [{ type: 'text', text }] };
   }
 );
 

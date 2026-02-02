@@ -61,8 +61,10 @@ Knowledge base + 4 MCP tools   [████████████████
 ComfyUI client + builder      [████████████████████] 100% ✅
 MCP build/execute/status       [████████████████████] 100% ✅
 Save/load + docs               [████████████████████] 100% ✅
-IMPROVEMENT-PLAN Phase 1       [░░░░░░░░░░░░░░░░░░░░]   0% (next)
-IMPROVEMENT-PLAN Phases 2–6    [░░░░░░░░░░░░░░░░░░░░]   0% (backlog)
+IMPROVEMENT-PLAN Phase 1       [████████████████████] 100% ✅
+IMPROVEMENT-PLAN Phase 2       [████████████████████] 100% ✅
+IMPROVEMENT-PLAN Phase 3       [████████████████████] 100% ✅
+IMPROVEMENT-PLAN Phases 4–6   [░░░░░░░░░░░░░░░░░░░░]   0% (next)
 ```
 
 ### Feature Roadmap
@@ -75,9 +77,10 @@ IMPROVEMENT-PLAN Phases 2–6    [░░░░░░░░░░░░░░░�
 | Workflow builder (txt2img) | ✅ Done | P1 | — |
 | MCP: build_workflow, execute_workflow, status, list_queue | ✅ Done | P1 | — |
 | Save/load workflows | ✅ Done | P2 | — |
-| **IMPROVEMENT-PLAN: Phase 1 templates** (inpainting, upscale, lora, controlnet, batch) | 🔄 Next | P1 | Phase 1 |
-| **IMPROVEMENT-PLAN: Phase 2** Dynamic Builder | 📋 Backlog | P2 | Phase 2 |
-| **IMPROVEMENT-PLAN: Phases 3–6** Discovery, Execution, Models, Composition | 📋 Backlog | P2 | Phases 3–6 |
+| **IMPROVEMENT-PLAN: Phase 1 templates** (inpainting, upscale, lora, controlnet, batch) | ✅ Done | P1 | — |
+| **IMPROVEMENT-PLAN: Phase 2** Dynamic Builder | ✅ Done | P2 | — |
+| **IMPROVEMENT-PLAN: Phase 3** Node Discovery (getObjectInfo, hybrid-discovery, discover/search/sync) | ✅ Done | P2 | — |
+| **IMPROVEMENT-PLAN: Phases 4–6** Execution, Models, Composition | 🔄 Next | P2 | Phases 4–6 |
 
 **Legend:** ✅ Done | 🔄 Next | 📋 Backlog
 

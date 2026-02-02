@@ -67,6 +67,22 @@ describe('ComfyUI client', () => {
     expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/queue'), expect.any(Object));
   });
 
+  it('getObjectInfo returns node definitions from /object_info', async () => {
+    const { getObjectInfo } = await import('../src/comfyui-client.js');
+    const objectInfo = {
+      KSampler: {
+        input: { required: { model: ['MODEL'], positive: ['CONDITIONING'] }, optional: {} },
+        output: ['LATENT'],
+        output_name: ['LATENT'],
+        category: 'sampling',
+      },
+    };
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => objectInfo });
+    const result = await getObjectInfo();
+    expect(result).toEqual(objectInfo);
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/object_info'), expect.any(Object));
+  });
+
   it('submitPrompt throws on non-ok response', async () => {
     const { submitPrompt } = await import('../src/comfyui-client.js');
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500, text: async () => 'Server error' });
