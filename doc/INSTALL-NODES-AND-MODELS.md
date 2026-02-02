@@ -7,7 +7,7 @@
 ## Requirements
 
 - **COMFYUI_PATH** — path to ComfyUI directory on disk (e.g. `/home/user/ComfyUI` or `C:\ComfyUI`). MCP server runs on the same machine where this path is set.
-- For **custom nodes**: ComfyUI must have **ComfyUI-Manager** installed (in `custom_nodes/ComfyUI-Manager`), and it must contain the `cm-cli.py` file.
+- For **custom nodes**: ComfyUI must have **ComfyUI-Manager** installed (in `custom_nodes/ComfyUI-Manager`), and it must contain the `cm-cli.py` file. ComfyUI-Manager **cm-cli** requires the Python package **rich** in your ComfyUI Python environment: run `pip install rich` (or install ComfyUI-Manager dependencies from its `requirements.txt`).
 - For **models**: download always works (fetch via URL). If **comfy-cli** is installed (`pip install comfy-cli`), it is used for model downloads.
 
 ***

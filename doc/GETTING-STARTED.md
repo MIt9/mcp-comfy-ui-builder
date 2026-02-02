@@ -130,6 +130,22 @@ See [WEBSOCKET-GUIDE.md](WEBSOCKET-GUIDE.md) for detailed usage.
 
 ***
 
+## Knowledge base and sync_nodes_to_knowledge
+
+The tool `sync_nodes_to_knowledge` writes node definitions to the **knowledge/** directory (`base-nodes.json`, `node-compatibility.json`, `CHANGELOG.md`). By default the path is `process.cwd() + '/knowledge'`. If the MCP server is started from another app, the working directory may not be the package root, so the directory might be missing and you may see **ENOENT: base-nodes.json**.
+
+- **Auto-creation:** The server creates the `knowledge/` directory if it does not exist (when the current directory is writable).
+- **Custom path:** Set **COMFYUI_KNOWLEDGE_DIR** (or **MCP_COMFYUI_KNOWLEDGE_PATH**) to the full path of the knowledge directory (e.g. the package’s `knowledge/` folder). Then `sync_nodes_to_knowledge` will use that path regardless of the process working directory.
+
+Example in MCP config:
+```json
+"env": {
+  "COMFYUI_KNOWLEDGE_DIR": "/path/to/mcp-comfy-ui-builder/knowledge"
+}
+```
+
+***
+
 ## Adding nodes
 
 **Option A — Sync from ComfyUI** (when ComfyUI runs with custom nodes):

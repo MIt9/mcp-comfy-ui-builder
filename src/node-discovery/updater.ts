@@ -3,12 +3,22 @@
  * Writes to knowledge/base-nodes.json, custom-nodes.json, node-compatibility.json, CHANGELOG.md.
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { NodeDescription, NodeCompatibilityData, BaseNodesJson } from '../types/node-types.js';
 
 function getKnowledgePath(): string {
+  const envDir = process.env.COMFYUI_KNOWLEDGE_DIR?.trim();
+  if (envDir) return envDir;
   return join(process.cwd(), 'knowledge');
+}
+
+/** Ensure knowledge directory exists before any write (avoids ENOENT when sync_nodes_to_knowledge runs from another app cwd). */
+function ensureKnowledgeDir(): void {
+  const dir = getKnowledgePath();
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
 }
 
 function readJson<T>(path: string): T {
@@ -29,6 +39,7 @@ export function addNode(
   description: NodeDescription,
   _isCustom?: boolean
 ): void {
+  ensureKnowledgeDir();
   const knowledgeDir = getKnowledgePath();
   const file = join(knowledgeDir, 'base-nodes.json');
   if (!existsSync(file)) {
@@ -51,6 +62,7 @@ export function addNode(
  * Update node-compatibility.json: add/update producers and consumers for return types of the node.
  */
 export function updateCompatibility(nodeClass: string, desc: NodeDescription): void {
+  ensureKnowledgeDir();
   const knowledgeDir = getKnowledgePath();
   const file = join(knowledgeDir, 'node-compatibility.json');
   const data: NodeCompatibilityData = existsSync(file)
@@ -86,6 +98,7 @@ export function updateCompatibility(nodeClass: string, desc: NodeDescription): v
  */
 export function generateChangelog(newNodes: Array<{ className: string; description: NodeDescription }>): void {
   if (newNodes.length === 0) return;
+  ensureKnowledgeDir();
   const knowledgeDir = getKnowledgePath();
   const file = join(knowledgeDir, 'CHANGELOG.md');
   const date = new Date().toISOString().slice(0, 10);

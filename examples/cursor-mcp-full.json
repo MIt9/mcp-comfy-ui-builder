@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "comfy-ui-builder": {
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/TO/mcp-comfy-ui-builder/dist/mcp-server.js"],
+      "env": {
+        "COMFYUI_HOST": "http://127.0.0.1:8188",
+        "COMFYUI_PATH": "/ABSOLUTE/PATH/TO/ComfyUI",
+        "COMFYUI_KNOWLEDGE_DIR": "/ABSOLUTE/PATH/TO/mcp-comfy-ui-builder/knowledge"
+      }
+    }
+  }
+}

@@ -42,7 +42,7 @@ import { executeChain } from './workflow/chainer.js';
 import type { ComfyUIWorkflow } from './types/comfyui-api-types.js';
 import { loadPlugins, summarizePlugins, type LoadedPlugin } from './plugins/plugin-loader.js';
 
-const KNOWLEDGE_DIR = join(process.cwd(), 'knowledge');
+const KNOWLEDGE_DIR = process.env.COMFYUI_KNOWLEDGE_DIR?.trim() || join(process.cwd(), 'knowledge');
 const BASE_NODES_PATH = join(KNOWLEDGE_DIR, 'base-nodes.json');
 const COMPAT_PATH = join(KNOWLEDGE_DIR, 'node-compatibility.json');
 
@@ -392,7 +392,7 @@ server.registerTool(
   'sync_nodes_to_knowledge',
   {
     description:
-      'Sync node definitions from running ComfyUI to the knowledge base. Adds only nodes that are not already in base-nodes.json. Requires ComfyUI to be running.',
+      'Sync node definitions from running ComfyUI to the knowledge base. Adds only nodes that are not already in base-nodes.json. Creates knowledge/ if missing (or set COMFYUI_KNOWLEDGE_DIR to point to the knowledge directory). Requires ComfyUI to be running.',
     inputSchema: {},
   },
   async () => {
@@ -1352,7 +1352,7 @@ server.registerTool(
   'execute_chain',
   {
     description:
-      'Execute a chain of workflows in sequence. Each step runs after the previous completes. Use inputFrom and outputTo to pass the output image from one step to the next (e.g. txt2img → upscale → img2img). Steps can use workflow JSON or saved workflow name. Requires COMFYUI_HOST.',
+      'Execute a chain of workflows in sequence. Each step runs after the previous completes. Use inputFrom and outputTo to pass the output image from one step to the next (e.g. txt2img → upscale → img2img). Steps can use workflow JSON or saved workflow name. Prefer saved workflow name (string) for large workflows to avoid ENAMETOOLONG in some clients. Requires COMFYUI_HOST.',
     inputSchema: {
       steps: z
         .array(
@@ -1604,7 +1604,7 @@ server.registerTool(
   'install_custom_node',
   {
     description:
-      'Install one or more custom nodes via ComfyUI-Manager cm-cli (e.g. ComfyUI-Blip, WAS-Node-Suite). Requires COMFYUI_PATH and ComfyUI-Manager installed in custom_nodes. Restart ComfyUI after install to load new nodes.',
+      'Install one or more custom nodes via ComfyUI-Manager cm-cli (e.g. ComfyUI-Blip, WAS-Node-Suite). Requires COMFYUI_PATH and ComfyUI-Manager installed in custom_nodes. ComfyUI-Manager cm-cli requires Python package "rich" (pip install rich in your ComfyUI Python environment). Restart ComfyUI after install to load new nodes.',
     inputSchema: {
       node_names: z
         .array(z.string())

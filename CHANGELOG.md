@@ -4,6 +4,23 @@ Project change history. Knowledge base (nodes) → [knowledge/CHANGELOG.md](know
 
 ---
 
+## [1.1.0] – 2026-02-02
+
+### Added
+
+- **MCP setup docs:** Quick connection checklist, optional env vars (COMFYUI_HOST, COMFYUI_PATH, COMFYUI_KNOWLEDGE_DIR), full config example. [doc/MCP-SETUP.md](doc/MCP-SETUP.md), [examples/README.md](examples/README.md).
+- **Full config example:** [examples/cursor-mcp-full.json](examples/cursor-mcp-full.json) with all env vars; [examples/README.md](examples/README.md) documents each variable.
+- **Knowledge base docs:** Section in GETTING-STARTED on sync_nodes_to_knowledge and COMFYUI_KNOWLEDGE_DIR to avoid ENOENT when MCP runs from another app cwd.
+
+### Changed
+
+- **install_custom_node:** Check for Python `rich` before running cm-cli; return clear message if missing (ComfyUI-Manager requires `pip install rich`). [src/manager-cli.ts](src/manager-cli.ts) — `checkRichAvailable()`, called from `runCmCli()`.
+- **sync_nodes_to_knowledge:** `ensureKnowledgeDir()` in updater creates `knowledge/` before write; COMFYUI_KNOWLEDGE_DIR supported in updater and mcp-server. [src/node-discovery/updater.ts](src/node-discovery/updater.ts), [src/mcp-server.ts](src/mcp-server.ts).
+- **README:** Connect MCP section with requirements, minimal and with-COMFYUI_HOST config, link to full guide.
+- **Troubleshooting:** Rows for "ComfyUI is not configured", ENOENT/sync_nodes_to_knowledge, install_custom_node (rich). [doc/MCP-SETUP.md](doc/MCP-SETUP.md).
+
+---
+
 ## [0.5.0] – 2026-02-02
 
 ### Added

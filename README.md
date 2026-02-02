@@ -131,10 +131,11 @@ npm run mcp
 
 Or without npm: `node dist/mcp-server.js`. Server works via **stdio** (stdin/stdout). More details → [doc/MCP-SETUP.md](doc/MCP-SETUP.md).
 
-### Connect in Cursor
+### Connect MCP (Cursor / Claude)
 
-Add server to MCP settings (Cursor Settings → MCP or config):
+**What you need:** Node.js 18+, one-time build (`npm run build`), **absolute path** to `dist/mcp-server.js`, restart after config change.
 
+**Minimal config** (knowledge and workflow tools only):
 ```json
 {
   "mcpServers": {
@@ -146,7 +147,7 @@ Add server to MCP settings (Cursor Settings → MCP or config):
 }
 ```
 
-Replace `/ABSOLUTE/PATH/TO/mcp-comfy-ui-builder` with the full path to your project clone. Restart Cursor after config change.
+**With ComfyUI execution** (execute_workflow, get_execution_status, list_outputs, etc.): add `"env": { "COMFYUI_HOST": "http://127.0.0.1:8188" }` to the server block. See [doc/MCP-SETUP.md](doc/MCP-SETUP.md) for full checklist, optional env vars (COMFYUI_PATH, COMFYUI_KNOWLEDGE_DIR), and troubleshooting.
 
 ### Publish on GitHub
 
@@ -161,9 +162,7 @@ Replace `/ABSOLUTE/PATH/TO/mcp-comfy-ui-builder` with the full path to your proj
 
 3. If you fork this repo, replace `MIt9` with your GitHub username in the URLs above.
 
-### Connect in Claude Desktop
-
-Config file: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS). Add the same `mcpServers` block and restart Claude.
+**Cursor:** Settings → MCP; **Claude Desktop:** config file `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS). Replace the path with your absolute path to `dist/mcp-server.js`, then restart the app. Full guide: [doc/MCP-SETUP.md](doc/MCP-SETUP.md).
 
 ## License
 

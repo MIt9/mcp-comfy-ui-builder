@@ -10,7 +10,7 @@
 |------|----------|
 | Quick launch, commands at hand | [QUICK-REFERENCE.md](QUICK-REFERENCE.md) |
 | Complete start, seed + MCP | [GETTING-STARTED.md](GETTING-STARTED.md) |
-| Connect MCP (Cursor / Claude Desktop); full MCP tool list by area | [MCP-SETUP.md](MCP-SETUP.md) |
+| Connect MCP (Cursor / Claude); quick connection checklist, env vars, full tool list | [MCP-SETUP.md](MCP-SETUP.md) |
 | Workflow Builder — templates, save/load, execute | [workflow-builder.md](workflow-builder.md) |
 | AI assistant guide — how to use the package (e.g. after npm i -g) | [AI-ASSISTANT-GUIDE.md](AI-ASSISTANT-GUIDE.md) |
 | Generate and verify (image → caption, check result) | [GENERATE-AND-VERIFY.md](GENERATE-AND-VERIFY.md) |

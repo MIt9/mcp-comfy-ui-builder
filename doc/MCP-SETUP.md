@@ -126,6 +126,47 @@ Data is loaded from `knowledge/base-nodes.json` and `knowledge/node-compatibilit
 
 ***
 
+## Quick connection — what you need
+
+Use this checklist for the fastest setup.
+
+### Must have
+
+| Requirement | Description |
+|-------------|-------------|
+| **Node.js 18+** | Required to run the server. |
+| **Build once** | From project root: `npm install && npm run build`. Creates `dist/mcp-server.js` and fills `knowledge/` from seed. |
+| **Absolute path** | In Cursor/Claude config you must pass the **full path** to `dist/mcp-server.js` (e.g. `/home/user/mcp-comfy-ui-builder/dist/mcp-server.js`). Relative paths or paths without `dist/mcp-server.js` will not work. |
+| **Restart after config change** | After editing MCP config, fully restart Cursor or quit and reopen Claude Desktop. |
+
+### Optional (by use case)
+
+| Use case | Variable | When to set |
+|----------|----------|-------------|
+| **Execute workflows, queue, outputs, models** | `COMFYUI_HOST` | When you want to run workflows, get status, list queue, list models. Example: `http://127.0.0.1:8188`. |
+| **Install custom nodes / models** | `COMFYUI_PATH` | When you use `install_custom_node` or `install_model`. Path to ComfyUI directory. ComfyUI-Manager must be in `custom_nodes`; Python env must have `pip install rich`. See [INSTALL-NODES-AND-MODELS.md](INSTALL-NODES-AND-MODELS.md). |
+| **sync_nodes_to_knowledge from another app cwd** | `COMFYUI_KNOWLEDGE_DIR` | When MCP is started by another app and working directory is not the package root. Set to full path of the package `knowledge/` folder to avoid ENOENT. See [GETTING-STARTED.md](GETTING-STARTED.md#knowledge-base-and-sync_nodes_to_knowledge). |
+
+### Quick connection checklist
+
+1. **Clone and build** (from project root):
+   ```bash
+   git clone https://github.com/MIt9/mcp-comfy-ui-builder.git && cd mcp-comfy-ui-builder
+   npm install && npm run build
+   ```
+2. **Get path to server** (replace with your actual path):
+   ```bash
+   # Linux/macOS — substitute your username and path
+   echo "$(pwd)/dist/mcp-server.js"
+   ```
+3. **Add MCP server** in Cursor (Settings → MCP) or Claude Desktop config — see [Connecting in Cursor](#connecting-in-cursor) and [Connecting in Claude Desktop](#connecting-in-claude-desktop) below.
+4. **Restart** Cursor or Claude Desktop.
+5. **(Optional)** For execution/outputs: set `COMFYUI_HOST` in the same config (e.g. in `env` block).
+
+If something doesn’t work, see [Troubleshooting](#troubleshooting).
+
+***
+
 ## Starting the server
 
 **If installed globally** (`npm i -g mcp-comfy-ui-builder`): use the path to the installed package. Get it with:
@@ -145,9 +186,10 @@ Alternative: `node dist/mcp-server.js`. Server uses **stdio** (stdin/stdout).
 
 ## Connecting in Cursor
 
-1. Open MCP settings (Cursor Settings → MCP or corresponding config).
-2. Add server (replace path with yours):
+1. Open MCP settings (Cursor Settings → MCP or the config file where MCP servers are defined).
+2. Add the server. **Replace the path** with your absolute path to `dist/mcp-server.js`:
 
+**Minimal (knowledge and workflow tools only):**
 ```json
 {
   "mcpServers": {
@@ -159,18 +201,35 @@ Alternative: `node dist/mcp-server.js`. Server uses **stdio** (stdin/stdout).
 }
 ```
 
-3. Restart Cursor.
+**With execution and ComfyUI (execute_workflow, get_execution_status, list_outputs, etc.):**
+```json
+{
+  "mcpServers": {
+    "comfy-ui-builder": {
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/TO/mcp-comfy-ui-builder/dist/mcp-server.js"],
+      "env": {
+        "COMFYUI_HOST": "http://127.0.0.1:8188"
+      }
+    }
+  }
+}
+```
 
-After connecting, AI can call the tools above. For execution, outputs, models, and queue (execute_workflow, execute_workflow_sync, get_execution_status, list_outputs, list_models, list_queue, etc.), set `COMFYUI_HOST` in the environment or in a `.env` file in the project root (see [.env.example](../.env.example)).
+3. **Restart Cursor** (fully quit and reopen) so it picks up the new config.
+
+Without `COMFYUI_HOST`, tools that need ComfyUI (execute_workflow, get_execution_status, list_outputs, list_models, list_queue, sync_nodes_to_knowledge from live ComfyUI, etc.) will report that ComfyUI is not configured. With `COMFYUI_HOST` set, those tools work if ComfyUI is running at that URL.
 
 ***
 
 ## Connecting in Claude Desktop
 
-- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Create the file if it doesn't exist.
-- Add the same `mcpServers` block (with absolute path to `dist/mcp-server.js`).
-- Restart Claude Desktop (fully quit the application, not just close the window).
+1. **Config file:**
+   - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+   - Create the file if it doesn't exist.
+2. Add the same `mcpServers` block as for Cursor (see above): **absolute path** to `dist/mcp-server.js`, and optionally `env` with `COMFYUI_HOST` for execution/outputs.
+3. **Restart Claude Desktop** (fully quit the application, not just close the window).
 
 ***
 
@@ -230,13 +289,15 @@ See [WEBSOCKET-GUIDE.md](WEBSOCKET-GUIDE.md) for advanced usage.
 | Problem | What to check |
 |----------|----------------|
 | **MCP doesn't see tools** | Path in `args` must be **absolute** to `dist/mcp-server.js`. After changing config — fully restart Cursor/Claude. |
-| **Server doesn't start** | Run `npm run build` from project root. Make sure there's a `knowledge/` folder with `base-nodes.json` and `node-compatibility.json`. |
+| **Server doesn't start** | Run `npm run build` from project root. Make sure there's a `knowledge/` folder (created by build from seed) with `base-nodes.json` and `node-compatibility.json`. |
 | **Empty node list** | File `knowledge/base-nodes.json` must contain `nodes` object. Run `npm run seed` or add nodes manually. |
-| **ENOENT error / module not found** | Run MCP from **project root** (where `knowledge/` and `dist/` are visible). In Cursor config `args` — path specifically to `dist/mcp-server.js`. |
+| **"ComfyUI is not configured"** | Set `COMFYUI_HOST` in the MCP server config (`env` block). Example: `"COMFYUI_HOST": "http://127.0.0.1:8188"`. ComfyUI must be running at that URL. |
+| **ENOENT base-nodes.json / sync_nodes_to_knowledge** | MCP may be started from another app with a different working directory. Set `COMFYUI_KNOWLEDGE_DIR` to the full path of the package `knowledge/` folder, or run MCP from the package root. See [GETTING-STARTED.md](GETTING-STARTED.md#knowledge-base-and-sync_nodes_to_knowledge). |
+| **install_custom_node fails (ModuleNotFoundError: rich)** | ComfyUI-Manager cm-cli needs Python package `rich`. Run `pip install rich` in the same Python environment used by ComfyUI. See [INSTALL-NODES-AND-MODELS.md](INSTALL-NODES-AND-MODELS.md). |
 | **WebSocket not connecting** (progress_method: "polling") | Check: 1) ComfyUI is running (`curl http://localhost:8188/system_stats`), 2) COMFYUI_HOST is set correctly, 3) WebSocket endpoint works (`wscat -c ws://localhost:8188/ws?clientId=test`). **Note:** Polling fallback is automatic and works fine. |
 
-Example config for Cursor: [examples/cursor-mcp.json](../examples/cursor-mcp.json) (copy and substitute your path).
+**Examples:** [examples/cursor-mcp.json](../examples/cursor-mcp.json) (minimal + COMFYUI_HOST), [examples/cursor-mcp-full.json](../examples/cursor-mcp-full.json) (full config with COMFYUI_HOST, COMFYUI_PATH, COMFYUI_KNOWLEDGE_DIR). See [examples/README.md](../examples/README.md) for a description of each env var.
 
 ***
 
-*MCP Setup v1.3 - WebSocket Support | 2026-02-02*
+*MCP Setup v1.4 - Quick connection checklist, env examples, troubleshooting | 2026-02-02*
