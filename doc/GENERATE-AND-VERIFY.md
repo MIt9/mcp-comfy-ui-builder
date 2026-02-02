@@ -1,91 +1,91 @@
 # Generate and Verify Pipeline
 
-> Згенерувати зображення за запитом і перевірити результат (image-to-text / порівняння з очікуванням).
+> Generate an image from a prompt and verify the result (image-to-text / comparison with expectation).
 
 ***
 
-## Ідея
+## Idea
 
-1. **Згенерувати**: користувач просить, наприклад, «реалістичні яблука на зеленій тканині» → будується txt2img воркфлоу → виконується → отримуємо зображення.
-2. **Перевірити**: зображення з кроку 1 передається в інший воркфлоу з нодами image-to-text (BLIP / caption) → отримуємо текстовий опис → порівнюємо з очікуванням (яблука, зелена тканина) або перевіряємо логічно в асистенті.
+1. **Generate**: user asks, e.g. "realistic apples on green fabric" → build txt2img workflow → execute → get image.
+2. **Verify**: image from step 1 is passed to another workflow with image-to-text nodes (BLIP / caption) → get text description → compare with expectation (apples, green fabric) or verify logically in the assistant.
 
-Цей документ описує, як реалізувати такий pipeline за допомогою MCP ComfyUI Builder та ComfyUI.
-
-***
-
-## Потік з існуючими інструментами
-
-### Крок 1: Генерація
-
-- `build_workflow("txt2img", { prompt: "realistic apples on green fabric", ... })` → отримати workflow JSON.
-- `execute_workflow(workflow)` → отримати `prompt_id`.
-- Дочекатися завершення (наприклад, перевірка черги або повторні виклики статусу).
-- `get_execution_status(prompt_id)` → переконатися, що є вихідні зображення та URL перегляду.
-
-### Крок 2: Підготовка зображення для другого воркфлоу
-
-Зображення з SaveImage зберігається в **output** ComfyUI, а LoadImage за замовчуванням читає з **input**. Щоб використати згенероване зображення у воркфлоу перевірки (наприклад, image-to-text):
-
-- **prepare_image_for_workflow(prompt_id)** — завантажує перше вихідне зображення з `/view`, заливає його в `/upload/image` (input) і повертає ім’я файлу для LoadImage.
-
-Після цього можна будувати другий воркфлоу з параметром `image: "<повернуте ім'я>"`.
-
-### Крок 3: Воркфлоу перевірки (image → текст)
-
-Варіанти:
-
-- **Шаблон image_caption** (потрібні кастомні ноди):
-  - `build_workflow("image_caption", { image: "<filename з prepare_image_for_workflow>" })` → workflow: LoadImage → BLIPCaption (або аналог).
-  - Потрібно встановити один із паків: [ComfyUI-Blip](https://github.com/1038lab/ComfyUI-Blip), [comfyui-art-venture](https://github.com/cubiq/comfyui_art_venture) (BLIPCaption), або [img2txt-comfyui-nodes](https://github.com/christian-byrne/img2txt-comfyui-nodes) (BLIP / LLaVA / MiniCPM).
-- **Власний воркфлоу**: якщо у вас інша назва ноди (наприклад, інший class_type), побудуйте воркфлоу вручну або через `suggest_nodes` / `get_node_info`.
-
-Виконати: `execute_workflow(workflow_verify)` → отримати `prompt_id_verify` → `get_execution_status(prompt_id_verify)`. Якщо нода віддає текст, він з’явиться в статусі (поле `node X text: ...`).
-
-### Крок 4: Порівняння з очікуванням
-
-- Очікування: «яблука», «зелена тканина», «реалістичні».
-- Опис з BLIP/caption: отриманий текст з `get_execution_status` для воркфлоу перевірки.
-- Асистент або ваш код може перевірити наявність ключових слів або семантичну відповідність (наприклад, через LLM або прості ключові слова).
+This document describes how to implement such a pipeline using MCP ComfyUI Builder and ComfyUI.
 
 ***
 
-## Повний приклад (псевдокод)
+## Flow with Existing Tools
+
+### Step 1: Generation
+
+- `build_workflow("txt2img", { prompt: "realistic apples on green fabric", ... })` → get workflow JSON.
+- `execute_workflow(workflow)` → get `prompt_id`.
+- Wait for completion (e.g. check queue or repeated status calls).
+- `get_execution_status(prompt_id)` → ensure there are output images and view URLs.
+
+### Step 2: Prepare Image for Second Workflow
+
+SaveImage stores images in ComfyUI **output**, while LoadImage reads from **input** by default. To use the generated image in the verification workflow (e.g. image-to-text):
+
+- **prepare_image_for_workflow(prompt_id)** — loads the first output image from `/view`, uploads it to `/upload/image` (input) and returns the filename for LoadImage.
+
+Then you can build the second workflow with parameter `image: "<returned filename>"`.
+
+### Step 3: Verification Workflow (image → text)
+
+Options:
+
+- **image_caption template** (requires custom nodes):
+  - `build_workflow("image_caption", { image: "<filename from prepare_image_for_workflow>" })` → workflow: LoadImage → BLIPCaption (or similar).
+  - Install one of: [ComfyUI-Blip](https://github.com/1038lab/ComfyUI-Blip), [comfyui-art-venture](https://github.com/cubiq/comfyui_art_venture) (BLIPCaption), or [img2txt-comfyui-nodes](https://github.com/christian-byrne/img2txt-comfyui-nodes) (BLIP / LLaVA / MiniCPM).
+- **Custom workflow**: if you have a different node name (e.g. different class_type), build the workflow manually or via `suggest_nodes` / `get_node_info`.
+
+Execute: `execute_workflow(workflow_verify)` → get `prompt_id_verify` → `get_execution_status(prompt_id_verify)`. If the node returns text, it will appear in the status (field `node X text: ...`).
+
+### Step 4: Compare with Expectation
+
+- Expectation: "apples", "green fabric", "realistic".
+- Description from BLIP/caption: text from `get_execution_status` for the verification workflow.
+- Assistant or your code can verify keyword presence or semantic match (e.g. via LLM or simple keywords).
+
+***
+
+## Full Example (pseudocode)
 
 ```
 1. workflow_gen = build_workflow("txt2img", { prompt: "realistic apples on green fabric", width: 512, height: 512 })
 2. prompt_id_gen = execute_workflow(workflow_gen)
-3. [чекати завершення]
-4. get_execution_status(prompt_id_gen)  → переконатися, що є images
-5. prepare_image_for_workflow(prompt_id_gen)  → filename, наприклад "ComfyUI_00001.png"
+3. [wait for completion]
+4. get_execution_status(prompt_id_gen)  → ensure there are images
+5. prepare_image_for_workflow(prompt_id_gen)  → filename, e.g. "ComfyUI_00001.png"
 6. workflow_verify = build_workflow("image_caption", { image: "ComfyUI_00001.png" })
 7. prompt_id_verify = execute_workflow(workflow_verify)
-8. [чекати завершення]
+8. [wait for completion]
 9. get_execution_status(prompt_id_verify)  → node 2 text: "apples on green fabric ..."
-10. Порівняти отриманий текст з очікуванням (яблука, зелена тканина).
+10. Compare the obtained text with the expectation (apples, green fabric).
 ```
 
 ***
 
-## Альтернатива: зовнішній Vision API
+## Alternative: External Vision API
 
-Якщо не хочете ставити кастомні ноди в ComfyUI:
+If you prefer not to install custom nodes in ComfyUI:
 
-1. Після `get_execution_status(prompt_id)` використовуйте **view URL** згенерованого зображення.
-2. Ваш сервіс або асистент може викликати зовнішній image-to-text (наприклад, OpenAI Vision, Google Vision) по цьому URL або після завантаження зображення.
-3. Порівняння з очікуванням робити в коді або в діалозі.
+1. After `get_execution_status(prompt_id)` use the **view URL** of the generated image.
+2. Your service or assistant can call an external image-to-text (e.g. OpenAI Vision, Google Vision) with this URL or after downloading the image.
+3. Do the comparison with expectation in code or in the dialog.
 
-У такому варіанті `prepare_image_for_workflow` і шаблон `image_caption` не обов’язкові; достатньо view URL та зовнішнього API.
+In this case `prepare_image_for_workflow` and the `image_caption` template are not required; the view URL and external API are enough.
 
 ***
 
-## Підсумок
+## Summary
 
-| Крок | Інструмент / дія |
+| Step | Tool / action |
 |------|-------------------|
-| Згенерувати | `build_workflow("txt2img", ...)` → `execute_workflow` |
-| Отримати результат | `get_execution_status(prompt_id)` (images + view URLs) |
-| Підготувати для другого воркфлоу | `prepare_image_for_workflow(prompt_id)` → filename для LoadImage |
-| Перевірити (image→text у ComfyUI) | `build_workflow("image_caption", { image: filename })` → `execute_workflow` → `get_execution_status` (text) |
-| Порівняти | Ключові слова або LLM по отриманому опису та очікуванню |
+| Generate | `build_workflow("txt2img", ...)` → `execute_workflow` |
+| Get result | `get_execution_status(prompt_id)` (images + view URLs) |
+| Prepare for second workflow | `prepare_image_for_workflow(prompt_id)` → filename for LoadImage |
+| Verify (image→text in ComfyUI) | `build_workflow("image_caption", { image: filename })` → `execute_workflow` → `get_execution_status` (text) |
+| Compare | Keywords or LLM on the obtained description and expectation |
 
-Шаблон **image_caption** потребує встановленого пакета з нодою типу BLIPCaption (або аналогом). Якщо у вас інший class_type — побудуйте воркфлоу вручну і використовуйте той самий підхід: LoadImage(файл з prepare_image_for_workflow) → ваша caption-нода.
+The **image_caption** template requires an installed package with a BLIPCaption-type node (or similar). If you have a different class_type — build the workflow manually and use the same approach: LoadImage(file from prepare_image_for_workflow) → your caption node.

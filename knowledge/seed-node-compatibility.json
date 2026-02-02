@@ -45,13 +45,43 @@
       "color": "#81C784",
       "description": "Alpha or channel mask",
       "producers": ["ImageToMask", "LoadImageMask", "GrowMask"],
-      "consumers": ["SetLatentNoiseMask", "VAEDecode", "ImageCompositeMasked"]
+      "consumers": ["SetLatentNoiseMask", "VAEDecode", "ImageCompositeMasked", "WAS_Image_Mask_Blend"]
     },
     "CONTROL_NET": {
       "color": "#9C27B0",
       "description": "ControlNet model",
       "producers": ["ControlNetLoader"],
       "consumers": ["ApplyControlNet"]
+    },
+    "CLIP_VISION": {
+      "color": "#FFD700",
+      "description": "CLIP Vision model for image encoding",
+      "producers": ["ClipVisionLoader"],
+      "consumers": ["CLIPVisionEncode"]
+    },
+    "CLIP_VISION_OUTPUT": {
+      "color": "#FFA931",
+      "description": "CLIP vision encoded output",
+      "producers": ["CLIPVisionEncode"],
+      "consumers": []
+    },
+    "IPADAPTER": {
+      "color": "#9C27B0",
+      "description": "IP-Adapter model for reference conditioning",
+      "producers": ["IPAdapterModelLoader"],
+      "consumers": ["IPAdapterApply"]
+    },
+    "MOTION_MODEL": {
+      "color": "#9C27B0",
+      "description": "AnimateDiff motion module",
+      "producers": ["ADE_AnimateDiffLoaderGen1"],
+      "consumers": []
+    },
+    "GUIDER": {
+      "color": "#9C27B0",
+      "description": "Sampling guider",
+      "producers": ["BasicGuider"],
+      "consumers": []
     },
     "INT": {
       "color": "#A9A9A9",

@@ -1,6 +1,6 @@
 {
   "name": "mcp-comfy-ui-builder",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "description": "ComfyUI Node Discovery: seed knowledge base, MCP tools for Cursor/Claude",
   "type": "module",
   "main": "dist/cli.js",
@@ -10,10 +10,12 @@
     "start": "node dist/cli.js",
     "dev": "tsx src/cli.ts",
     "sync-manager": "tsx src/cli.ts sync-manager",
+    "sync-nodes": "tsx src/cli.ts sync-nodes",
     "seed": "tsx src/cli.ts seed",
     "mcp": "node dist/mcp-server.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:docker": "./scripts/test-docker.sh"
   },
   "keywords": [
     "comfyui",

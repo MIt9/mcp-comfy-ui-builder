@@ -2,8 +2,8 @@
 
 > Roadmap: MCP server that **creates and executes** ComfyUI workflows (like @makafeli/n8n-workflow-builder for n8n)
 
-**Current Status:** Full workflow lifecycle — build → save/load → execute → status ✅ (Phase 1–4 done)  
-**Next:** Розширення шаблонів та Dynamic Workflow Builder згідно [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md)  
+**Current Status:** Full workflow lifecycle ✅ (Phase 1–4 done). IMPROVEMENT-PLAN Phases 1–9 done: templates, dynamic builder, discovery, execution (WebSocket), models, composition, Docker, Knowledge Base expansion.  
+**Next:** Phase 10 (Quality of Life) — [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md)  
 **Last Updated:** 2026-02-02
 
 ---
@@ -120,45 +120,18 @@
 
 ---
 
-## 📐 Далі: IMPROVEMENT-PLAN (6 фаз)
+## 📐 IMPROVEMENT-PLAN: Phases 1–9 ✅
 
-Детальний план — **[IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md)**. Коротко:
+Detailed plan — **[IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md)**. Completed:
 
-### Фаза 1: Розширення шаблонів (наступний фокус)
+- **Phases 1–6** — Templates (inpainting, upscale, LoRA, ControlNet, batch), Dynamic Builder, Discovery, Execution (WebSocket), Model Management, Workflow Composition.
+- **Phase 7** — Docker testing, image `siniidrozd/mcp-comfy-ui-builder:0.5.0` on Docker Hub.
+- **Phase 8** — WebSocket support (execute_workflow_sync, get_execution_progress, execute_workflow_stream, batch/chain optimization).
+- **Phase 9** — Knowledge Base expansion (62 seed nodes, 26 packs, WAS/KJNodes full definitions), CLI `sync-nodes`, sync on MCP startup.
 
-- [ ] **Inpainting** — LoadImage + LoadImageMask → SetLatentNoiseMask → VAEEncode → … → SaveImage.
-- [ ] **Upscaling** — LoadImage → UpscaleModelLoader → ImageUpscaleWithModel (опційно + refinement).
-- [ ] **LoRA** — txt2img з ланцюжком LoraLoader, параметр `loras: [{name, strength_model, strength_clip}]`.
-- [ ] **ControlNet** — control_image + ControlNetLoader → ControlNetApply → KSampler.
-- [ ] **Batch** — серія зображень з варіаціями (base_params + variations).
+## 📐 Next: Phase 10 (Quality of Life)
 
-Файли: `src/workflow/workflow-builder.ts`, `knowledge/base-nodes.json`, тести.
-
-### Фаза 2: Dynamic Workflow Builder
-
-- API: `createWorkflow`, `addNode`, `connectNodes`, `removeNode`, `setNodeInput`, `getWorkflow`, `validateWorkflow`.
-- In-memory store з TTL (`workflow-store.ts`).
-- MCP: `create_workflow`, `add_node`, `connect_nodes`, `remove_node`, `set_node_input`, `get_workflow_json`, `validate_workflow`, `finalize_workflow`.
-
-### Фаза 3: Node Discovery Enhancement
-
-- Live discovery з ComfyUI (`getObjectInfo`), hybrid discovery (cache + knowledge base).
-- MCP: `discover_nodes_live`, `search_nodes`, `get_node_inputs`, `get_node_outputs`, `list_node_categories`, `sync_nodes_to_knowledge`.
-
-### Фаза 4: Execution Improvements
-
-- WebSocket клієнт (`comfyui-ws-client.ts`), batch executor, output manager.
-- MCP: `execute_workflow_sync`, `get_execution_progress`, `execute_batch`, `list_outputs`, `download_output`, `download_all_outputs`.
-
-### Фаза 5: Model Management
-
-- Model manager: list/get/check моделей по типу, аналіз workflow на потрібні моделі.
-- MCP: `list_models`, `get_model_info`, `check_model_exists`, `get_workflow_models`, `check_workflow_models`.
-
-### Фаза 6: Workflow Composition
-
-- Parameterized templates, macros (sub-workflows), workflow chaining.
-- MCP: `create_template`, `apply_template`, `list_macros`, `insert_macro`, `execute_chain`.
+- Workflow validation improvements, template inheritance, export/import enhancements.
 
 ---
 
@@ -176,8 +149,8 @@
 | 3.3 | Tests for new MCP tools | optional |
 | 4.1 | Save/load workflows | ✅ |
 | 4.2 | doc/workflow-builder.md | ✅ |
-| — | **IMPROVEMENT-PLAN Фаза 1:** шаблони (inpainting, upscale, lora, controlnet, batch) | next |
-| — | **IMPROVEMENT-PLAN Фази 2–6:** dynamic builder, discovery, execution, models, composition | backlog |
+| — | **IMPROVEMENT-PLAN Phases 1–9** | ✅ done |
+| — | **Phase 10:** Quality of Life (validation, export/import) | next |
 
 ---
 
@@ -190,4 +163,4 @@
 
 ---
 
-*Next Steps v2.3 | Phase 1–4 done; IMPROVEMENT-PLAN Phase 1 (templates) next | 2026-02-02*
+*Next Steps v2.4 | Phases 1–9 done; Phase 10 (QoL) next | 2026-02-02*

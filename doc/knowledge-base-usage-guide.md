@@ -327,57 +327,6 @@ function findWorkflowPattern(nodes: string[]): string {
 
 ***
 
-## 🖥️ Web UI Integration
-
-### React/Vue component
-
-```tsx
-interface NodeInfo {
-  display_name: string;
-  category: string;
-  input_types: Record<string, any>;
-}
-
-function NodeCatalog({ nodes }: { nodes: NodeInfo[] }) {
-  return (
-    <div className="node-catalog">
-      {nodes.map(node => (
-        <NodeCard key={node.display_name} node={node} />
-      ))}
-    </div>
-  );
-}
-```
-
-### Search component
-
-```tsx
-function NodeSearch({ onSelect }: { onSelect: (node: NodeInfo) => void }) {
-  const [query, setQuery] = useState('');
-  const filtered = useMemo(() => {
-    return allNodes.filter(node => 
-      node.display_name.toLowerCase().includes(query.toLowerCase())
-    );
-  }, [query]);
-
-  return (
-    <div>
-      <input 
-        placeholder="Search nodes..."
-        onChange={e => setQuery(e.target.value)}
-      />
-      {filtered.slice(0, 10).map(node => (
-        <div key={node.display_name} onClick={() => onSelect(node)}>
-          {node.display_name} ({node.category})
-        </div>
-      ))}
-    </div>
-  );
-}
-```
-
-***
-
 ## 🔄 Updating Knowledge Base
 
 ```bash
@@ -386,36 +335,6 @@ npm run seed
 
 # Update custom packs list from ComfyUI-Manager
 npm run sync-manager
-```
-
-***
-
-## 🎨 UI Components Reference
-
-### Node Card Template
-
-```tsx
-function NodeCard({ node }: { node: NodeInfo }) {
-  return (
-    <div className="node-card">
-      <h3>{node.display_name}</h3>
-      <div className="category">{node.category}</div>
-      <div className="priority">{node.priority.toUpperCase()}</div>
-      
-      <div className="inputs">
-        {Object.entries(node.input_types.required).map(([name, info]) => (
-          <InputWidget key={name} name={name} info={info} />
-        ))}
-      </div>
-      
-      <div className="outputs">
-        {node.return_types.map(type => (
-          <OutputWidget key={type} type={type} />
-        ))}
-      </div>
-    </div>
-  );
-}
 ```
 
 ***

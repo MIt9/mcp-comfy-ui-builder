@@ -124,13 +124,21 @@ See [WEBSOCKET-GUIDE.md](WEBSOCKET-GUIDE.md) for detailed usage.
 |---------|-------------|
 | `npm run seed` | Fill knowledge from seed. Use `--force` to overwrite. |
 | `npm run sync-manager` | Update custom packs list from ComfyUI-Manager (GitHub) |
-| `npm run mcp` | Start MCP server (after `npm run build`) |
+| `npm run sync-nodes` | Sync nodes from running ComfyUI to knowledge base (requires COMFYUI_HOST). Add `--interval N` for daemon mode. |
+| `npm run mcp` | Start MCP server (after `npm run build`). **Sync on startup:** if ComfyUI is available, new nodes are synced in background. |
 | `npm test` | Run tests |
 
 ***
 
-## Adding a node manually
+## Adding nodes
 
+**Option A — Sync from ComfyUI** (when ComfyUI runs with custom nodes):
+```bash
+COMFYUI_HOST=http://127.0.0.1:8188 npm run sync-nodes
+```
+MCP also syncs on startup when ComfyUI is available.
+
+**Option B — Manual:**
 1. Add an object to `knowledge/base-nodes.json` → `nodes.NodeClassName` (see existing entries for structure).
 2. Update `knowledge/node-compatibility.json` (producers/consumers for the node’s return types) if needed.
 
@@ -145,4 +153,4 @@ See [WEBSOCKET-GUIDE.md](WEBSOCKET-GUIDE.md) for detailed usage.
 
 ***
 
-*Getting Started v1.3.0 - WebSocket Support* | *2026-02-02*
+*Getting Started v1.4.0 - sync-nodes, sync on MCP startup* | *2026-02-02*

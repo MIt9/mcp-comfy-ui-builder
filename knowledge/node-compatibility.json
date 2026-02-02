@@ -11,7 +11,88 @@
       "producers": [
         "CheckpointLoaderSimple",
         "LoraLoader",
-        "ModelMergeSimple"
+        "ModelMergeSimple",
+        "IPAdapterApply",
+        "RgthreePowerLoraLoader",
+        "UNETLoader",
+        "unCLIPCheckpointLoader",
+        "CheckpointLoader",
+        "DiffusersLoader",
+        "LoraLoaderModelOnly",
+        "LatentApplyOperationCFG",
+        "HypernetworkLoader",
+        "ModelMergeBlocks",
+        "ModelMergeSubtract",
+        "ModelMergeAdd",
+        "TomePatchModel",
+        "FreeU",
+        "FreeU_V2",
+        "HyperTile",
+        "ModelSamplingDiscrete",
+        "ModelSamplingContinuousEDM",
+        "ModelSamplingContinuousV",
+        "ModelSamplingStableCascade",
+        "ModelSamplingSD3",
+        "ModelSamplingAuraFlow",
+        "ModelSamplingFlux",
+        "RescaleCFG",
+        "ModelComputeDtype",
+        "PatchModelAddDownscale",
+        "ImageOnlyCheckpointLoader",
+        "VideoLinearCFGGuidance",
+        "VideoTriangleCFGGuidance",
+        "LoraModelLoader",
+        "SelfAttentionGuidance",
+        "PerpNeg",
+        "DifferentialDiffusion",
+        "ModelMergeSD1",
+        "ModelMergeSD2",
+        "ModelMergeSDXL",
+        "ModelMergeSD3_2B",
+        "ModelMergeAuraflow",
+        "ModelMergeFlux1",
+        "ModelMergeSD35_Large",
+        "ModelMergeMochiPreview",
+        "ModelMergeLTXV",
+        "ModelMergeCosmos7B",
+        "ModelMergeCosmos14B",
+        "ModelMergeWAN2_1",
+        "ModelMergeCosmosPredict2_2B",
+        "ModelMergeCosmosPredict2_14B",
+        "ModelMergeQwenImage",
+        "PerturbedAttentionGuidance",
+        "UNetSelfAttentionMultiply",
+        "UNetCrossAttentionMultiply",
+        "UNetTemporalAttentionMultiply",
+        "SkipLayerGuidanceSD3",
+        "Epsilon Scaling",
+        "TemporalScoreRescaling",
+        "TorchCompileModel",
+        "SkipLayerGuidanceDiT",
+        "SkipLayerGuidanceDiTSimple",
+        "Mahiro",
+        "ModelSamplingLTXV",
+        "RenormCFG",
+        "WanInfiniteTalkToVideo",
+        "CFGZeroStar",
+        "CFGNorm",
+        "FreSca",
+        "APG",
+        "TCFG",
+        "ContextWindowsManual",
+        "WanContextWindowsManual",
+        "ChromaRadianceOptions",
+        "QwenImageDiffsynthControlnet",
+        "ZImageFunControlnet",
+        "USOStyleReference",
+        "EasyCache",
+        "LazyCache",
+        "ScaleROPE",
+        "wanBlockSwap",
+        "LoraLoaderBypass",
+        "LoraLoaderBypassModelOnly",
+        "Lora Loader (LoraManager)",
+        "LoRA Text Loader (LoraManager)"
       ],
       "consumers": [
         "KSampler",
@@ -26,7 +107,25 @@
       "producers": [
         "CheckpointLoaderSimple",
         "CLIPLoader",
-        "LoraLoader"
+        "LoraLoader",
+        "CLIPSetLastLayer",
+        "RgthreePowerLoraLoader",
+        "DualCLIPLoader",
+        "unCLIPCheckpointLoader",
+        "CheckpointLoader",
+        "DiffusersLoader",
+        "CLIPMergeSimple",
+        "CLIPMergeSubtract",
+        "CLIPMergeAdd",
+        "T5TokenizerOptions",
+        "CLIPAttentionMultiply",
+        "TripleCLIPLoader",
+        "LTXAVTextEncoderLoader",
+        "SetClipHooks",
+        "QuadrupleCLIPLoader",
+        "LoraLoaderBypass",
+        "Lora Loader (LoraManager)",
+        "LoRA Text Loader (LoraManager)"
       ],
       "consumers": [
         "CLIPTextEncode",
@@ -39,7 +138,12 @@
       "description": "Variational autoencoder for latent/image",
       "producers": [
         "CheckpointLoaderSimple",
-        "VAELoader"
+        "VAELoader",
+        "unCLIPCheckpointLoader",
+        "CheckpointLoader",
+        "DiffusersLoader",
+        "ImageOnlyCheckpointLoader",
+        "LTXVAudioVAELoader"
       ],
       "consumers": [
         "VAEEncode",
@@ -54,7 +158,88 @@
         "ConditioningCombine",
         "ConditioningSetArea",
         "ConditioningConcat",
-        "ApplyControlNet"
+        "ApplyControlNet",
+        "ConditioningAverage",
+        "ConditioningSetAreaPercentage",
+        "ConditioningSetAreaStrength",
+        "ConditioningSetMask",
+        "StyleModelApply",
+        "unCLIPConditioning",
+        "ControlNetApply",
+        "ControlNetApplyAdvanced",
+        "GLIGENTextBoxApply",
+        "InpaintModelConditioning",
+        "ConditioningZeroOut",
+        "ConditioningSetTimestepRange",
+        "CLIPTextEncodeSDXLRefiner",
+        "CLIPTextEncodeSDXL",
+        "SVD_img2vid_Conditioning",
+        "ConditioningSetAreaPercentageVideo",
+        "MakeTrainingDataset",
+        "LoadTrainingDataset",
+        "ResolutionBucket",
+        "StableZero123_Conditioning",
+        "StableZero123_Conditioning_Batched",
+        "SV3D_Conditioning",
+        "SD_4XUpscale_Conditioning",
+        "PhotoMakerEncode",
+        "CLIPTextEncodePixArtAlpha",
+        "CLIPTextEncodeControlnet",
+        "StableCascade_StageB_Conditioning",
+        "InstructPixToPixConditioning",
+        "ConditioningStableAudio",
+        "CLIPTextEncodeSD3",
+        "ControlNetApplySD3",
+        "ControlNetInpaintingAliMamaApply",
+        "CLIPTextEncodeHunyuanDiT",
+        "TextEncodeHunyuanVideo_ImageToVideo",
+        "HunyuanVideo15ImageToVideo",
+        "HunyuanVideo15SuperResolution",
+        "HunyuanImageToVideo",
+        "HunyuanRefinerLatent",
+        "CLIPTextEncodeFlux",
+        "FluxGuidance",
+        "FluxDisableGuidance",
+        "FluxKontextMultiReferenceLatentMethod",
+        "LTXVImgToVideo",
+        "LTXVConditioning",
+        "LTXVAddGuide",
+        "LTXVCropGuides",
+        "ConditioningSetProperties",
+        "ConditioningSetPropertiesAndCombine",
+        "PairConditioningSetProperties",
+        "PairConditioningSetPropertiesAndCombine",
+        "ConditioningSetDefaultCombine",
+        "PairConditioningSetDefaultCombine",
+        "PairConditioningCombine",
+        "CLIPTextEncodeLumina2",
+        "WanTrackToVideo",
+        "WanImageToVideo",
+        "WanFunControlToVideo",
+        "Wan22FunControlToVideo",
+        "WanFunInpaintToVideo",
+        "WanFirstLastFrameToVideo",
+        "WanVaceToVideo",
+        "WanCameraImageToVideo",
+        "WanPhantomSubjectToVideo",
+        "WanSoundImageToVideo",
+        "WanSoundImageToVideoExtend",
+        "WanHuMoImageToVideo",
+        "WanAnimateToVideo",
+        "WanInfiniteTalkToVideo",
+        "LotusConditioning",
+        "Hunyuan3Dv2Conditioning",
+        "Hunyuan3Dv2ConditioningMultiView",
+        "CLIPTextEncodeHiDream",
+        "TextEncodeAceStepAudio",
+        "ReferenceLatent",
+        "TextEncodeQwenImageEdit",
+        "TextEncodeQwenImageEditPlus",
+        "Kandinsky5ImageToVideo",
+        "CLIPTextEncodeKandinsky5",
+        "WanMoveTrackToVideo",
+        "TextEncodeZImageOmni",
+        "Prompt (LoraManager)"
       ],
       "consumers": [
         "KSampler",
@@ -75,7 +260,98 @@
         "LatentUpscale",
         "RepeatLatentBatch",
         "LatentCrop",
-        "RandomNoise"
+        "RandomNoise",
+        "LatentFromBatch",
+        "LatentUpscaleBy",
+        "SplitLatent",
+        "MergeLatent",
+        "VAEEncodeForInpaint",
+        "LatentComposite",
+        "LatentBlend",
+        "LatentRotate",
+        "LatentFlip",
+        "VAEEncodeTiled",
+        "InpaintModelConditioning",
+        "LoadLatent",
+        "LatentAdd",
+        "LatentSubtract",
+        "LatentMultiply",
+        "LatentInterpolate",
+        "LatentConcat",
+        "LatentCut",
+        "LatentCutToBatch",
+        "LatentBatch",
+        "LatentBatchSeedBehavior",
+        "LatentApplyOperation",
+        "ReplaceVideoLatentFrames",
+        "BatchLatentsNode",
+        "LatentCompositeMasked",
+        "RebatchLatents",
+        "SamplerCustom",
+        "AddNoise",
+        "SamplerCustomAdvanced",
+        "SVD_img2vid_Conditioning",
+        "MakeTrainingDataset",
+        "LoadTrainingDataset",
+        "ResolutionBucket",
+        "StableZero123_Conditioning",
+        "StableZero123_Conditioning_Batched",
+        "SV3D_Conditioning",
+        "SD_4XUpscale_Conditioning",
+        "StableCascade_EmptyLatentImage",
+        "StableCascade_StageC_VAEEncode",
+        "StableCascade_SuperResolutionControlnet",
+        "InstructPixToPixConditioning",
+        "EmptyLatentAudio",
+        "VAEEncodeAudio",
+        "EmptySD3LatentImage",
+        "EmptyHunyuanLatentVideo",
+        "EmptyHunyuanVideo15Latent",
+        "HunyuanVideo15ImageToVideo",
+        "HunyuanVideo15SuperResolution",
+        "HunyuanVideo15LatentUpscaleWithModel",
+        "HunyuanImageToVideo",
+        "EmptyHunyuanImageLatent",
+        "HunyuanRefinerLatent",
+        "EmptyFlux2LatentImage",
+        "EmptyMochiLatentVideo",
+        "LTXVLatentUpsampler",
+        "LTXVAudioVAEEncode",
+        "LTXVEmptyLatentAudio",
+        "EmptyLTXVLatentVideo",
+        "LTXVImgToVideo",
+        "LTXVImgToVideoInplace",
+        "LTXVAddGuide",
+        "LTXVCropGuides",
+        "LTXVConcatAVLatent",
+        "LTXVSeparateAVLatent",
+        "EmptyCosmosLatentVideo",
+        "CosmosImageToVideoLatent",
+        "CosmosPredict2ImageToVideoLatent",
+        "WanTrackToVideo",
+        "WanImageToVideo",
+        "WanFunControlToVideo",
+        "Wan22FunControlToVideo",
+        "WanFunInpaintToVideo",
+        "WanFirstLastFrameToVideo",
+        "WanVaceToVideo",
+        "TrimVideoLatent",
+        "WanCameraImageToVideo",
+        "WanPhantomSubjectToVideo",
+        "WanSoundImageToVideo",
+        "WanSoundImageToVideoExtend",
+        "WanHuMoImageToVideo",
+        "WanAnimateToVideo",
+        "Wan22ImageToVideoLatent",
+        "WanInfiniteTalkToVideo",
+        "EmptyLatentHunyuan3Dv2",
+        "EmptyAceStepLatentAudio",
+        "EmptyQwenImageLayeredLatentImage",
+        "EmptyChromaRadianceLatentImage",
+        "Kandinsky5ImageToVideo",
+        "NormalizeVideoLatentStart",
+        "WanMoveTrackToVideo",
+        "MLXSampler"
       ],
       "consumers": [
         "VAEDecode",
@@ -96,7 +372,116 @@
         "CropImage",
         "PadImage",
         "PreviewImage",
-        "ImageUpscaleWithModel"
+        "ImageUpscaleWithModel",
+        "FlipImage",
+        "ImageBlend",
+        "ImageBatch",
+        "SplitImageBatch",
+        "ImageInvert",
+        "Canny",
+        "ImpactFaceDetailer",
+        "VHS_LoadVideo",
+        "LoadImageOutput",
+        "ImageScaleBy",
+        "ImagePadForOutpaint",
+        "EmptyImage",
+        "VAEDecodeTiled",
+        "ImageBlur",
+        "ImageQuantize",
+        "ImageSharpen",
+        "ImageScaleToTotalPixels",
+        "BatchImagesNode",
+        "MaskToImage",
+        "PorterDuffImageComposite",
+        "SplitImageWithAlpha",
+        "JoinImageWithAlpha",
+        "RebatchImages",
+        "ImageCrop",
+        "RepeatImageBatch",
+        "ImageFromBatch",
+        "ImageAddNoise",
+        "ImageStitch",
+        "ResizeAndPadImage",
+        "ImageRotate",
+        "ImageFlip",
+        "ImageScaleToMaxDimension",
+        "LoadImageDataSetFromFolder",
+        "LoadImageTextDataSetFromFolder",
+        "ResizeImagesByShorterEdge",
+        "ResizeImagesByLongerEdge",
+        "CenterCropImages",
+        "RandomCropImages",
+        "NormalizeImages",
+        "AdjustBrightness",
+        "AdjustContrast",
+        "ShuffleDataset",
+        "ShuffleImageTextDataset",
+        "ImageDeduplication",
+        "ImageGrid",
+        "MergeImageLists",
+        "Morphology",
+        "ImageRGBToYUV",
+        "ImageYUVToRGB",
+        "StableCascade_SuperResolutionControlnet",
+        "WebcamCapture",
+        "FluxKontextImageScale",
+        "LTXVPreprocess",
+        "Load3D",
+        "GetVideoComponents",
+        "WanMoveVisualizeTracks",
+        "FluxProUltraImageNode",
+        "FluxKontextProImageNode",
+        "FluxKontextMaxImageNode",
+        "FluxProExpandNode",
+        "FluxProFillNode",
+        "Flux2ProImageNode",
+        "Flux2MaxImageNode",
+        "BriaImageEditNode",
+        "ByteDanceImageNode",
+        "ByteDanceSeedreamNode",
+        "GeminiImageNode",
+        "GeminiImage2Node",
+        "GrokImageNode",
+        "GrokImageEditNode",
+        "IdeogramV1",
+        "IdeogramV2",
+        "IdeogramV3",
+        "KlingVirtualTryOnNode",
+        "KlingImageGenerationNode",
+        "KlingOmniProImageNode",
+        "LumaImageNode",
+        "LumaImageModifyNode",
+        "MagnificImageStyleTransferNode",
+        "MagnificImageRelightNode",
+        "MagnificImageSkinEnhancerNode",
+        "OpenAIDalle2",
+        "OpenAIDalle3",
+        "OpenAIGPTImage1",
+        "RecraftTextToImageNode",
+        "RecraftImageToImageNode",
+        "RecraftImageInpaintingNode",
+        "RecraftRemoveBackgroundNode",
+        "RecraftReplaceBackgroundNode",
+        "RecraftCrispUpscaleNode",
+        "RecraftCreativeUpscaleNode",
+        "RunwayTextToImageNode",
+        "StabilityStableImageUltraNode",
+        "StabilityStableImageSD_3_5Node",
+        "StabilityUpscaleConservativeNode",
+        "StabilityUpscaleCreativeNode",
+        "StabilityUpscaleFastNode",
+        "TopazImageEnhance",
+        "WanTextToImageApi",
+        "WanImageToImageApi",
+        "WavespeedImageUpscaleNode",
+        "Save Image (LoraManager)",
+        "MLXDecoder",
+        "QuickMfluxNode",
+        "MfluxControlNetLoader",
+        "WAS_Image_Blend",
+        "WAS_Image_Resize",
+        "WAS_Image_Mask_Blend",
+        "KJNodes_ImageBlend"
       ],
       "consumers": [
         "SaveImage",
@@ -106,7 +491,9 @@
         "ImageCompositeMasked",
         "ApplyControlNet",
         "CropImage",
-        "PadImage"
+        "PadImage",
+        "ControlNetLoader",
+        "LoadImage"
       ]
     },
     "MASK": {
@@ -115,7 +502,21 @@
       "producers": [
         "ImageToMask",
         "LoadImageMask",
-        "GrowMask"
+        "GrowMask",
+        "LoadImageOutput",
+        "ImagePadForOutpaint",
+        "BatchMasksNode",
+        "ImageColorToMask",
+        "SolidMask",
+        "InvertMask",
+        "CropMask",
+        "MaskComposite",
+        "FeatherMask",
+        "ThresholdMask",
+        "PorterDuffImageComposite",
+        "SplitImageWithAlpha",
+        "Load3D",
+        "RecraftRemoveBackgroundNode"
       ],
       "consumers": [
         "SetLatentNoiseMask",
@@ -127,7 +528,9 @@
       "color": "#9C27B0",
       "description": "ControlNet model",
       "producers": [
-        "ControlNetLoader"
+        "ControlNetLoader",
+        "DiffControlNetLoader",
+        "SetUnionControlNetType"
       ],
       "consumers": [
         "ApplyControlNet"
@@ -136,7 +539,21 @@
     "INT": {
       "color": "#A9A9A9",
       "description": "Integer (steps, size, seed)",
-      "producers": [],
+      "producers": [
+        "GetImageSize",
+        "TrainLoraNode",
+        "WanVaceToVideo",
+        "WanAnimateToVideo",
+        "WanInfiniteTalkToVideo",
+        "PrimitiveInt",
+        "StringLength",
+        "WanCameraEmbedding",
+        "CustomCombo",
+        "WanMoveTracksFromCoords",
+        "GenerateTracks",
+        "MfluxImg2Img",
+        "MfluxControlNetLoader"
+      ],
       "consumers": [
         "KSampler",
         "EmptyLatentImage",
@@ -152,7 +569,11 @@
     "FLOAT": {
       "color": "#A9A9A9",
       "description": "Float (cfg, denoise, strength)",
-      "producers": [],
+      "producers": [
+        "SamplingPercentToSigma",
+        "GetVideoComponents",
+        "PrimitiveFloat"
+      ],
       "consumers": [
         "KSampler",
         "LoraLoader",
@@ -164,7 +585,76 @@
     "STRING": {
       "color": "#A9A9A9",
       "description": "Text (prompt, filename)",
-      "producers": [],
+      "producers": [
+        "BLIPCaption",
+        "LoadImageTextDataSetFromFolder",
+        "ShuffleImageTextDataset",
+        "TextToLowercase",
+        "TextToUppercase",
+        "TruncateText",
+        "AddTextPrefix",
+        "AddTextSuffix",
+        "ReplaceText",
+        "StripWhitespace",
+        "MergeTextLists",
+        "Load3D",
+        "PrimitiveString",
+        "PrimitiveStringMultiline",
+        "StringConcatenate",
+        "StringSubstring",
+        "CaseConverter",
+        "StringTrim",
+        "StringReplace",
+        "RegexExtract",
+        "RegexReplace",
+        "CustomCombo",
+        "BriaImageEditNode",
+        "GeminiNode",
+        "GeminiImageNode",
+        "GeminiImage2Node",
+        "TencentTextToModelNode",
+        "TencentImageToModelNode",
+        "KlingTextToVideoNode",
+        "KlingImage2VideoNode",
+        "KlingCameraControlI2VNode",
+        "KlingCameraControlT2VNode",
+        "KlingStartEndFrameNode",
+        "KlingVideoExtendNode",
+        "KlingLipSyncAudioToVideoNode",
+        "KlingLipSyncTextToVideoNode",
+        "KlingSingleImageVideoEffectNode",
+        "KlingDualCharacterVideoEffectNode",
+        "MeshyTextToModelNode",
+        "MeshyRefineNode",
+        "MeshyImageToModelNode",
+        "MeshyMultiImageToModelNode",
+        "MeshyRigModelNode",
+        "MeshyAnimateModelNode",
+        "MeshyTextureNode",
+        "OpenAIChatNode",
+        "Rodin3D_Regular",
+        "Rodin3D_Detail",
+        "Rodin3D_Smooth",
+        "Rodin3D_Sketch",
+        "Rodin3D_Gen2",
+        "TripoTextToModelNode",
+        "TripoImageToModelNode",
+        "TripoMultiviewToModelNode",
+        "TripoTextureNode",
+        "TripoRefineNode",
+        "TripoRigNode",
+        "TripoRetargetNode",
+        "Prompt (LoraManager)",
+        "Lora Loader (LoraManager)",
+        "LoRA Text Loader (LoraManager)",
+        "TriggerWord Toggle (LoraManager)",
+        "Lora Stacker (LoraManager)",
+        "WanVideo Lora Select (LoraManager)",
+        "WanVideo Lora Select From Text (LoraManager)",
+        "WAS_Text_Parse_Tokens",
+        "KJNodes_SetNode",
+        "KJNodes_GetNode"
+      ],
       "consumers": [
         "CLIPTextEncode",
         "LoadImage",
@@ -173,7 +663,8 @@
         "LoraLoader",
         "CLIPLoader",
         "VAELoader",
-        "ControlNetLoader"
+        "ControlNetLoader",
+        "KJNodes_GetNode"
       ]
     },
     "UPSCALE_MODEL": {
@@ -183,6 +674,503 @@
       "consumers": [
         "ImageUpscaleWithModel"
       ]
+    },
+    "CLIP_VISION_OUTPUT": {
+      "producers": [
+        "CLIPVisionEncode"
+      ],
+      "consumers": [
+        "UnetLoader",
+        "StyleModelApply"
+      ]
+    },
+    "CLIP_VISION": {
+      "producers": [
+        "ClipVisionLoader",
+        "CLIPVisionLoader",
+        "unCLIPCheckpointLoader",
+        "ImageOnlyCheckpointLoader"
+      ],
+      "consumers": [
+        "CLIPVisionEncode"
+      ]
+    },
+    "GUIDER": {
+      "producers": [
+        "BasicGuider",
+        "CFGGuider",
+        "DualCFGGuider",
+        "PerpNegGuider"
+      ],
+      "consumers": [
+        "BasicSampling"
+      ]
+    },
+    "IPADAPTER": {
+      "producers": [
+        "IPAdapterModelLoader"
+      ],
+      "consumers": [
+        "IPAdapterApply"
+      ]
+    },
+    "MOTION_MODEL": {
+      "producers": [
+        "ADE_AnimateDiffLoaderGen1"
+      ],
+      "consumers": [
+        "ADE_ApplyAnimateDiffModelSimple"
+      ]
+    },
+    "GIF": {
+      "producers": [
+        "VHS_VideoCombine"
+      ],
+      "consumers": []
+    },
+    "STYLE_MODEL": {
+      "producers": [
+        "StyleModelLoader"
+      ],
+      "consumers": []
+    },
+    "GLIGEN": {
+      "producers": [
+        "GLIGENLoader"
+      ],
+      "consumers": []
+    },
+    "LATENT_OPERATION": {
+      "producers": [
+        "LatentOperationTonemapReinhard",
+        "LatentOperationSharpen"
+      ],
+      "consumers": []
+    },
+    "COMFY_MATCHTYPE_V3": {
+      "producers": [
+        "ResizeImageMaskNode",
+        "ComfySwitchNode"
+      ],
+      "consumers": []
+    },
+    "SIGMAS": {
+      "producers": [
+        "BasicScheduler",
+        "KarrasScheduler",
+        "ExponentialScheduler",
+        "PolyexponentialScheduler",
+        "LaplaceScheduler",
+        "VPScheduler",
+        "BetaSamplingScheduler",
+        "SDTurboScheduler",
+        "SplitSigmas",
+        "SplitSigmasDenoise",
+        "FlipSigmas",
+        "SetFirstSigma",
+        "ExtendIntermediateSigmas",
+        "ManualSigmas",
+        "AlignYourStepsScheduler",
+        "GITSScheduler",
+        "Flux2Scheduler",
+        "LTXVScheduler",
+        "OptimalStepsScheduler"
+      ],
+      "consumers": []
+    },
+    "SAMPLER": {
+      "producers": [
+        "KSamplerSelect",
+        "SamplerEulerAncestral",
+        "SamplerEulerAncestralCFGPP",
+        "SamplerLMS",
+        "SamplerDPMPP_3M_SDE",
+        "SamplerDPMPP_2M_SDE",
+        "SamplerDPMPP_SDE",
+        "SamplerDPMPP_2S_Ancestral",
+        "SamplerDPMAdaptative",
+        "SamplerER_SDE",
+        "SamplerSASolver",
+        "SamplerSEEDS2",
+        "SamplerLCMUpscale",
+        "SamplerEulerCFGpp"
+      ],
+      "consumers": []
+    },
+    "NOISE": {
+      "producers": [
+        "DisableNoise"
+      ],
+      "consumers": []
+    },
+    "LORA_MODEL": {
+      "producers": [
+        "TrainLoraNode"
+      ],
+      "consumers": []
+    },
+    "LOSS_MAP": {
+      "producers": [
+        "TrainLoraNode"
+      ],
+      "consumers": []
+    },
+    "PHOTOMAKER": {
+      "producers": [
+        "PhotoMakerLoader"
+      ],
+      "consumers": []
+    },
+    "AUDIO": {
+      "producers": [
+        "VAEDecodeAudio",
+        "LoadAudio",
+        "RecordAudio",
+        "TrimAudioDuration",
+        "SplitAudioChannels",
+        "JoinAudioChannels",
+        "AudioConcat",
+        "AudioMerge",
+        "AudioAdjustVolume",
+        "EmptyAudio",
+        "LTXVAudioVAEDecode",
+        "GetVideoComponents",
+        "StabilityTextToAudio",
+        "StabilityAudioToAudio",
+        "StabilityAudioInpaint"
+      ],
+      "consumers": []
+    },
+    "LATENT_UPSCALE_MODEL": {
+      "producers": [
+        "LatentUpscaleModelLoader"
+      ],
+      "consumers": []
+    },
+    "HOOKS": {
+      "producers": [
+        "CreateHookLora",
+        "CreateHookLoraModelOnly",
+        "CreateHookModelAsLora",
+        "CreateHookModelAsLoraModelOnly",
+        "SetHookKeyframes",
+        "CombineHooks2",
+        "CombineHooks4",
+        "CombineHooks8"
+      ],
+      "consumers": []
+    },
+    "HOOK_KEYFRAMES": {
+      "producers": [
+        "CreateHookKeyframe",
+        "CreateHookKeyframesInterpolated",
+        "CreateHookKeyframesFromFloats"
+      ],
+      "consumers": []
+    },
+    "TIMESTEPS_RANGE": {
+      "producers": [
+        "ConditioningTimestepsRange"
+      ],
+      "consumers": []
+    },
+    "LOAD3D_CAMERA": {
+      "producers": [
+        "Load3D"
+      ],
+      "consumers": []
+    },
+    "VIDEO": {
+      "producers": [
+        "Load3D",
+        "CreateVideo",
+        "LoadVideo",
+        "ByteDanceTextToVideoNode",
+        "ByteDanceImageToVideoNode",
+        "ByteDanceFirstLastFrameNode",
+        "ByteDanceImageReferenceNode",
+        "GrokVideoNode",
+        "GrokVideoEditNode",
+        "KlingTextToVideoNode",
+        "KlingImage2VideoNode",
+        "KlingCameraControlI2VNode",
+        "KlingCameraControlT2VNode",
+        "KlingStartEndFrameNode",
+        "KlingVideoExtendNode",
+        "KlingLipSyncAudioToVideoNode",
+        "KlingLipSyncTextToVideoNode",
+        "KlingSingleImageVideoEffectNode",
+        "KlingDualCharacterVideoEffectNode",
+        "KlingOmniProTextToVideoNode",
+        "KlingOmniProFirstLastFrameNode",
+        "KlingOmniProImageToVideoNode",
+        "KlingOmniProVideoToVideoNode",
+        "KlingOmniProEditVideoNode",
+        "KlingTextToVideoWithAudio",
+        "KlingImageToVideoWithAudio",
+        "KlingMotionControl",
+        "LtxvApiTextToVideo",
+        "LtxvApiImageToVideo",
+        "LumaVideoNode",
+        "LumaImageToVideoNode",
+        "MinimaxTextToVideoNode",
+        "MinimaxImageToVideoNode",
+        "MinimaxHailuoVideoNode",
+        "MoonvalleyImg2VideoNode",
+        "MoonvalleyTxt2VideoNode",
+        "MoonvalleyVideo2VideoNode",
+        "PixverseTextToVideoNode",
+        "PixverseImageToVideoNode",
+        "PixverseTransitionVideoNode",
+        "RunwayFirstLastFrameNode",
+        "RunwayImageToVideoNodeGen3a",
+        "RunwayImageToVideoNodeGen4",
+        "OpenAIVideoSora2",
+        "TopazVideoEnhance",
+        "VeoVideoGenerationNode",
+        "Veo3VideoGenerationNode",
+        "Veo3FirstLastFrameNode",
+        "ViduTextToVideoNode",
+        "ViduImageToVideoNode",
+        "ViduReferenceVideoNode",
+        "ViduStartEndToVideoNode",
+        "Vidu2TextToVideoNode",
+        "Vidu2ImageToVideoNode",
+        "Vidu2ReferenceVideoNode",
+        "Vidu2StartEndToVideoNode",
+        "WanTextToVideoApi",
+        "WanImageToVideoApi",
+        "WanReferenceVideoApi",
+        "WavespeedFlashVSRNode"
+      ],
+      "consumers": []
+    },
+    "VOXEL": {
+      "producers": [
+        "VAEDecodeHunyuan3D"
+      ],
+      "consumers": []
+    },
+    "MESH": {
+      "producers": [
+        "VoxelToMeshBasic",
+        "VoxelToMesh"
+      ],
+      "consumers": []
+    },
+    "BOOLEAN": {
+      "producers": [
+        "PrimitiveBoolean",
+        "StringContains",
+        "StringCompare",
+        "RegexMatch"
+      ],
+      "consumers": []
+    },
+    "WAN_CAMERA_EMBEDDING": {
+      "producers": [
+        "WanCameraEmbedding"
+      ],
+      "consumers": []
+    },
+    "MODEL_PATCH": {
+      "producers": [
+        "ModelPatchLoader"
+      ],
+      "consumers": []
+    },
+    "AUDIO_ENCODER": {
+      "producers": [
+        "AudioEncoderLoader"
+      ],
+      "consumers": []
+    },
+    "AUDIO_ENCODER_OUTPUT": {
+      "producers": [
+        "AudioEncoderEncode"
+      ],
+      "consumers": []
+    },
+    "TRACKS": {
+      "producers": [
+        "WanMoveTracksFromCoords",
+        "WanMoveConcatTrack",
+        "GenerateTracks"
+      ],
+      "consumers": []
+    },
+    "GEMINI_INPUT_FILES": {
+      "producers": [
+        "GeminiInputFiles"
+      ],
+      "consumers": []
+    },
+    "CAMERA_CONTROL": {
+      "producers": [
+        "KlingCameraControls"
+      ],
+      "consumers": []
+    },
+    "LUMA_REF": {
+      "producers": [
+        "LumaReferenceNode"
+      ],
+      "consumers": []
+    },
+    "LUMA_CONCEPTS": {
+      "producers": [
+        "LumaConceptsNode"
+      ],
+      "consumers": []
+    },
+    "MESHY_TASK_ID": {
+      "producers": [
+        "MeshyTextToModelNode",
+        "MeshyRefineNode",
+        "MeshyImageToModelNode",
+        "MeshyMultiImageToModelNode"
+      ],
+      "consumers": []
+    },
+    "MESHY_RIGGED_TASK_ID": {
+      "producers": [
+        "MeshyRigModelNode"
+      ],
+      "consumers": []
+    },
+    "MODEL_TASK_ID": {
+      "producers": [
+        "MeshyTextureNode",
+        "TripoTextToModelNode",
+        "TripoImageToModelNode",
+        "TripoMultiviewToModelNode",
+        "TripoTextureNode",
+        "TripoRefineNode"
+      ],
+      "consumers": []
+    },
+    "OPENAI_INPUT_FILES": {
+      "producers": [
+        "OpenAIInputFiles"
+      ],
+      "consumers": []
+    },
+    "OPENAI_CHAT_CONFIG": {
+      "producers": [
+        "OpenAIChatConfig"
+      ],
+      "consumers": []
+    },
+    "PIXVERSE_TEMPLATE": {
+      "producers": [
+        "PixverseTemplateNode"
+      ],
+      "consumers": []
+    },
+    "SVG": {
+      "producers": [
+        "RecraftTextToVectorNode",
+        "RecraftVectorizeImageNode"
+      ],
+      "consumers": []
+    },
+    "RECRAFT_V3_STYLE": {
+      "producers": [
+        "RecraftStyleV3RealisticImage",
+        "RecraftStyleV3DigitalIllustration",
+        "RecraftStyleV3LogoRaster",
+        "RecraftStyleV3InfiniteStyleLibrary"
+      ],
+      "consumers": []
+    },
+    "RECRAFT_COLOR": {
+      "producers": [
+        "RecraftColorRGB"
+      ],
+      "consumers": []
+    },
+    "RECRAFT_CONTROLS": {
+      "producers": [
+        "RecraftControls"
+      ],
+      "consumers": []
+    },
+    "RIG_TASK_ID": {
+      "producers": [
+        "TripoRigNode"
+      ],
+      "consumers": []
+    },
+    "RETARGET_TASK_ID": {
+      "producers": [
+        "TripoRetargetNode"
+      ],
+      "consumers": []
+    },
+    "LORA_STACK": {
+      "producers": [
+        "Lora Stacker (LoraManager)",
+        "Lora Randomizer (LoraManager)"
+      ],
+      "consumers": []
+    },
+    "WANVIDLORA": {
+      "producers": [
+        "WanVideo Lora Select (LoraManager)",
+        "WanVideo Lora Select From Text (LoraManager)"
+      ],
+      "consumers": []
+    },
+    "POOL_CONFIG": {
+      "producers": [
+        "Lora Pool (LoraManager)"
+      ],
+      "consumers": []
+    },
+    "mlx_conditioning": {
+      "producers": [
+        "MLXClipTextEncoder",
+        "MLXLoadFlux"
+      ],
+      "consumers": []
+    },
+    "mlx_model": {
+      "producers": [
+        "MLXLoadFlux"
+      ],
+      "consumers": []
+    },
+    "mlx_vae": {
+      "producers": [
+        "MLXLoadFlux"
+      ],
+      "consumers": []
+    },
+    "PATH": {
+      "producers": [
+        "MfluxModelsLoader",
+        "MfluxModelsDownloader",
+        "MfluxCustomModels"
+      ],
+      "consumers": []
+    },
+    "MfluxImg2ImgPipeline": {
+      "producers": [
+        "MfluxImg2Img"
+      ],
+      "consumers": []
+    },
+    "MfluxLorasPipeline": {
+      "producers": [
+        "MfluxLorasLoader"
+      ],
+      "consumers": []
+    },
+    "MfluxControlNetPipeline": {
+      "producers": [
+        "MfluxControlNetLoader"
+      ],
+      "consumers": []
     }
   },
   "workflow_patterns": [

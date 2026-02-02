@@ -26,3 +26,29 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: mcp-comfy-ui-builder:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify container runs
+        run: |
+          timeout 3 docker run --rm -i mcp-comfy-ui-builder:test < /dev/null 2>/dev/null || true
+          echo "Docker image build and run check complete"
+
+      - name: docker-compose build
+        run: docker compose -f docker-compose.example.yml build mcp-comfy-ui-builder

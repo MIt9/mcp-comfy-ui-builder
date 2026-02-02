@@ -62,7 +62,7 @@
 ## Quick Answers (FAQ)
 
 - **Where to start?** → [README.md](README.md) → [GETTING-STARTED.md](GETTING-STARTED.md) or [QUICK-REFERENCE.md](QUICK-REFERENCE.md).
-- **How to add a node?** Run `npm run seed` to fill from seed. Manually: add to base-nodes.json (see knowledge/README.md).
+- **How to add a node?** (1) Run `npm run sync-nodes` when ComfyUI is running — syncs live nodes to knowledge base. (2) Or run `npm run seed` to fill from seed. (3) Or add manually to base-nodes.json (see knowledge/README.md). MCP server also syncs on startup if ComfyUI is available.
 - **How to connect MCP?** → [MCP-SETUP.md](MCP-SETUP.md).
 - **Where is knowledge base?** At project root: `knowledge/` folder.
 - **Full list of MCP tools?** → [MCP-SETUP.md](MCP-SETUP.md) (grouped by area: knowledge, dynamic builder, execution, outputs, models, queue, etc.).

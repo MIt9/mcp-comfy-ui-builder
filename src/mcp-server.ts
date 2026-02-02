@@ -1758,6 +1758,19 @@ async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error('mcp-comfy-ui-builder MCP server running on stdio');
+
+  // Background sync from ComfyUI on startup (non-blocking)
+  const hybrid = getHybridDiscovery();
+  if (hybrid) {
+    hybrid.syncToKnowledgeBase().then((result) => {
+      if (result.added.length > 0) {
+        console.error(`[sync] Added ${result.added.length} nodes from ComfyUI to knowledge base`);
+        invalidateBaseNodesCache();
+      }
+    }).catch(() => {
+      // ComfyUI not available — silent, expected when COMFYUI_HOST not set or ComfyUI not running
+    });
+  }
 }
 
 main().catch((err) => {

@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  comfyui:
+    image: ghcr.io/comfyanonymous/comfyui:latest
+    container_name: comfyui
+    ports:
+      - "8188:8188"
+    environment:
+      - CLI_ARGS=--listen 0.0.0.0
+    volumes:
+      - comfyui-data:/data
+
+  mcp-comfy-ui-builder:
+    build: .
+    image: mcp-comfy-ui-builder:local
+    container_name: mcp-comfy-ui-builder
+    depends_on:
+      - comfyui
+    environment:
+      - NODE_ENV=production
+      - COMFYUI_HOST=http://comfyui:8188
+      - COMFYUI_PATH=/data
+    volumes:
+      - comfyui-data:/data
+    # MCP server communicates over stdio; no ports are exposed here.
+    # To use this container from Cursor/Claude, configure the MCP server
+    # command to run `docker compose run --rm -i mcp-comfy-ui-builder`.
+
+volumes:
+  comfyui-data:
+    driver: local
+

@@ -18,13 +18,14 @@ More details → [GETTING-STARTED.md](GETTING-STARTED.md).
 
 | What you want to do | Document |
 |---------------------|----------|
-| **Commands at hand** (seed, sync-manager, mcp) | [QUICK-REFERENCE.md](QUICK-REFERENCE.md) |
+| **Commands at hand** (seed, sync-manager, sync-nodes, mcp) | [QUICK-REFERENCE.md](QUICK-REFERENCE.md) |
 | **Complete start** (seed + MCP) | [GETTING-STARTED.md](GETTING-STARTED.md) |
 | **Connect MCP in Cursor or Claude Desktop** | [MCP-SETUP.md](MCP-SETUP.md) |
 | **Workflow Builder** (templates, save/load, execute) | [workflow-builder.md](workflow-builder.md) |
 | **AI assistant guide** (after npm i -g) | [AI-ASSISTANT-GUIDE.md](AI-ASSISTANT-GUIDE.md) |
 | **ComfyUI API details** (object_info, endpoints) | [comfyui-api-quick-reference.md](comfyui-api-quick-reference.md), [comfyui-api-detailed-guide.md](comfyui-api-detailed-guide.md) |
 | **How to use knowledge base in code** | [knowledge-base-usage-guide.md](knowledge-base-usage-guide.md), [knowledge/README.md](../knowledge/README.md) |
+| **Docker** (MCP + ComfyUI) | [DOCKER-SETUP.md](DOCKER-SETUP.md) — `docker pull siniidrozd/mcp-comfy-ui-builder:0.5.0` |
 
 ---
 

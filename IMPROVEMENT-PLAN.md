@@ -1,129 +1,132 @@
-# MCP ComfyUI Builder - План покращень
+# MCP ComfyUI Builder - Improvement Plan
 
-Детальний план майбутніх покращень для максимальної зручності створення зображень.
+Detailed plan for future improvements to maximize image generation convenience.
 
-**Завершені фази (1-6)** → дивіться [CHANGELOG.md](CHANGELOG.md) версії 0.3.0 та 0.4.0.
+**Completed phases (1-6)** → see [CHANGELOG.md](CHANGELOG.md) versions 0.3.0 and 0.4.0.
 
 ---
 
-## Поточний стан проекту (v0.4.0)
+## Current Project State (v0.4.0)
 
-| Компонент | Поточно | Ціль |
-|-----------|---------|------|
-| MCP інструменти | 40+ | 45+ |
-| Шаблони workflows | 8 | 10+ |
-| Ноди в knowledge base | 31+ | 100+ |
-| Виконання | Polling | WebSocket + Polling |
-| Будування workflows | Шаблони + Dynamic API | ✅ Done |
+| Component | Current | Target |
+|-----------|---------|--------|
+| MCP tools | 40+ | 45+ |
+| Workflow templates | 8 | 10+ |
+| Nodes in knowledge base | 55 | 100+ |
+| Execution | Polling | WebSocket + Polling |
+| Workflow building | Templates + Dynamic API | ✅ Done |
 | Plugin System | Data-only | ✅ Done |
-| Docker | Dockerfile готовий | Потребує тестування |
+| Docker | Dockerfile ready | Needs testing |
 
 ---
 
-## ✅ Завершені фази
+## ✅ Completed Phases
 
-- **Phase 1:** Розширення шаблонів (inpainting, upscale, lora, controlnet, batch) — v0.3.0
+- **Phase 1:** Extended templates (inpainting, upscale, lora, controlnet, batch) — v0.3.0
 - **Phase 2:** Dynamic Workflow Builder API — v0.3.0
 - **Phase 3:** Node Discovery Enhancement (hybrid discovery, live sync) — v0.3.0
 - **Phase 4:** Execution Improvements (batch, chaining, output management) — v0.3.0
 - **Phase 5:** Model Management — v0.3.0
 - **Phase 6:** Workflow Composition (templates, macros, chaining) — v0.4.0
 
-Детальний опис → [CHANGELOG.md](CHANGELOG.md)
+Detailed description → [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
-## 🔮 Майбутні плани
+## 🔮 Future Plans
 
-### Фаза 7: Docker та Розширення Plugin System
+### Phase 7: Docker and Plugin System Extensions
 
-#### 7.1 Docker Testing та Publishing
+#### 7.1 Docker Testing and Publishing
 
-**Статус:** Dockerfile та docker-compose.example.yml готові, потребують тестування.
+**Status:** ✅ Docker build tested locally and in CI. Ready for publishing.
 
-**Завдання:**
-- [ ] Протестувати Docker build локально
-- [ ] Протестувати docker-compose стек з ComfyUI
-- [ ] Опублікувати образ на Docker Hub або GitHub Container Registry
-- [ ] Оновити doc/DOCKER-SETUP.md з реальними прикладами
-- [ ] Додати CI/CD для автоматичної публікації образів
+**Tasks:**
+- [x] Test Docker build locally (`npm run test:docker`) ✅
+- [x] Test docker-compose build ✅
+- [ ] Test docker-compose stack with ComfyUI (`docker compose -f docker-compose.example.yml up` — optional)
+- [x] Publish image to Docker Hub (`siniidrozd/mcp-comfy-ui-builder:0.5.0`) ✅
+- [x] Update doc/DOCKER-SETUP.md with real examples and Testing section
+- [x] Add CI job for Docker build (`.github/workflows/ci.yml`)
 
-**Файли:**
-- ✅ `Dockerfile` — готовий (multi-stage build)
-- ✅ `docker-compose.example.yml` — готовий
-- ✅ `doc/DOCKER-SETUP.md` — готовий
-- [ ] `.github/workflows/docker-publish.yml` — CI/CD для публікації
+**Files:**
+- ✅ `Dockerfile` — ready (multi-stage build)
+- ✅ `docker-compose.example.yml` — ready
+- ✅ `doc/DOCKER-SETUP.md` — ready
+- [x] `scripts/test-docker.sh` — local test (build + verify + compose build)
+- [ ] `.github/workflows/docker-publish.yml` — CI/CD for image publishing (optional)
 
-#### 7.2 Розширення Plugin System
+#### 7.2 Plugin System Extensions
 
-**Статус:** Базова система плагінів реалізована (v0.4.0), можна додати розширення.
+**Status:** Base plugin system implemented (v0.4.0), extensions can be added.
 
-**Можливі розширення:**
-- [ ] **Plugin marketplace** — каталог community plugins
-- [ ] **MCP tool для встановлення** — `install_plugin(url)` з GitHub
-- [ ] **Plugin dependencies** — залежності між плагінами
-- [ ] **Versioning** — перевірка сумісності версій
-- [ ] **Custom node presets** — плагіни з рекомендаціями по встановленню custom nodes
-- [ ] **Workflow collections** — пакети готових workflow від спільноти
+**Possible extensions:**
+- [ ] **Plugin marketplace** — community plugins catalog
+- [ ] **MCP tool for installation** — `install_plugin(url)` from GitHub
+- [ ] **Plugin dependencies** — dependencies between plugins
+- [ ] **Versioning** — version compatibility checking
+- [ ] **Custom node presets** — plugins with recommendations for installing custom nodes
+- [ ] **Workflow collections** — packages of ready workflows from the community
 
-**Поточна реалізація (v0.4.0):**
-- ✅ Data-only plugin system з JSON schemas
-- ✅ Plugin loader з валідацією
+**Current implementation (v0.4.0):**
+- ✅ Data-only plugin system with JSON schemas
+- ✅ Plugin loader with validation
 - ✅ Macro registry
 - ✅ MCP tools: list_plugins, reload_plugins
 - ✅ Example plugin included
 
-### Фаза 8: WebSocket Support
+### Phase 8: WebSocket Support
 
-**Мета:** Real-time виконання з миттєвим feedback через WebSocket.
+**Goal:** Real-time execution with instant feedback via WebSocket.
 
-**Завдання:**
+**Tasks:**
 - [ ] **ComfyUI WebSocket client** (`src/comfyui-ws-client.ts`)
-  - Підключення до ComfyUI WebSocket API
+  - Connection to ComfyUI WebSocket API
   - Real-time progress tracking
   - Node-level execution callbacks
 - [ ] **Streaming execution API**
-  - `execute_workflow_stream` — streaming updates через MCP
-  - Progress events з current_node, progress%, queue_position
+  - `execute_workflow_stream` — streaming updates via MCP
+  - Progress events with current_node, progress%, queue_position
 - [ ] **MCP improvements**
-  - `get_execution_progress` з real-time даними (не polling)
-  - `interrupt_execution` — зупинити виконання
+  - `get_execution_progress` with real-time data (not polling)
+  - `interrupt_execution` — stop execution
 
-**Переваги:**
-- Миттєвий feedback під час генерації
-- Знижене навантаження (без polling)
-- Детальна інформація про прогрес кожної ноди
+**Benefits:**
+- Instant feedback during generation
+- Reduced load (no polling)
+- Detailed information about each node's progress
 
 ---
 
-### Фаза 9: Knowledge Base Expansion
+### Phase 9: Knowledge Base Expansion
 
-**Мета:** Розширити базу знань до 100+ нод.
+**Goal:** Expand knowledge base to 100+ nodes.
 
-**Завдання:**
-- [ ] Додати популярні custom node packs в knowledge base
-  - ComfyUI-Manager top 50 packs
-  - Essential nodes (Efficiency Nodes, Impact Pack, etc.)
-- [ ] Автоматизувати оновлення knowledge base
-  - Scheduled sync з custom-node-list.json
-  - Auto-detection нових пакетів
+**Tasks:**
+- [x] Add popular custom node packs to knowledge base ✅ (55 nodes, 26 packs)
+  - [x] Essential nodes (Impact Pack, IPAdapter, AnimateDiff, VideoHelperSuite, BLIP, rgthree)
+  - [x] 10 new packs (Inspire, PhotoMaker, SUPIR, Comfyroll, Refacer, ttN, Plus, etc.)
+- [x] Automate knowledge base updates ✅
+  - [x] CLI `sync-nodes` — sync from ComfyUI object_info (one-shot or daemon `--interval N`)
+  - [x] `sync-manager` — sync custom-node-list from ComfyUI-Manager
+  - [x] Sync on MCP startup — background sync from ComfyUI object_info ✅
 - [ ] Node usage statistics
-  - Tracking найпопулярніших нод
-  - Рекомендації на основі статистики
+  - Tracking most popular nodes
+  - Recommendations based on statistics
 - [ ] Advanced compatibility checking
-  - Type inference для складних типів
+  - Type inference for complex types
   - Automatic conversion suggestions
 
 ---
 
-### Фаза 10: Quality of Life Features
+### Phase 10: Quality of Life Features
 
-**Мета:** Покращення user experience.
+**Goal:** Improve user experience.
 
-**Можливі фічі:**
+**Possible features:**
 - [ ] **Workflow validation improvements**
-  - Більш детальні помилки
-  - Suggestions для виправлення
+  - More detailed errors
+  - Fix suggestions
   - Visual graph validation
 - [ ] **Template improvements**
   - Template inheritance
@@ -144,36 +147,36 @@
 
 ---
 
-## Пріоритети розробки
+## Development Priorities
 
-### Високий пріоритет
-1. **Docker testing** (Фаза 7.1) — готові файли, потрібне тестування
-2. **WebSocket support** (Фаза 8) — значне покращення UX
-3. **Knowledge base expansion** (Фаза 9) — більше нод = більше можливостей
+### High priority
+1. **Docker testing** (Phase 7.1) — files ready, needs testing
+2. **WebSocket support** (Phase 8) — significant UX improvement
+3. **Knowledge base expansion** (Phase 9) — more nodes = more capabilities
 
-### Середній пріоритет
-4. **Plugin marketplace** (Фаза 7.2) — community contributions
-5. **Workflow validation improvements** (Фаза 10) — краща developer experience
-6. **Template improvements** (Фаза 10) — більше гнучкості
+### Medium priority
+4. **Plugin marketplace** (Phase 7.2) — community contributions
+5. **Workflow validation improvements** (Phase 10) — better developer experience
+6. **Template improvements** (Phase 10) — more flexibility
 
-### Низький пріоритет
-7. **Plugin dependencies** (Фаза 7.2) — nice to have
-8. **Node usage statistics** (Фаза 9) — analytics
-9. **Export/Import** (Фаза 10) — додаткові формати
-
----
-
-## Як контрибутити
-
-Детальний опис завершених фаз → [CHANGELOG.md](CHANGELOG.md)
-
-Для додавання нових фіч:
-1. Створіть issue з описом фічі
-2. Обговоріть підхід з maintainers
-3. Реалізуйте з тестами
-4. Оновіть документацію
-5. Створіть PR
+### Low priority
+7. **Plugin dependencies** (Phase 7.2) — nice to have
+8. **Node usage statistics** (Phase 9) — analytics
+9. **Export/Import** (Phase 10) — additional formats
 
 ---
 
-*Останнє оновлення: 2026-02-02*
+## How to Contribute
+
+Detailed description of completed phases → [CHANGELOG.md](CHANGELOG.md)
+
+To add new features:
+1. Create an issue with feature description
+2. Discuss approach with maintainers
+3. Implement with tests
+4. Update documentation
+5. Create PR
+
+---
+
+*Last updated: 2026-02-02*

@@ -25,7 +25,7 @@
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Далі:** Docker testing, knowledge base expansion (див. [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md)).
+**Next:** Docker testing, knowledge base expansion (see [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md)).
 
 ---
 
@@ -64,26 +64,26 @@
 - 3 new/enhanced MCP tools (execute_workflow_sync, execute_workflow_stream, get_execution_progress)
 - 20 comprehensive unit tests (138 total tests passing)
 
-**Детальна історія змін** → [CHANGELOG.md](CHANGELOG.md)
+**Detailed changelog** → [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
-### 🔮 Майбутні плани
+### 🔮 Future Plans
 
-Детальний план — **[IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md)**. Короткий огляд:
+Detailed plan — **[IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md)**. Summary:
 
-| Фаза | Назва | Статус | Пріоритет |
+| Phase | Name | Status | Priority |
 |------|--------|---------|-----------|
-| **7** | Docker & Plugin Extensions | Files ready, needs testing | 🔥 Високий |
-| **8** | WebSocket Support | ✅ Complete (v0.5.0) | 🔥 Високий |
-| **9** | Knowledge Base Expansion | Planned | 🔥 Високий |
-| **10** | Quality of Life Features | Planned | 📋 Середній |
+| **7** | Docker & Plugin Extensions | Files ready, needs testing | 🔥 High |
+| **8** | WebSocket Support | ✅ Complete (v0.5.0) | 🔥 High |
+| **9** | Knowledge Base Expansion | Planned | 🔥 High |
+| **10** | Quality of Life Features | Planned | 📋 Medium |
 
-**Ключові цілі:**
-- Docker: тестування та публікація образів
+**Key goals:**
+- Docker: testing and image publishing
 - ~~WebSocket: real-time execution progress~~ ✅ Done
-- Knowledge: розширення до 100+ нод
-- QoL: покращення validation, templates, export/import
+- Knowledge: expansion to 100+ nodes
+- QoL: validation, templates, export/import improvements
 
 ---
 
@@ -188,13 +188,13 @@ Knowledge Expansion (Phase 9)   [░░░░░░░░░░░░░░░�
 
 ## 🔗 Quick Links
 
-- **Майбутні плани:** [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md) — Фази 7, 9-10
-- **Історія змін:** [CHANGELOG.md](CHANGELOG.md) — Детальний опис версій
-- **Поточні задачі:** [TODO.md](TODO.md) — Що робимо зараз
-- **Документація:** [doc/INDEX.md](doc/INDEX.md) — Повний індекс
+- **Future plans:** [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md) — Phases 7, 9-10
+- **Changelog:** [CHANGELOG.md](CHANGELOG.md) — Version history
+- **Current tasks:** [TODO.md](TODO.md) — What we're working on
+- **Documentation:** [doc/INDEX.md](doc/INDEX.md) — Full index
 - **WebSocket Guide:** [doc/WEBSOCKET-GUIDE.md](doc/WEBSOCKET-GUIDE.md) — Real-time execution
 - **ComfyUI API:** [doc/comfyui-api-quick-reference.md](doc/comfyui-api-quick-reference.md)
-- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) (якщо є)
+- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 

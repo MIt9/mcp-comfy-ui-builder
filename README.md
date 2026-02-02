@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/MIt9/mcp-comfy-ui-builder/actions/workflows/ci.yml/badge.svg)](https://github.com/MIt9/mcp-comfy-ui-builder/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/mcp-comfy-ui-builder.svg)](https://www.npmjs.com/package/mcp-comfy-ui-builder)
+[![Docker](https://img.shields.io/docker/v/siniidrozd/mcp-comfy-ui-builder?label=docker)](https://hub.docker.com/r/siniidrozd/mcp-comfy-ui-builder)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **ComfyUI Node Discovery** — seed knowledge base and MCP tools for Cursor/Claude.
@@ -9,7 +10,7 @@
 ## What is this
 
 - Seed `knowledge/base-nodes.json` and `node-compatibility.json` from bundled seed (no external services)
-- Sync custom packs list from ComfyUI-Manager (GitHub)
+- Sync custom packs list from ComfyUI-Manager; sync nodes from running ComfyUI (`sync-nodes` CLI or on MCP startup)
 - MCP server with 50+ tools: node discovery, dynamic workflow builder, template system, **WebSocket real-time execution** (v0.5.0+), batch/chain execution, model management, plugin system
 - **Real-time progress tracking:** Sub-second updates via WebSocket with automatic polling fallback
 - **90% reduced network traffic** for batch execution with shared WebSocket connection
@@ -42,6 +43,7 @@
 |---------|-------------|
 | `npm run seed` | Fill knowledge from seed. Use `--force` to overwrite. |
 | `npm run sync-manager` | Update custom packs list from ComfyUI-Manager |
+| `npm run sync-nodes` | Sync nodes from running ComfyUI to knowledge base (requires COMFYUI_HOST) |
 | `npm test` | Run tests (vitest) |
 | `npm run mcp` | Start MCP server (after `npm run build`) |
 
@@ -54,7 +56,7 @@ Single entry point — **task-oriented navigation**:
 - **[doc/QUICK-REFERENCE.md](doc/QUICK-REFERENCE.md)** — commands, examples, troubleshooting
 - **[doc/GETTING-STARTED.md](doc/GETTING-STARTED.md)** — quick start
 - **[doc/MCP-SETUP.md](doc/MCP-SETUP.md)** — connect MCP in Cursor/Claude
-- **[doc/DOCKER-SETUP.md](doc/DOCKER-SETUP.md)** — Docker images and docker-compose examples for MCP + ComfyUI
+- **[doc/DOCKER-SETUP.md](doc/DOCKER-SETUP.md)** — `docker pull siniidrozd/mcp-comfy-ui-builder:0.5.0` | docker-compose for MCP + ComfyUI
 - **Knowledge base:** [knowledge/README.md](knowledge/README.md), [doc/knowledge-base-usage-guide.md](doc/knowledge-base-usage-guide.md)
 - **Workflow Builder:** [doc/workflow-builder.md](doc/workflow-builder.md) — templates, params, save/load, ComfyUI format
 - **Planning:** [ROADMAP.md](ROADMAP.md), [NEXT-STEPS.md](NEXT-STEPS.md), [TODO.md](TODO.md)

@@ -1,48 +1,48 @@
 # Install Custom Nodes and Models via MCP
 
-> Встановлення кастомних нод, чекпоінтів, LoRA та інших моделей через MCP без участі розробника.
+> Install custom nodes, checkpoints, LoRA and other models via MCP without developer involvement.
 
 ***
 
-## Умови
+## Requirements
 
-- **COMFYUI_PATH** — шлях до каталогу ComfyUI на диску (наприклад `/home/user/ComfyUI` або `C:\ComfyUI`). MCP сервер запускається на тій же машині, де вказаний цей шлях.
-- Для **кастомних нод**: у ComfyUI має бути встановлений **ComfyUI-Manager** (у `custom_nodes/ComfyUI-Manager`), і там має бути файл `cm-cli.py`.
-- Для **моделей**: завантаження працює завжди (fetch по URL). Якщо встановлено **comfy-cli** (`pip install comfy-cli`), використовується він для завантаження моделей.
+- **COMFYUI_PATH** — path to ComfyUI directory on disk (e.g. `/home/user/ComfyUI` or `C:\ComfyUI`). MCP server runs on the same machine where this path is set.
+- For **custom nodes**: ComfyUI must have **ComfyUI-Manager** installed (in `custom_nodes/ComfyUI-Manager`), and it must contain the `cm-cli.py` file.
+- For **models**: download always works (fetch via URL). If **comfy-cli** is installed (`pip install comfy-cli`), it is used for model downloads.
 
 ***
 
-## Інструменти MCP
+## MCP Tools
 
 ### install_custom_node
 
-Встановлює один або кілька пакетів кастомних нод через ComfyUI-Manager (cm-cli).
+Installs one or more custom node packages via ComfyUI-Manager (cm-cli).
 
-| Параметр    | Опис |
+| Parameter   | Description |
 |-------------|------|
-| node_names  | Масив назв пакетів, як у ComfyUI-Manager (наприклад `ComfyUI-Blip`, `ComfyUI-Impact-Pack`, `WAS-Node-Suite`). |
-| channel     | Опційно: канал (див. документацію cm-cli). |
-| mode        | Опційно: `remote`, `local` або `cache`. |
+| node_names  | Array of package names as in ComfyUI-Manager (e.g. `ComfyUI-Blip`, `ComfyUI-Impact-Pack`, `WAS-Node-Suite`). |
+| channel     | Optional: channel (see cm-cli documentation). |
+| mode        | Optional: `remote`, `local` or `cache`. |
 
-**Приклад:** встановити ComfyUI-Blip та WAS-Node-Suite:
+**Example:** install ComfyUI-Blip and WAS-Node-Suite:
 - `install_custom_node({ "node_names": ["ComfyUI-Blip", "WAS-Node-Suite"] })`
 
-Після встановлення потрібно **перезапустити ComfyUI**, щоб нові ноди підхопились.
+After installation, **restart ComfyUI** so the new nodes are loaded.
 
 ---
 
 ### install_model
 
-Завантажує модель (чекпоінт, LoRA, VAE тощо) за прямим URL і зберігає у відповідну папку ComfyUI.
+Downloads a model (checkpoint, LoRA, VAE, etc.) from a direct URL and saves it to the appropriate ComfyUI folder.
 
-| Параметр   | Опис |
+| Parameter   | Description |
 |------------|------|
-| url        | Пряме посилання на завантаження (Civitai, HuggingFace тощо). |
-| model_type | Тип моделі (за замовчуванням `checkpoint`). Див. нижче. |
+| url        | Direct download link (Civitai, HuggingFace, etc.). |
+| model_type | Model type (default `checkpoint`). See below. |
 
-**Типи моделей (model_type):**
+**Model types (model_type):**
 
-| model_type     | Папка в ComfyUI        |
+| model_type     | ComfyUI folder        |
 |----------------|------------------------|
 | checkpoint     | models/checkpoints     |
 | lora          | models/loras           |
@@ -56,20 +56,20 @@
 | unet          | models/unet            |
 | diffusers     | models/diffusers       |
 
-**Приклади:**
-- Чекпоінт: `install_model({ "url": "https://.../model.safetensors", "model_type": "checkpoint" })`
+**Examples:**
+- Checkpoint: `install_model({ "url": "https://.../model.safetensors", "model_type": "checkpoint" })`
 - LoRA: `install_model({ "url": "https://civitai.com/.../download", "model_type": "lora" })`
 - VAE: `install_model({ "url": "https://.../vae.safetensors", "model_type": "vae" })`
 
-Якщо в PATH є **comfy-cli**, використовується він; інакше файл завантажується напряму (fetch) у `COMFYUI_PATH/models/<type>/`.
+If **comfy-cli** is in PATH, it is used; otherwise the file is downloaded directly (fetch) to `COMFYUI_PATH/models/<type>/`.
 
 ***
 
-## Налаштування COMFYUI_PATH
+## Configuring COMFYUI_PATH
 
-У конфігурації MCP сервера (Cursor, Claude Desktop) додайте змінну середовища:
+Add the environment variable to your MCP server configuration (Cursor, Claude Desktop):
 
-**Cursor** — у блоці сервера:
+**Cursor** — in the server block:
 ```json
 {
   "mcpServers": {
@@ -84,17 +84,17 @@
 }
 ```
 
-**Claude Desktop** — у файлі конфігурації MCP додайте `env` з `COMFYUI_PATH` для відповідного сервера.
+**Claude Desktop** — add `env` with `COMFYUI_PATH` for the corresponding server in the MCP config file.
 
-На Windows використовуйте повний шлях, наприклад `C:\\Users\\Name\\ComfyUI`.
+On Windows use the full path, e.g. `C:\\Users\\Name\\ComfyUI`.
 
 ***
 
-## Підсумок
+## Summary
 
-| Дія              | Інструмент             | COMFYUI_PATH | Інше |
-|------------------|------------------------|--------------|------|
-| Встановити ноди  | install_custom_node    | Так          | ComfyUI-Manager у custom_nodes |
-| Завантажити модель / LoRA | install_model | Так          | Опційно: comfy-cli у PATH |
+| Action                | Tool                  | COMFYUI_PATH | Other |
+|-----------------------|------------------------|--------------|------|
+| Install nodes         | install_custom_node    | Yes          | ComfyUI-Manager in custom_nodes |
+| Download model / LoRA | install_model          | Yes          | Optional: comfy-cli in PATH |
 
-Після встановлення нод — перезапустіть ComfyUI. Моделі з’являться у відповідних папках і в UI після оновлення списків (або перезапуску).
+After installing nodes — restart ComfyUI. Models will appear in the appropriate folders and in the UI after refreshing lists (or restart).

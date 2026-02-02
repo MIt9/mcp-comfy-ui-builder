@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 /**
- * CLI — seed, sync-manager, MCP. Knowledge base filled from seed (no ComfyUI or API).
+ * CLI — seed, sync-manager, sync-nodes, MCP. Knowledge base filled from seed (no ComfyUI or API).
  */
 import { program } from 'commander';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fetchManagerList, type ManagerListResult } from './node-discovery/scanner.js';
 import { updateCompatibility } from './node-discovery/updater.js';
+import { HybridNodeDiscovery } from './node-discovery/hybrid-discovery.js';
+import { getObjectInfo } from './comfyui-client.js';
 import { logger } from './logger.js';
 import type { CustomPack, CustomNodesJson, BaseNodesJson, NodeDescription } from './types/node-types.js';
 
@@ -121,11 +123,63 @@ program
       logger.info('cli', `Updated ${path} with ${packs.length} packs.`);
     } catch (e) {
       if (isNetworkError(e)) {
-        logger.error('cli', 'Не вдалося завантажити custom-node-list (мережа або GitHub недоступні).', e);
+        logger.error('cli', 'Failed to load custom-node-list (network or GitHub unavailable).', e);
       } else {
         logger.error('cli', 'sync-manager failed.', e);
       }
       process.exit(1);
+    }
+  });
+
+program
+  .command('sync-nodes')
+  .description('Sync nodes from running ComfyUI (object_info) to knowledge base. Requires COMFYUI_HOST.')
+  .option('-i, --interval <minutes>', 'Run repeatedly every N minutes (daemon mode). Ctrl+C to stop.')
+  .action(async (opts: { interval?: string }) => {
+    const loadBaseNodes = (): BaseNodesJson => {
+      const path = baseNodesPath();
+      if (!existsSync(path)) return { metadata: {}, nodes: {} };
+      return JSON.parse(readFileSync(path, 'utf8')) as BaseNodesJson;
+    };
+    const discovery = new HybridNodeDiscovery({
+      getObjectInfo,
+      loadBaseNodes,
+    });
+
+    const runSync = async (): Promise<boolean> => {
+      try {
+        const result = await discovery.syncToKnowledgeBase();
+        if (result.added.length > 0) {
+          logger.info('cli', `sync-nodes: added ${result.added.length} nodes: ${result.added.slice(0, 10).join(', ')}${result.added.length > 10 ? '...' : ''}`);
+        }
+        if (result.skipped > 0) {
+          logger.info('cli', `sync-nodes: ${result.skipped} nodes already in knowledge base`);
+        }
+        if (result.errors.length > 0) {
+          for (const err of result.errors) logger.error('cli', `sync-nodes: ${err}`);
+        }
+        if (result.added.length === 0 && result.errors.length === 0) {
+          logger.info('cli', 'sync-nodes: knowledge base is up to date');
+        }
+        return true;
+      } catch (e) {
+        if (isNetworkError(e)) {
+          logger.error('cli', 'ComfyUI unavailable. Is it running? Set COMFYUI_HOST (default http://127.0.0.1:8188).', e);
+        } else {
+          logger.error('cli', 'sync-nodes failed.', e);
+        }
+        return false;
+      }
+    };
+
+    const intervalMinutes = opts.interval ? parseInt(opts.interval, 10) : 0;
+    if (intervalMinutes > 0) {
+      logger.info('cli', `sync-nodes: daemon mode, interval ${intervalMinutes} min`);
+      await runSync();
+      setInterval(() => runSync(), intervalMinutes * 60 * 1000);
+    } else {
+      const ok = await runSync();
+      process.exit(ok ? 0 : 1);
     }
   });
 

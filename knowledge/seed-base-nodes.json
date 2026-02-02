@@ -1,14 +1,14 @@
 {
   "metadata": {
     "version": "1.0.0",
-    "last_updated": "2026-02-01",
-    "total_nodes": 31,
+    "last_updated": "2026-02-02",
+    "total_nodes": 62,
     "categories": {
-      "loaders": 8,
-      "conditioning": 6,
-      "sampling": 2,
-      "latent": 7,
-      "image": 10,
+      "loaders": 11,
+      "conditioning": 9,
+      "sampling": 3,
+      "latent": 12,
+      "image": 16,
       "mask": 4
     }
   },
@@ -669,6 +669,566 @@
       "use_cases": ["Custom noise input"],
       "compatible_outputs": { "LATENT": ["KSampler"] },
       "example_values": {}
+    },
+    "FlipImage": {
+      "display_name": "Flip Image",
+      "category": "image",
+      "description": "Flips image horizontally or vertically",
+      "input_types": {
+        "required": {
+          "image": { "type": "IMAGE", "color": "#64B5F6", "description": "Input image" }
+        },
+        "optional": {
+          "x_flip": { "type": "BOOLEAN", "default": false },
+          "y_flip": { "type": "BOOLEAN", "default": false }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "medium",
+      "use_cases": ["Image mirroring", "Data augmentation", "Symmetry correction"],
+      "compatible_outputs": { "IMAGE": ["SaveImage", "VAEEncode", "ApplyControlNet"] },
+      "example_values": {}
+    },
+    "CLIPVisionEncode": {
+      "display_name": "CLIP Vision Encode",
+      "category": "conditioning",
+      "description": "Encodes image into CLIP vision features for img2img or reference conditioning",
+      "input_types": {
+        "required": {
+          "clip_vision": { "type": "CLIP_VISION", "color": "#FFD700", "description": "CLIP Vision model" },
+          "image": { "type": "IMAGE", "color": "#64B5F6", "description": "Reference image" }
+        }
+      },
+      "return_types": ["CLIP_VISION_OUTPUT"],
+      "return_names": ["CLIP_VISION_OUTPUT"],
+      "output_colors": ["#FFA931"],
+      "priority": "high",
+      "use_cases": ["img2img with reference", "IP-Adapter pipelines", "Image conditioning"],
+      "compatible_outputs": { "CLIP_VISION_OUTPUT": ["UnetLoader", "StyleModelApply"] },
+      "example_values": {}
+    },
+    "ClipVisionLoader": {
+      "display_name": "Load CLIP Vision",
+      "category": "loaders",
+      "description": "Loads CLIP Vision model for image encoding",
+      "input_types": {
+        "required": {
+          "clip_name": { "type": "CLIP_VISION_NAME", "description": "CLIP Vision model file" }
+        }
+      },
+      "return_types": ["CLIP_VISION"],
+      "return_names": ["CLIP_VISION"],
+      "output_colors": ["#FFD700"],
+      "priority": "medium",
+      "use_cases": ["IP-Adapter", "Reference image conditioning", "CLIP vision pipelines"],
+      "compatible_outputs": { "CLIP_VISION": ["CLIPVisionEncode"] },
+      "example_values": { "clip_name": "sd1.5_clip_vision.safetensors" }
+    },
+    "CLIPSetLastLayer": {
+      "display_name": "CLIP Set Last Layer",
+      "category": "conditioning",
+      "description": "Adjusts which CLIP layer is used for conditioning",
+      "input_types": {
+        "required": {
+          "clip": { "type": "CLIP", "color": "#FFD700" },
+          "stop_at_clip_layer": { "type": "INT", "default": -1, "description": "Layer index (-1 = last)" }
+        }
+      },
+      "return_types": ["CLIP"],
+      "return_names": ["CLIP"],
+      "output_colors": ["#FFD700"],
+      "priority": "low",
+      "use_cases": ["Fine-tuning prompt strength", "CLIP layer experiments"],
+      "compatible_outputs": { "CLIP": ["CLIPTextEncode"] },
+      "example_values": {}
+    },
+    "ImageBlend": {
+      "display_name": "Image Blend",
+      "category": "image",
+      "description": "Blends two images with configurable opacity",
+      "input_types": {
+        "required": {
+          "image1": { "type": "IMAGE", "color": "#64B5F6" },
+          "image2": { "type": "IMAGE", "color": "#64B5F6" },
+          "blend_factor": { "type": "FLOAT", "default": 0.5, "min": 0, "max": 1 }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "medium",
+      "use_cases": ["Image compositing", "Fade transitions", "Overlay blending"],
+      "compatible_outputs": { "IMAGE": ["SaveImage", "VAEEncode"] },
+      "example_values": {}
+    },
+    "LatentFromBatch": {
+      "display_name": "Latent From Batch",
+      "category": "latent",
+      "description": "Extracts a single latent from batch by index",
+      "input_types": {
+        "required": {
+          "samples": { "type": "LATENT", "color": "#FF6E6E" },
+          "batch_index": { "type": "INT", "default": 0 }
+        }
+      },
+      "return_types": ["LATENT"],
+      "return_names": ["LATENT"],
+      "output_colors": ["#FF6E6E"],
+      "priority": "low",
+      "use_cases": ["Batch processing", "Single image extraction", "Workflow branching"],
+      "compatible_outputs": { "LATENT": ["VAEDecode", "KSampler"] },
+      "example_values": {}
+    },
+    "ImageBatch": {
+      "display_name": "Image Batch",
+      "category": "image",
+      "description": "Combines multiple images into a batch",
+      "input_types": {
+        "required": {
+          "image1": { "type": "IMAGE", "color": "#64B5F6" },
+          "image2": { "type": "IMAGE", "color": "#64B5F6" }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "medium",
+      "use_cases": ["Batch processing", "Multiple image input", "Batch upscale"],
+      "compatible_outputs": { "IMAGE": ["VAEEncode", "SaveImage"] },
+      "example_values": {}
+    },
+    "SplitImageBatch": {
+      "display_name": "Split Image Batch",
+      "category": "image",
+      "description": "Splits image batch into individual images",
+      "input_types": {
+        "required": {
+          "image": { "type": "IMAGE", "color": "#64B5F6" }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "low",
+      "use_cases": ["Batch unpacking", "Individual image processing"],
+      "compatible_outputs": { "IMAGE": ["SaveImage"] },
+      "example_values": {}
+    },
+    "ImageInvert": {
+      "display_name": "Invert Image",
+      "category": "image",
+      "description": "Inverts image colors (negative)",
+      "input_types": {
+        "required": {
+          "image": { "type": "IMAGE", "color": "#64B5F6" }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "low",
+      "use_cases": ["Color inversion", "Mask inversion", "Effect preprocessing"],
+      "compatible_outputs": { "IMAGE": ["SaveImage", "ImageToMask"] },
+      "example_values": {}
+    },
+    "LatentUpscaleBy": {
+      "display_name": "Latent Upscale By",
+      "category": "latent",
+      "description": "Upscales latent tensor by integer factor",
+      "input_types": {
+        "required": {
+          "samples": { "type": "LATENT", "color": "#FF6E6E" },
+          "upscale_method": { "type": "STRING", "default": "nearest-exact" },
+          "scale_by": { "type": "FLOAT", "default": 2.0 }
+        }
+      },
+      "return_types": ["LATENT"],
+      "return_names": ["LATENT"],
+      "output_colors": ["#FF6E6E"],
+      "priority": "medium",
+      "use_cases": ["Latent upscaling", "Resolution increase before decode", "High-res generation"],
+      "compatible_outputs": { "LATENT": ["VAEDecode", "KSampler"] },
+      "example_values": {}
+    },
+    "SplitLatent": {
+      "display_name": "Split Latent Batch",
+      "category": "latent",
+      "description": "Splits latent batch into individual latents",
+      "input_types": {
+        "required": {
+          "samples": { "type": "LATENT", "color": "#FF6E6E" }
+        }
+      },
+      "return_types": ["LATENT"],
+      "return_names": ["LATENT"],
+      "output_colors": ["#FF6E6E"],
+      "priority": "low",
+      "use_cases": ["Batch splitting", "Individual latent processing"],
+      "compatible_outputs": { "LATENT": ["VAEDecode"] },
+      "example_values": {}
+    },
+    "MergeLatent": {
+      "display_name": "Merge Latent Batch",
+      "category": "latent",
+      "description": "Merges multiple latent tensors into one batch",
+      "input_types": {
+        "required": {
+          "samples1": { "type": "LATENT", "color": "#FF6E6E" },
+          "samples2": { "type": "LATENT", "color": "#FF6E6E" }
+        }
+      },
+      "return_types": ["LATENT"],
+      "return_names": ["LATENT"],
+      "output_colors": ["#FF6E6E"],
+      "priority": "low",
+      "use_cases": ["Batch merging", "Combining generation results"],
+      "compatible_outputs": { "LATENT": ["VAEDecode"] },
+      "example_values": {}
+    },
+    "BasicGuider": {
+      "display_name": "Basic Guider",
+      "category": "sampling",
+      "description": "Basic CFG guider for sampling",
+      "input_types": {
+        "required": {
+          "model": { "type": "MODEL", "color": "#B22222" },
+          "conditioning": { "type": "CONDITIONING", "color": "#FFA931" }
+        }
+      },
+      "return_types": ["GUIDER"],
+      "return_names": ["GUIDER"],
+      "output_colors": ["#9C27B0"],
+      "priority": "low",
+      "use_cases": ["Custom sampling", "CFG guidance"],
+      "compatible_outputs": { "GUIDER": ["BasicSampling"] },
+      "example_values": {}
+    },
+    "Canny": {
+      "display_name": "Canny Edge Detection",
+      "category": "image",
+      "description": "Extracts Canny edges from image for ControlNet",
+      "input_types": {
+        "required": {
+          "image": { "type": "IMAGE", "color": "#64B5F6" },
+          "low_threshold": { "type": "FLOAT", "default": 0.4 },
+          "high_threshold": { "type": "FLOAT", "default": 0.8 }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "medium",
+      "use_cases": ["ControlNet edge", "Structure preservation", "Line art conditioning"],
+      "compatible_outputs": { "IMAGE": ["ApplyControlNet", "ControlNetLoader"] },
+      "example_values": {}
+    },
+    "ImpactFaceDetailer": {
+      "display_name": "Impact Face Detailer",
+      "category": "image",
+      "description": "Face enhancement and detailing from Impact Pack",
+      "input_types": {
+        "required": {
+          "image": { "type": "IMAGE", "color": "#64B5F6" },
+          "model": { "type": "MODEL", "color": "#B22222" },
+          "clip": { "type": "CLIP", "color": "#FFD700" },
+          "vae": { "type": "VAE", "color": "#FF6E6E" }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "high",
+      "use_cases": ["Face enhancement", "Portrait detailing", "Auto face fix"],
+      "compatible_outputs": { "IMAGE": ["SaveImage", "VAEEncode"] },
+      "example_values": {},
+      "notes": "Requires ComfyUI-Impact-Pack"
+    },
+    "IPAdapterApply": {
+      "display_name": "IP-Adapter Apply",
+      "category": "conditioning",
+      "description": "Applies IP-Adapter model for style/reference transfer",
+      "input_types": {
+        "required": {
+          "ipadapter": { "type": "IPADAPTER", "color": "#9C27B0" },
+          "model": { "type": "MODEL", "color": "#B22222" },
+          "image": { "type": "IMAGE", "color": "#64B5F6" }
+        }
+      },
+      "return_types": ["MODEL"],
+      "return_names": ["MODEL"],
+      "output_colors": ["#B22222"],
+      "priority": "high",
+      "use_cases": ["Style transfer", "Reference image", "Face consistency"],
+      "compatible_outputs": { "MODEL": ["KSampler"] },
+      "example_values": {},
+      "notes": "Requires ComfyUI-IPAdapter-Plus"
+    },
+    "IPAdapterModelLoader": {
+      "display_name": "IP-Adapter Model Loader",
+      "category": "loaders",
+      "description": "Loads IP-Adapter model for reference conditioning",
+      "input_types": {
+        "required": {
+          "ipadapter_name": { "type": "STRING", "description": "IP-Adapter model file" }
+        }
+      },
+      "return_types": ["IPADAPTER"],
+      "return_names": ["IPADAPTER"],
+      "output_colors": ["#9C27B0"],
+      "priority": "high",
+      "use_cases": ["IP-Adapter setup", "Reference conditioning", "Style transfer"],
+      "compatible_outputs": { "IPADAPTER": ["IPAdapterApply"] },
+      "example_values": { "ipadapter_name": "ip-adapter-plus_sdxl_vit-h.safetensors" },
+      "notes": "Requires ComfyUI-IPAdapter-Plus"
+    },
+    "ADE_AnimateDiffLoaderGen1": {
+      "display_name": "AnimateDiff Loader Gen1",
+      "category": "loaders",
+      "description": "Loads AnimateDiff motion module for video generation",
+      "input_types": {
+        "required": {
+          "model_name": { "type": "STRING", "description": "AnimateDiff model file" }
+        }
+      },
+      "return_types": ["MOTION_MODEL"],
+      "return_names": ["MOTION_MODEL"],
+      "output_colors": ["#9C27B0"],
+      "priority": "high",
+      "use_cases": ["Video generation", "Animated LoRA", "Motion modules"],
+      "compatible_outputs": { "MOTION_MODEL": ["ADE_ApplyAnimateDiffModelSimple"] },
+      "example_values": {},
+      "notes": "Requires ComfyUI-AnimateDiff-Evolved"
+    },
+    "VHS_LoadVideo": {
+      "display_name": "VHS Load Video",
+      "category": "loaders",
+      "description": "Loads video file for frame extraction",
+      "input_types": {
+        "required": {
+          "video": { "type": "STRING", "description": "Video file path" }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "high",
+      "use_cases": ["Video input", "Frame extraction", "Video2Video"],
+      "compatible_outputs": { "IMAGE": ["VAEEncode", "SaveImage"] },
+      "example_values": {},
+      "notes": "Requires ComfyUI-VideoHelperSuite"
+    },
+    "VHS_VideoCombine": {
+      "display_name": "VHS Video Combine",
+      "category": "image",
+      "description": "Combines images into video output",
+      "input_types": {
+        "required": {
+          "images": { "type": "IMAGE", "color": "#64B5F6" },
+          "frame_rate": { "type": "FLOAT", "default": 8.0 }
+        }
+      },
+      "return_types": ["GIF"],
+      "return_names": ["GIF"],
+      "output_colors": ["#64B5F6"],
+      "priority": "high",
+      "use_cases": ["Video output", "Animation export", "Frame to video"],
+      "compatible_outputs": {},
+      "example_values": {},
+      "notes": "Requires ComfyUI-VideoHelperSuite"
+    },
+    "BLIPCaption": {
+      "display_name": "BLIP Caption",
+      "category": "conditioning",
+      "description": "Generates image caption using BLIP model",
+      "input_types": {
+        "required": {
+          "image": { "type": "IMAGE", "color": "#64B5F6" },
+          "blip_model": { "type": "STRING", "description": "BLIP model" }
+        }
+      },
+      "return_types": ["STRING"],
+      "return_names": ["STRING"],
+      "output_colors": ["#A9A9A9"],
+      "priority": "medium",
+      "use_cases": ["Image captioning", "Generate-and-verify", "Describe images"],
+      "compatible_outputs": { "STRING": ["CLIPTextEncode"] },
+      "example_values": {},
+      "notes": "Requires ComfyUI-Blip"
+    },
+    "RgthreePowerLoraLoader": {
+      "display_name": "Power LoRA Loader",
+      "category": "loaders",
+      "description": "Loads multiple LoRAs with per-layer strength control",
+      "input_types": {
+        "required": {
+          "model": { "type": "MODEL", "color": "#B22222" },
+          "lora_name": { "type": "STRING" },
+          "strength_model": { "type": "FLOAT", "default": 1.0 },
+          "strength_clip": { "type": "FLOAT", "default": 1.0 }
+        }
+      },
+      "return_types": ["MODEL", "CLIP"],
+      "return_names": ["MODEL", "CLIP"],
+      "output_colors": ["#B22222", "#FFD700"],
+      "priority": "high",
+      "use_cases": ["Multiple LoRAs", "LoRA stacking", "Per-layer control"],
+      "compatible_outputs": { "MODEL": ["KSampler"], "CLIP": ["CLIPTextEncode"] },
+      "example_values": {},
+      "notes": "Requires rgthree-comfy"
+    },
+    "WAS_Image_Blend": {
+      "display_name": "WAS Image Blend",
+      "category": "image",
+      "description": "Blends two images with blend mode and opacity options",
+      "input_types": {
+        "required": {
+          "image_a": { "type": "IMAGE", "color": "#64B5F6", "description": "First image" },
+          "image_b": { "type": "IMAGE", "color": "#64B5F6", "description": "Second image" },
+          "blend_percentage": { "type": "FLOAT", "default": 0.5, "min": 0, "max": 1 }
+        },
+        "optional": {
+          "blend_mode": { "type": "STRING", "default": "normal", "description": "Blend mode (normal, multiply, screen, overlay, etc.)" }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "high",
+      "use_cases": ["Image compositing", "Overlay effects", "Image mixing", "Mask blending"],
+      "compatible_outputs": { "IMAGE": ["SaveImage", "VAEEncode", "ApplyControlNet"] },
+      "example_values": {},
+      "notes": "Requires WAS-Node-Suite"
+    },
+    "WAS_Text_Parse_Tokens": {
+      "display_name": "WAS Text Parse Tokens",
+      "category": "conditioning",
+      "description": "Parses text with token placeholders for dynamic string replacement",
+      "input_types": {
+        "required": {
+          "text": { "type": "STRING", "description": "Text with tokens like **USER**, **DATE**" }
+        },
+        "optional": {
+          "token_1": { "type": "STRING" },
+          "token_2": { "type": "STRING" },
+          "token_3": { "type": "STRING" }
+        }
+      },
+      "return_types": ["STRING"],
+      "return_names": ["STRING"],
+      "output_colors": ["#A9A9A9"],
+      "priority": "high",
+      "use_cases": ["Dynamic prompts", "Template text", "Wildcard replacement", "Batch prompt variations"],
+      "compatible_outputs": { "STRING": ["CLIPTextEncode"] },
+      "example_values": { "text": "Hello **USER**, today is **DATE**" },
+      "notes": "Requires WAS-Node-Suite"
+    },
+    "WAS_Image_Resize": {
+      "display_name": "WAS Image Resize",
+      "category": "image",
+      "description": "Resizes image with various methods and optional aspect ratio",
+      "input_types": {
+        "required": {
+          "image": { "type": "IMAGE", "color": "#64B5F6" },
+          "width": { "type": "INT", "default": 512 },
+          "height": { "type": "INT", "default": 512 }
+        },
+        "optional": {
+          "mode": { "type": "STRING", "default": "lanczos", "description": "Resize mode" },
+          "supersample": { "type": "STRING", "default": "true" }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "high",
+      "use_cases": ["Image resizing", "Aspect ratio adjustment", "Preprocessing for VAE"],
+      "compatible_outputs": { "IMAGE": ["SaveImage", "VAEEncode", "LoadImage"] },
+      "example_values": {},
+      "notes": "Requires WAS-Node-Suite"
+    },
+    "WAS_Image_Mask_Blend": {
+      "display_name": "WAS Image Mask Blend",
+      "category": "image",
+      "description": "Blends two images using a mask",
+      "input_types": {
+        "required": {
+          "image_a": { "type": "IMAGE", "color": "#64B5F6" },
+          "image_b": { "type": "IMAGE", "color": "#64B5F6" },
+          "mask": { "type": "MASK", "color": "#81C784" }
+        },
+        "optional": {
+          "blend_percentage": { "type": "FLOAT", "default": 0.5 }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "medium",
+      "use_cases": ["Masked compositing", "Inpainting prep", "Selective blending"],
+      "compatible_outputs": { "IMAGE": ["SaveImage", "VAEEncode"] },
+      "example_values": {},
+      "notes": "Requires WAS-Node-Suite"
+    },
+    "KJNodes_ImageBlend": {
+      "display_name": "KJNodes Image Blend",
+      "category": "image",
+      "description": "Blends two images with blend factor",
+      "input_types": {
+        "required": {
+          "image_a": { "type": "IMAGE", "color": "#64B5F6" },
+          "image_b": { "type": "IMAGE", "color": "#64B5F6" },
+          "blend_factor": { "type": "FLOAT", "default": 0.5 }
+        }
+      },
+      "return_types": ["IMAGE"],
+      "return_names": ["IMAGE"],
+      "output_colors": ["#64B5F6"],
+      "priority": "medium",
+      "use_cases": ["Image blending", "Overlay effects", "Crossfade"],
+      "compatible_outputs": { "IMAGE": ["SaveImage", "VAEEncode"] },
+      "example_values": {},
+      "notes": "Requires KJNodes"
+    },
+    "KJNodes_SetNode": {
+      "display_name": "KJNodes Set Node",
+      "category": "logic",
+      "description": "Sets a value that can be retrieved by Get Node for cleaner workflow wiring",
+      "input_types": {
+        "required": {
+          "value": { "type": "STRING", "description": "Value to store" }
+        },
+        "optional": {
+          "unique_id": { "type": "STRING", "description": "Unique ID for Get Node reference" }
+        }
+      },
+      "return_types": ["STRING"],
+      "return_names": ["STRING"],
+      "output_colors": ["#A9A9A9"],
+      "priority": "medium",
+      "use_cases": ["Clean workflows", "Avoid wire spaghetti", "Reuse values across nodes"],
+      "compatible_outputs": { "STRING": ["CLIPTextEncode", "KJNodes_GetNode"] },
+      "example_values": {},
+      "notes": "Requires KJNodes"
+    },
+    "KJNodes_GetNode": {
+      "display_name": "KJNodes Get Node",
+      "category": "logic",
+      "description": "Gets a value set by Set Node; references by unique_id",
+      "input_types": {
+        "required": {
+          "unique_id": { "type": "STRING", "description": "ID of the Set Node to retrieve from" }
+        }
+      },
+      "return_types": ["STRING"],
+      "return_names": ["STRING"],
+      "output_colors": ["#A9A9A9"],
+      "priority": "medium",
+      "use_cases": ["Clean workflows", "Value reuse", "Reduce connections"],
+      "compatible_outputs": { "STRING": ["CLIPTextEncode"] },
+      "example_values": {},
+      "notes": "Requires KJNodes"
     }
   }
 }

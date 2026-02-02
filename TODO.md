@@ -3,72 +3,65 @@
 > Workflow Builder plan (like @makafeli/n8n-workflow-builder for ComfyUI)
 
 **Last Updated:** 2026-02-02
-**Status:** v0.4.0 released. Core features complete ✅. Детальний план майбутніх покращень — [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md).
+**Status:** v0.5.0 released. Core + IMPROVEMENT-PLAN Phases 1–9 done ✅. Detailed plan — [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md).
 
 ---
 
-## ✅ Завершені фази (v0.1.0 - v0.4.0)
+## ✅ Completed Phases (v0.1.0 - v0.5.0)
 
-Детальний опис → [CHANGELOG.md](CHANGELOG.md)
+Detailed description → [CHANGELOG.md](CHANGELOG.md)
 
-- **Phase 1-8** — Core MCP server, workflow builder, execution, save/load ✅
-- **IMPROVEMENT-PLAN Phase 1** — 5 нових шаблонів (inpainting, upscale, lora, controlnet, batch) ✅
-- **IMPROVEMENT-PLAN Phase 2** — Dynamic workflow builder API ✅
-- **IMPROVEMENT-PLAN Phase 3** — Node discovery enhancement ✅
-- **IMPROVEMENT-PLAN Phase 4** — Execution improvements (batch, chaining, outputs) ✅
-- **IMPROVEMENT-PLAN Phase 5** — Model management ✅
-- **IMPROVEMENT-PLAN Phase 6** — Workflow composition (templates, macros, plugins) ✅
+- **Phase 1–8** — Core MCP server, workflow builder, execution, save/load, WebSocket ✅
+- **IMPROVEMENT-PLAN Phase 1–6** — Templates, dynamic builder, discovery, execution, models, composition ✅
+- **IMPROVEMENT-PLAN Phase 7** — Docker testing, image `siniidrozd/mcp-comfy-ui-builder:0.5.0` ✅
+- **IMPROVEMENT-PLAN Phase 8** — WebSocket support ✅
+- **IMPROVEMENT-PLAN Phase 9** — Knowledge Base expansion, sync-nodes, sync on MCP startup ✅
 
-**Поточні можливості:**
-- 40+ MCP інструментів
-- 8 готових шаблонів workflows
+**Current capabilities:**
+- 50+ MCP tools
+- 8 workflow templates
 - Dynamic workflow builder
-- Batch та chain execution
+- Batch and chain execution (WebSocket-optimized)
 - Model management
 - Plugin system
-- 31+ нод в knowledge base
-- 18 comprehensive test suites
+- 62 seed nodes + sync from ComfyUI (100–600+ after sync-nodes)
+- CLI: seed, sync-manager, sync-nodes (including daemon --interval)
 
 ---
 
-## 🚀 Наступні кроки (Фаза 7+)
+## 🚀 Next Steps (Phase 7+)
 
-Детальний план → [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md)
+Detailed plan → [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md)
 
-### Високий пріоритет
+### High priority
 
 #### Docker Testing & Publishing
-- [ ] Протестувати Docker build локально
-- [ ] Протестувати docker-compose стек з ComfyUI
-- [ ] Опублікувати образ на Docker Hub/GHCR
-- [ ] Додати CI/CD для автоматичної публікації
-- **Файли готові:** Dockerfile ✅, docker-compose.example.yml ✅, doc/DOCKER-SETUP.md ✅
+- [x] Test Docker build locally ✅
+- [x] Publish image: `siniidrozd/mcp-comfy-ui-builder:0.5.0` ✅
+- [ ] CI/CD for automated image publishing
 
 #### WebSocket Support (Phase 8)
-- [ ] ComfyUI WebSocket client (`src/comfyui-ws-client.ts`)
-- [ ] Real-time progress tracking
-- [ ] Streaming execution API
-- [ ] MCP improvements для real-time updates
+- [x] ComfyUI WebSocket client ✅
+- [x] Real-time progress, streaming API, MCP improvements ✅
 
 #### Knowledge Base Expansion (Phase 9)
-- [ ] Додати top 50 custom node packs
-- [ ] Автоматизувати оновлення knowledge base
-- [ ] Advanced compatibility checking
-- [ ] Node usage statistics
+- [x] 62 seed nodes, 26 packs, WAS/KJNodes full definitions ✅
+- [x] CLI `sync-nodes`, sync on MCP startup ✅
+- [ ] Node usage statistics (optional)
 
-### Середній пріоритет
+### Medium priority
 
 #### Plugin System Extensions (Phase 7.2)
-- [ ] Plugin marketplace каталог
+- [ ] Plugin marketplace catalog
 - [ ] MCP tool `install_plugin(url)`
 - [ ] Plugin dependencies
-- [ ] Versioning та сумісність
+- [ ] Versioning and compatibility
 
 #### Quality of Life (Phase 10)
 - [ ] Workflow validation improvements
 - [ ] Template improvements (inheritance, conditional params)
 - [ ] Workflow optimization tools
-- [ ] Export/Import покращення
+- [ ] Export/Import improvements
 
 ---
 
@@ -79,23 +72,22 @@
 - [ ] Test global install: `npm i -g mcp-comfy-ui-builder` (optional)
 
 ### GitHub
-- [ ] Оновити опис репозиторію
-- [ ] Додати topics/keywords
-- [ ] GitHub Releases для версій
+- [ ] Update repository description
+- [ ] Add topics/keywords
+- [ ] GitHub Releases for versions
 
 ### Docker
-- [ ] Опублікувати на Docker Hub
-- [ ] Опублікувати на GHCR
+- [x] Publish to Docker Hub (`siniidrozd/mcp-comfy-ui-builder`) ✅
 
 ---
 
-## 📝 Посилання
+## 📝 Links
 
-- **Майбутні плани:** [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md) — Фази 7-10
-- **Історія змін:** [CHANGELOG.md](CHANGELOG.md) — Детальний опис версій
-- **Timeline:** [ROADMAP.md](ROADMAP.md) — Загальний план розвитку
+- **Future plans:** [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md) — Phases 7-10
+- **Changelog:** [CHANGELOG.md](CHANGELOG.md) — Version history
+- **Timeline:** [ROADMAP.md](ROADMAP.md) — Development roadmap
 - **ComfyUI API:** [doc/comfyui-api-quick-reference.md](doc/comfyui-api-quick-reference.md)
-- **Документація:** [doc/INDEX.md](doc/INDEX.md) — Повний індекс документації
+- **Documentation:** [doc/INDEX.md](doc/INDEX.md) — Full documentation index
 
 ---
 
@@ -113,14 +105,14 @@ export COMFYUI_HOST=http://127.0.0.1:8188
 export COMFYUI_PATH=/path/to/ComfyUI
 ```
 
-**Доступні можливості:**
-- 40+ MCP tools для workflow building, execution, та управління
-- Knowledge base з 31+ нодами (працює без ComfyUI)
-- 8 готових шаблонів
+**Available capabilities:**
+- 50+ MCP tools for workflow building, execution, and management
+- Knowledge base: 62 seed nodes + sync from ComfyUI (works without ComfyUI for suggest/build)
+- 8 workflow templates
 - Dynamic workflow builder
 - Model management
 - Plugin system
 
 ---
 
-*Останнє оновлення: 2026-02-02*
+*Last updated: 2026-02-02*

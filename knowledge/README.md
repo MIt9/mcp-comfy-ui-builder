@@ -47,15 +47,34 @@ Each node contains:
 
 ## How to Fill the Knowledge Base
 
+### 1. Seed (from bundled data)
+
 Run **`npm run seed`** to fill `base-nodes.json` and `node-compatibility.json` from the bundled seed files.
 
 - **Merge** (default): add only missing nodes from seed to existing base.
 - **Overwrite**: `npm run seed -- --force` to replace base and compatibility with seed.
 
+### 2. Sync from ComfyUI (live discovery)
+
+When ComfyUI is running with custom nodes installed, sync their definitions into the knowledge base:
+
+```bash
+# One-time sync (requires COMFYUI_HOST, default http://127.0.0.1:8188)
+COMFYUI_HOST=http://127.0.0.1:8188 npm run sync-nodes
+
+# Daemon mode: sync every 30 minutes (e.g. after installing new nodes)
+npm run sync-nodes -- --interval 30
+```
+
+This fetches `/object_info` from ComfyUI and adds **only new nodes** not already in `base-nodes.json`. Use after installing custom node packs or restarting ComfyUI with new nodes.
+
+**MCP startup sync:** When the MCP server starts with `COMFYUI_HOST` set, it automatically syncs new nodes in the background (non-blocking).
+
 ## How to Add a New Node
 
 1. **Seed**: `npm run seed` to get the base set of nodes from seed files.
-2. **Manually**: add an object to `base-nodes.json` → `nodes.NodeClassName` (or to custom-nodes as a pack).
+2. **Sync**: `npm run sync-nodes` (ComfyUI running) to pull live node definitions.
+3. **Manually**: add an object to `base-nodes.json` → `nodes.NodeClassName` (or to custom-nodes as a pack).
 
 After adding a node, update `node-compatibility.json` (producers/consumers for types) if needed.
 
@@ -74,4 +93,4 @@ const modelProducers = compatibility.data_types?.MODEL?.producers ?? [];
 
 ***
 
-*Knowledge Base README v1.0* | *2026-02-01*
+*Knowledge Base README v1.1* | *2026-02-02*

@@ -1,8 +1,8 @@
 {
   "metadata": {
     "version": "1.0.0",
-    "last_updated": "2026-02-01",
-    "total_packs": 16,
+    "last_updated": "2026-02-02",
+    "total_packs": 26,
     "source": "ComfyUI-Manager custom-node-list + manual"
   },
   "packs": [
@@ -158,6 +158,87 @@
       "description": "IF (DeepFloyd) model support",
       "key_nodes": ["IF_UnetLoader", "IF_Stage1", "IF_Stage2"],
       "use_cases": ["IF model", "DeepFloyd pipeline"]
+    },
+    {
+      "name": "ComfyUI-Inspire-Pack",
+      "repo": "https://github.com/ltdrdata/ComfyUI-Inspire-Pack",
+      "author": "ltdrdata",
+      "priority": "high",
+      "description": "Regional prompts, Lora Block Weight, wildcards",
+      "key_nodes": ["LoraBlockWeight", "RegionalPrompt", "WildcardProcessor"],
+      "use_cases": ["Regional prompting", "LoRA layer control", "Wildcard expansion"]
+    },
+    {
+      "name": "ComfyUI-Workflow-Component",
+      "repo": "https://github.com/Acly/comfyui-workflow-component",
+      "author": "Acly",
+      "priority": "medium",
+      "description": "Workflow component and subgraph nodes",
+      "key_nodes": ["WorkflowComponent", "WorkflowInput", "WorkflowOutput"],
+      "use_cases": ["Workflow reuse", "Subgraphs", "Component library"]
+    },
+    {
+      "name": "ComfyUI-PhotoMaker",
+      "repo": "https://github.com/cubiq/ComfyUI_PhotoMaker",
+      "author": "cubiq",
+      "priority": "medium",
+      "description": "PhotoMaker for personalized photo generation",
+      "key_nodes": ["PhotoMakerLoader", "PhotoMakerEncode"],
+      "use_cases": ["Personalized photos", "ID-based generation", "Photo style"]
+    },
+    {
+      "name": "ComfyUI-SUPIR",
+      "repo": "https://github.com/Fannovel16/comfyui-SUPIR",
+      "author": "Fannovel16",
+      "priority": "medium",
+      "description": "SUPIR image restoration and upscaling",
+      "key_nodes": ["SUPIRModelLoader", "SUPIRUpscale"],
+      "use_cases": ["Image restoration", "AI upscaling", "Denoising"]
+    },
+    {
+      "name": "ComfyUI-Comfyroll",
+      "repo": "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes",
+      "author": "Suzie1",
+      "priority": "medium",
+      "description": "Utility nodes for workflows, logic, batch",
+      "key_nodes": ["Comfyroll_AspectRatio", "Comfyroll_IntegerMultiple", "Comfyroll_SaveImage"],
+      "use_cases": ["Aspect ratio", "Batch utils", "Workflow QoL"]
+    },
+    {
+      "name": "ComfyUI-Refacer",
+      "repo": "https://github.com/cubiq/ComfyUI_Refacer",
+      "author": "cubiq",
+      "priority": "medium",
+      "description": "Face swap with Refacer/ReActor",
+      "key_nodes": ["RefacerModelLoader", "ApplyRefacer"],
+      "use_cases": ["Face swap", "Video face replace", "ID transfer"]
+    },
+    {
+      "name": "ComfyUI-ttN",
+      "repo": "https://github.com/tinyTerra/ComfyUI_tinyterraNodes",
+      "author": "tinyTerra",
+      "priority": "medium",
+      "description": "tinyTerra nodes for workflow utilities",
+      "key_nodes": ["ttN_imageRE", "ttN_pipeLoader", "ttN_sampler"],
+      "use_cases": ["Image load/save", "Pipe loader", "Sampling helpers"]
+    },
+    {
+      "name": "ComfyUI-Plus",
+      "repo": "https://github.com/BlenderNeko/ComfyUI_plus",
+      "author": "BlenderNeko",
+      "priority": "medium",
+      "description": "Additional nodes for conditioning and sampling",
+      "key_nodes": ["CLIPTextEncodeSDXL", "BasicGuider", "BasicSampling"],
+      "use_cases": ["SDXL conditioning", "Custom sampling", "Guidance"]
+    },
+    {
+      "name": "ComfyUI-Impact-Wildcard",
+      "repo": "https://github.com/ltdrdata/ComfyUI-Impact-Subpack",
+      "author": "ltdrdata",
+      "priority": "medium",
+      "description": "Wildcard and dynamic prompt processing",
+      "key_nodes": ["ImpactWildcardProcessor", "ImpactLoraLoader"],
+      "use_cases": ["Wildcards", "Dynamic prompts", "LoRA loading"]
     }
   ]
 }

@@ -13,10 +13,14 @@ npm run seed
 npm run seed -- --force
 ```
 
-### 🔄 Sync custom packs
+### 🔄 Sync custom packs & live nodes
 
 ```bash
 npm run sync-manager
+# Sync nodes from running ComfyUI (object_info) → knowledge base
+COMFYUI_HOST=http://127.0.0.1:8188 npm run sync-nodes
+# Daemon: sync every 30 min
+npm run sync-nodes -- --interval 30
 ```
 
 ### 🧪 Tests and MCP

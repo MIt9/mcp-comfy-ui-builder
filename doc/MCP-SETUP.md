@@ -21,7 +21,7 @@ Tools are grouped by area. **COMFYUI_HOST** is required for execution/queue/outp
 | **get_node_inputs(node_name)** | Required/optional inputs for a node |
 | **get_node_outputs(node_name)** | Output types and names for a node |
 | **list_node_categories** | List all node categories (from live or knowledge) |
-| **sync_nodes_to_knowledge** | Write live object_info into knowledge base files |
+| **sync_nodes_to_knowledge** | Write live object_info into knowledge base. Also: MCP syncs on startup (background) when ComfyUI is available; CLI `npm run sync-nodes` for one-shot or daemon. |
 
 ### Dynamic workflow builder (no ComfyUI)
 
