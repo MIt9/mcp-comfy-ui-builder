@@ -114,6 +114,9 @@ const DEFAULT_TXT2IMG = {
   denoise: 1,
 };
 
+/** Default KSampler inputs required by ComfyUI (sampler_name, scheduler). */
+const DEFAULT_KSAMPLER = { sampler_name: 'euler' as const, scheduler: 'normal' as const };
+
 const DEFAULT_IMG2IMG = {
   image: 'input.png',
   steps: 20,
@@ -212,6 +215,7 @@ function buildImg2Img(params: Img2ImgParams): ComfyUIWorkflow {
     '6': {
       class_type: 'KSampler',
       inputs: {
+        ...DEFAULT_KSAMPLER,
         model: ['1', 0],
         positive: ['4', 0],
         negative: ['5', 0],
@@ -318,6 +322,7 @@ function buildTxt2Img(params: Txt2ImgParams): ComfyUIWorkflow {
     '5': {
       class_type: 'KSampler',
       inputs: {
+        ...DEFAULT_KSAMPLER,
         model: ['1', 0],
         positive: ['2', 0],
         negative: ['3', 0],
@@ -387,6 +392,7 @@ function buildUpscale(params: UpscaleParams): ComfyUIWorkflow {
     nodes['9'] = {
       class_type: 'KSampler',
       inputs: {
+        ...DEFAULT_KSAMPLER,
         model: ['5', 0],
         positive: ['6', 0],
         negative: ['7', 0],
@@ -455,6 +461,7 @@ function buildTxt2ImgLora(params: Txt2ImgLoraParams): ComfyUIWorkflow {
   nodes[samplerId] = {
     class_type: 'KSampler',
     inputs: {
+      ...DEFAULT_KSAMPLER,
       model: lastModel,
       positive: [clipPosId, 0],
       negative: [clipNegId, 0],
@@ -519,6 +526,7 @@ function buildControlNet(params: ControlNetParams): ComfyUIWorkflow {
     '8': {
       class_type: 'KSampler',
       inputs: {
+        ...DEFAULT_KSAMPLER,
         model: ['1', 0],
         positive: ['6', 0],
         negative: ['6', 1],

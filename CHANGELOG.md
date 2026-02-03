@@ -8,6 +8,44 @@ Project change history. Knowledge base (nodes) → [knowledge/CHANGELOG.md](know
 
 ---
 
+## [2.1.2] – 2026-02-03
+
+### Added
+
+- **get_node_info (live-first):** When COMFYUI_HOST is set, uses live ComfyUI via hybrid discovery first; returns node definition from `/object_info` (with `_source: 'live'`) so KSampler and other nodes have up-to-date required inputs (e.g. sampler_name, scheduler). Falls back to knowledge base when ComfyUI is unavailable or node not in live. [src/mcp-server.ts](src/mcp-server.ts) — liveNodeInfoToDescription().
+- **waitForCompletion(promptId, timeoutMs, onProgress?):** Exported from comfyui-client for MCP handler; allows submit-then-wait flow so prompt_id can be returned on wait failure. [src/comfyui-client.ts](src/comfyui-client.ts).
+
+### Changed
+
+- **execute_workflow_sync:** Refactored to submitPrompt() first, then waitForCompletion(prompt_id). On wait failure or throw, response includes prompt_id in JSON so client can use get_history/get_last_output. [src/mcp-server.ts](src/mcp-server.ts), [src/comfyui-client.ts](src/comfyui-client.ts).
+- **Documentation:** MCP-SETUP — note that for long runs the MCP client may disconnect; use get_history(limit=5) or get_last_output() to recover. [doc/MCP-SETUP.md](doc/MCP-SETUP.md).
+
+### Tests
+
+- **comfyui-client.test.ts:** getHistory normalizes keyed response for GET /history/{prompt_id} (ComfyUI format `{ [prompt_id]: { outputs, status } }`). [tests/comfyui-client.test.ts](tests/comfyui-client.test.ts).
+
+---
+
+## [2.1.1] – 2026-02-03
+
+### Fixed (Bug_Report_1)
+
+- **get_node_info("KSampler"):** Added `sampler_name` and `scheduler` to `input_types.required` in `knowledge/base-nodes.json` so the tool returns complete inputs consistent with live ComfyUI.
+- **build_workflow (txt2img, img2img, inpainting, upscale refine, txt2img_lora, controlnet):** All KSampler nodes now include `sampler_name: 'euler'` and `scheduler: 'normal'` so generated workflows execute without `required_input_missing` errors.
+- **list_outputs / download_output:** `getHistory(promptId)` in `comfyui-client.ts` now normalizes ComfyUI response when GET `/history/{prompt_id}` returns keyed format `{ [prompt_id]: { outputs, status } }`, so outputs are found correctly.
+- **execute_workflow_sync:** Error message in catch now suggests using `get_history(limit=5)` or `get_last_output()` when the workflow was already submitted (recovery when client times out).
+
+### Changed
+
+- **get_generation_recommendations:** Fixed TypeScript assignability (ResourceRecommendations → Record<string, unknown>) in mcp-server.ts.
+
+### Tests
+
+- **mcp-tools.test.ts:** Assert KSampler from get_node_info has `sampler_name` and `scheduler` in required inputs.
+- **workflow-builder.test.ts:** Assert txt2img KSampler inputs include `sampler_name: 'euler'` and `scheduler: 'normal'`.
+
+---
+
 ## [2.1.0] – 2026-02-03
 
 ### Added

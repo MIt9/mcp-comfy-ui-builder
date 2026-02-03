@@ -53,7 +53,7 @@ Tools are grouped by area. **COMFYUI_HOST** is required for execution/queue/outp
 | Tool | Description | Real-Time |
 |------|------|-----------|
 | **execute_workflow(workflow)** | Submit workflow to ComfyUI; returns prompt_id | N/A |
-| **execute_workflow_sync(workflow, timeout?, stream_progress?)** | Submit and wait until done; returns prompt_id, outputs, and progress log. Always returns prompt_id (even on error) so you can use get_history/get_last_output if the result was lost (e.g. client-side timeout). | ✅ WebSocket + polling fallback |
+| **execute_workflow_sync(workflow, timeout?, stream_progress?)** | Submit and wait until done; returns prompt_id, outputs, and progress log. Always returns prompt_id (even on error) so you can use get_history/get_last_output if the result was lost (e.g. client-side timeout). For long runs the MCP client may disconnect before the server responds—use get_history(limit=5) or get_last_output() to recover prompt_id and outputs. | ✅ WebSocket + polling fallback |
 | **execute_workflow_stream(workflow, timeout?)** | Execute with full event history (requires WebSocket) | ✅ WebSocket required |
 | **get_execution_status(prompt_id)** | Status and image outputs for a prompt | N/A |
 | **get_execution_progress(prompt_id)** | Progress info (current node, progress %, queue position) | ✅ WebSocket + polling fallback |

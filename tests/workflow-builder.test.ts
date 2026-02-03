@@ -29,6 +29,8 @@ describe('workflow-builder', () => {
       cfg: 8,
       denoise: 1,
       seed: 0,
+      sampler_name: 'euler',
+      scheduler: 'normal',
     });
     expect(workflow['7'].class_type).toBe('SaveImage');
   });

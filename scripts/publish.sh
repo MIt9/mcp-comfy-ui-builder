@@ -47,4 +47,7 @@ docker tag mcp-comfy-ui-builder:latest "siniidrozd/mcp-comfy-ui-builder:${VERSIO
 docker push "siniidrozd/mcp-comfy-ui-builder:${VERSION}"
 docker push siniidrozd/mcp-comfy-ui-builder:latest
 
+echo "--- update package localy ---"
+npm install -g mcp-comfy-ui-builder@latest
+
 echo "Done. Published version $VERSION (git, npm, docker)."

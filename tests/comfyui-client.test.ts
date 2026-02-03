@@ -70,6 +70,23 @@ describe('ComfyUI client', () => {
     expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/history/p1'), expect.any(Object));
   });
 
+  it('getHistory normalizes keyed response for GET /history/{prompt_id} (ComfyUI format)', async () => {
+    const { getHistory } = await import('../src/comfyui-client.js');
+    const keyed = {
+      'p-uuid-123': {
+        outputs: { '7': { images: [{ filename: 'out.png', subfolder: 'output', type: 'output' }] } },
+        status: { status_str: 'completed' },
+      },
+    };
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => keyed });
+    const result = await getHistory('p-uuid-123');
+    expect(result).toHaveLength(1);
+    expect(result[0].prompt_id).toBe('p-uuid-123');
+    expect(result[0].outputs).toEqual(keyed['p-uuid-123'].outputs);
+    expect(result[0].status).toEqual(keyed['p-uuid-123'].status);
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/history/p-uuid-123'), expect.any(Object));
+  });
+
   it('fetchOutputByFilename fetches /view by filename', async () => {
     const { fetchOutputByFilename } = await import('../src/comfyui-client.js');
     const bytes = new Uint8Array([1, 2, 3]);

@@ -1,3 +1,6 @@
+# Temporary / working documents
+.tmp/
+
 # Dependencies
 node_modules/
 .npm-cache/

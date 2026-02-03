@@ -112,6 +112,16 @@ describe('MCP tools logic (fixture data)', () => {
     expect(parsed.category).toBeDefined();
   });
 
+  it('get_node_info KSampler includes sampler_name and scheduler in required inputs', () => {
+    const text = getNodeInfo(base, 'KSampler');
+    const parsed = JSON.parse(text) as NodeDescription;
+    const required = parsed.input_types?.required ?? {};
+    expect(required).toHaveProperty('sampler_name');
+    expect(required).toHaveProperty('scheduler');
+    expect((required.sampler_name as { type?: string }).type).toBe('COMBO');
+    expect((required.scheduler as { type?: string }).type).toBe('COMBO');
+  });
+
   it('get_node_info returns message for missing node', () => {
     const text = getNodeInfo(base, 'NonExistentNodeXYZ');
     expect(text).toContain('not found');

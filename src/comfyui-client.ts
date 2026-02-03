@@ -90,7 +90,14 @@ export async function getHistory(promptId?: string): Promise<HistoryEntry[]> {
   }
   const data = await res.json();
   if (promptId && data && typeof data === 'object' && !Array.isArray(data)) {
-    return [data as HistoryEntry];
+    // ComfyUI GET /history/{id} can return flat { outputs, status } or keyed { [prompt_id]: { outputs, status } }
+    const keyed = data as Record<string, unknown>;
+    const entry =
+      keyed[promptId] != null
+        ? (keyed[promptId] as HistoryEntry)
+        : (keyed.outputs != null && keyed.status != null ? data : Object.values(keyed)[0]) as HistoryEntry;
+    const withId = entry && typeof entry === 'object' ? { ...entry, prompt_id: promptId } : (data as HistoryEntry);
+    return [withId as HistoryEntry];
   }
   if (Array.isArray(data)) {
     return data as HistoryEntry[];
@@ -363,25 +370,33 @@ export async function submitPromptAndWaitWithProgress(
   onProgress?: (progress: import('./types/comfyui-api-types.js').ExecutionProgress) => void
 ): Promise<ExecutionResult> {
   const { prompt_id } = await submitPrompt(workflow);
-
   try {
-    // Try WebSocket first
-    try {
-      const { getWSClient } = await import('./comfyui-ws-client.js');
-      const wsClient = getWSClient();
-      await wsClient.connect();
-      return await waitWithWebSocket(wsClient, prompt_id, timeoutMs, onProgress);
-    } catch {
-      // Fallback to polling when WebSocket fails or times out
-      return await waitWithPolling(prompt_id, timeoutMs);
-    }
+    return await waitForCompletion(prompt_id, timeoutMs, onProgress);
   } catch (e) {
-    // Ensure prompt_id is always returned so client can use get_history/get_last_output
     return {
       prompt_id,
       status: 'failed',
       error: e instanceof Error ? e.message : String(e),
     };
+  }
+}
+
+/**
+ * Wait for execution completion (WebSocket if available, else polling).
+ * Use after submitPrompt() when you already have prompt_id. Exported for MCP handler so prompt_id can be returned on wait failure.
+ */
+export async function waitForCompletion(
+  promptId: string,
+  timeoutMs: number = DEFAULT_SYNC_TIMEOUT_MS,
+  onProgress?: (progress: import('./types/comfyui-api-types.js').ExecutionProgress) => void
+): Promise<ExecutionResult> {
+  try {
+    const { getWSClient } = await import('./comfyui-ws-client.js');
+    const wsClient = getWSClient();
+    await wsClient.connect();
+    return await waitWithWebSocket(wsClient, promptId, timeoutMs, onProgress);
+  } catch {
+    return await waitWithPolling(promptId, timeoutMs);
   }
 }
 

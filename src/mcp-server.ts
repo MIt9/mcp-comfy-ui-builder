@@ -176,15 +176,62 @@ server.registerTool(
   }
 );
 
+/** Convert live NodeInfo to NodeDescription-like shape for get_node_info response. */
+function liveNodeInfoToDescription(info: import('./node-discovery/hybrid-discovery.js').NodeInfo): Record<string, unknown> {
+  const required: Record<string, { type: string; default?: unknown }> = {};
+  for (const [name, value] of Object.entries(info.input.required ?? {})) {
+    if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+      const config = (value as [string, Record<string, unknown>?])[1];
+      required[name] = {
+        type: value[0],
+        ...(config?.default !== undefined && { default: config.default }),
+      };
+    } else if (typeof value === 'string') {
+      required[name] = { type: value };
+    } else {
+      required[name] = { type: 'UNKNOWN' };
+    }
+  }
+  return {
+    display_name: info.display_name,
+    category: info.category,
+    description: info.description ?? '',
+    input_types: { required, optional: info.input.optional ?? {} },
+    return_types: info.output,
+    return_names: info.output_name,
+    output_colors: info.output.map(() => '#888'),
+    use_cases: [],
+    compatible_outputs: {},
+    example_values: {},
+    priority: 'medium',
+    _source: 'live',
+  };
+}
+
 server.registerTool(
   'get_node_info',
   {
-    description: 'Get full node information for a ComfyUI node by its class name.',
+    description:
+      'Get full node information for a ComfyUI node by its class name. Uses live ComfyUI when COMFYUI_HOST is set, otherwise knowledge base.',
     inputSchema: {
       node_name: z.string().describe('Node class name (e.g. KSampler, CheckpointLoaderSimple)'),
     },
   },
-  (args) => {
+  async (args) => {
+    if (comfyui.isComfyUIConfigured()) {
+      const hybrid = getHybridDiscovery();
+      if (hybrid) {
+        try {
+          const node = await hybrid.getNode(args.node_name);
+          if (node && node.source === 'live') {
+            const desc = liveNodeInfoToDescription(node);
+            return { content: [{ type: 'text', text: JSON.stringify(desc, null, 2) }] };
+          }
+        } catch {
+          // Fall through to knowledge base
+        }
+      }
+    }
     const base = loadBaseNodes();
     const node = (base.nodes ?? {})[args.node_name];
     if (!node) {
@@ -722,12 +769,14 @@ server.registerTool(
     if (!validation.valid) {
       return { content: [{ type: 'text', text: `Workflow validation failed:\n${validation.errors.join('\n')}` }] };
     }
+    const streamProgress = args.stream_progress ?? true;
+    const progressUpdates: string[] = [];
+    let prompt_id: string | undefined;
     try {
-      const streamProgress = args.stream_progress ?? true;
-      const progressUpdates: string[] = [];
-
-      const result = await comfyui.submitPromptAndWaitWithProgress(
-        parsed,
+      const submitted = await comfyui.submitPrompt(parsed);
+      prompt_id = submitted.prompt_id;
+      const result = await comfyui.waitForCompletion(
+        prompt_id,
         args.timeout_ms,
         streamProgress
           ? (progress) => {
@@ -739,18 +788,26 @@ server.registerTool(
             }
           : undefined
       );
-
       const isWebSocket = await comfyui.isWebSocketAvailable();
       const output = {
         ...result,
         progress_method: isWebSocket ? 'websocket' : 'polling',
         ...(progressUpdates.length > 0 && { progress_log: progressUpdates }),
       };
-
       return { content: [{ type: 'text', text: JSON.stringify(output, null, 2) }] };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `execute_workflow_sync failed: ${msg}` }] };
+      const hint =
+        ' If the workflow was already submitted, use get_history(limit=5) or get_last_output() to find the run and prompt_id.';
+      if (prompt_id != null) {
+        const partial = JSON.stringify(
+          { prompt_id, status: 'failed', error: msg },
+          null,
+          2
+        );
+        return { content: [{ type: 'text', text: `${partial}\n${hint}` }] };
+      }
+      return { content: [{ type: 'text', text: `execute_workflow_sync failed: ${msg}.${hint}` }] };
     }
   }
 );
@@ -1378,7 +1435,7 @@ server.registerTool(
       try {
         const stats = await comfyui.getSystemStats();
         const rec = analyzeSystemResources(stats);
-        result.system = rec;
+        result.system = rec as unknown as Record<string, unknown>;
         result.summary.push(rec.summary);
         if (rec.warnings?.length) {
           result.summary.push(...rec.warnings);
