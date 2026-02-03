@@ -138,7 +138,7 @@ Or without npm: `node dist/mcp-server.js`. Server works via **stdio** (stdin/std
 
 ### Connect MCP (Cursor / Claude)
 
-**What you need:** Node.js 18+, one-time build (`npm run build`), **absolute path** to `dist/mcp-server.js`, restart after config change.
+**What you need:** Node.js 18+, one-time build (`npm run build`), **absolute path** to `dist/mcp-server.js`, restart after config change. If the server fails to start with **«spawn node ENOENT»**, use the **full path to node** in `command` (run `which node` and put that path). See [doc/MCP-SETUP.md](doc/MCP-SETUP.md) → Troubleshooting.
 
 **Minimal config** (knowledge and workflow tools only):
 ```json
@@ -151,6 +151,8 @@ Or without npm: `node dist/mcp-server.js`. Server works via **stdio** (stdin/std
   }
 }
 ```
+
+Use full path in `command` (e.g. `"/opt/homebrew/bin/node"`) if Cursor/IDE reports «spawn node ENOENT».
 
 **With ComfyUI execution** (execute_workflow, get_execution_status, list_outputs, etc.): add `"env": { "COMFYUI_HOST": "http://127.0.0.1:8188" }` to the server block. See [doc/MCP-SETUP.md](doc/MCP-SETUP.md) for full checklist, optional env vars (COMFYUI_PATH, COMFYUI_KNOWLEDGE_DIR), and troubleshooting.
 

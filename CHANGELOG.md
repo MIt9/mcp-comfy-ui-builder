@@ -8,6 +8,19 @@ Project change history. Knowledge base (nodes) → [knowledge/CHANGELOG.md](know
 
 ---
 
+## [2.0.1] – 2026-02-03
+
+### Added
+
+- **spawn node ENOENT:** Documentation and troubleshooting for when Cursor/IDE cannot find `node` in PATH. [doc/MCP-SETUP.md](doc/MCP-SETUP.md) — new row in Troubleshooting and section "Command: full path to node"; [examples/README.md](examples/README.md), [README.md](README.md), [doc/AI-ASSISTANT-GUIDE.md](doc/AI-ASSISTANT-GUIDE.md) — use full path to Node in `command`.
+- **cursor-mcp-full-template.json:** Full MCP config template with three placeholders (REPLACE_WITH_FULL_PATH_TO_NODE, REPLACE_WITH_PACKAGE_PATH, REPLACE_WITH_COMFYUI_PATH) and example after replacement (macOS, Homebrew). [examples/cursor-mcp-full-template.json](examples/cursor-mcp-full-template.json), [examples/README.md](examples/README.md).
+
+### Changed
+
+- **Documentation:** All user-facing docs in English. Examples and MCP-SETUP references updated for the new template.
+
+---
+
 ## [2.0.0] – 2026-02-03
 
 ### Added

@@ -129,7 +129,7 @@ function initPlugins(): void {
 }
 
 const server = new McpServer(
-  { name: 'mcp-comfy-ui-builder', version: '2.0.0' },
+  { name: 'mcp-comfy-ui-builder', version: '2.0.1' },
   { capabilities: { tools: {} } }
 );
 

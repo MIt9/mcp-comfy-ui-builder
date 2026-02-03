@@ -169,6 +169,7 @@ If the user specifically wants to “open from the image” — for now the reli
 ## What to tell the user
 
 - If they say they installed globally: help them find the path to `dist/mcp-server.js` and add it to MCP in Cursor (as above).
+- **If MCP server fails to start with “spawn node ENOENT”:** Cursor/IDE often doesn’t have `node` in PATH. Tell them to use the **full path to Node** in the MCP config `command` field: run `which node` (or `nvm which current` if using nvm) and set `"command": "/that/path"` (e.g. `"/opt/homebrew/bin/node"`). See doc/MCP-SETUP.md → Troubleshooting.
 - If they need to generate something in ComfyUI: check whether they want to run on their ComfyUI (then COMFYUI_HOST and a running ComfyUI are needed); if not — build_workflow / save / load is enough.
 - txt2img params: width, height, steps, cfg, prompt, negative_prompt, seed, ckpt_name, filename_prefix, batch_size, denoise (details in doc/workflow-builder.md).
 - img2img params: image, steps, cfg, prompt, negative_prompt, seed, ckpt_name, filename_prefix, denoise (default 0.75 — lower = more like the original).

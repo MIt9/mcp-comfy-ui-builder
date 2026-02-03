@@ -1,6 +1,6 @@
 {
   "name": "mcp-comfy-ui-builder",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "MCP server for ComfyUI: seed knowledge base (62+ nodes), 50+ tools for workflow building, real-time execution (WebSocket), batch/chain, model management. For Cursor and Claude.",
   "mcpName": "io.github.MIt9/comfy-ui-builder",
   "type": "module",

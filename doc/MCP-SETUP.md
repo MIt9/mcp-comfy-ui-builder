@@ -289,16 +289,37 @@ See [WEBSOCKET-GUIDE.md](WEBSOCKET-GUIDE.md) for advanced usage.
 
 | Problem | What to check |
 |----------|----------------|
+| **spawn node ENOENT** / **Server fails to start** (Cursor/IDE) | The app may not have `node` in its PATH. Use the **full path to Node** in `command` instead of `"node"`. In terminal run `which node` (or `nvm which current` if using nvm) and put that path in config, e.g. `"command": "/opt/homebrew/bin/node"` or `"/usr/local/bin/node"`. See [Command: full path to node](#command-full-path-to-node) below. |
 | **MCP doesn't see tools** | Path in `args` must be **absolute** to `dist/mcp-server.js`. After changing config — fully restart Cursor/Claude. |
-| **Server doesn't start** | Run `npm run build` from project root. Make sure there's a `knowledge/` folder (created by build from seed) with `base-nodes.json` and `node-compatibility.json`. |
+| **Server doesn't start** (build/run) | Run `npm run build` from project root. Make sure there's a `knowledge/` folder (created by build from seed) with `base-nodes.json` and `node-compatibility.json`. |
 | **Empty node list** | File `knowledge/base-nodes.json` must contain `nodes` object. Run `npm run seed` or add nodes manually. |
 | **"ComfyUI is not configured"** | Set `COMFYUI_HOST` in the MCP server config (`env` block). Example: `"COMFYUI_HOST": "http://127.0.0.1:8188"`. ComfyUI must be running at that URL. |
 | **ENOENT base-nodes.json / sync_nodes_to_knowledge** | MCP may be started from another app with a different working directory. Set `COMFYUI_KNOWLEDGE_DIR` to the full path of the package `knowledge/` folder, or run MCP from the package root. See [GETTING-STARTED.md](GETTING-STARTED.md#knowledge-base-and-sync_nodes_to_knowledge). |
 | **install_custom_node fails (ModuleNotFoundError: rich)** | ComfyUI-Manager cm-cli needs Python package `rich`. Run `pip install rich` in the same Python environment used by ComfyUI. See [INSTALL-NODES-AND-MODELS.md](INSTALL-NODES-AND-MODELS.md). |
 | **WebSocket not connecting** (progress_method: "polling") | Check: 1) ComfyUI is running (`curl http://localhost:8188/system_stats`), 2) COMFYUI_HOST is set correctly, 3) WebSocket endpoint works (`wscat -c ws://localhost:8188/ws?clientId=test`). **Note:** Polling fallback is automatic and works fine. |
 
-**Examples:** [examples/cursor-mcp.json](../examples/cursor-mcp.json) (minimal + COMFYUI_HOST), [examples/cursor-mcp-full.json](../examples/cursor-mcp-full.json) (full config with COMFYUI_HOST, COMFYUI_PATH, COMFYUI_KNOWLEDGE_DIR). See [examples/README.md](../examples/README.md) for a description of each env var.
+### Command: full path to node
+
+When Cursor (or another IDE) starts the MCP server, it spawns a process with `command` + `args`. The IDE often does **not** inherit your shell PATH (e.g. if you use nvm or Homebrew). So `"command": "node"` can fail with **spawn node ENOENT** (node not found).
+
+**Fix:** set `command` to the **full path** to the Node executable:
+
+- In terminal: `which node` → e.g. `/opt/homebrew/bin/node` or `/usr/local/bin/node`
+- With nvm: `nvm which current` → e.g. `/Users/you/.nvm/versions/node/v20.x.x/bin/node`
+
+Example config:
+
+```json
+"comfy-ui-builder": {
+  "command": "/opt/homebrew/bin/node",
+  "args": ["/usr/local/lib/node_modules/mcp-comfy-ui-builder/dist/mcp-server.js"]
+}
+```
+
+Replace the path in `command` with your `which node` result; keep `args` as the absolute path to `dist/mcp-server.js`.
+
+**Examples:** [examples/cursor-mcp-full-template.json](../examples/cursor-mcp-full-template.json) (full template — three placeholders, copy and replace), [examples/cursor-mcp.json](../examples/cursor-mcp.json) (minimal + COMFYUI_HOST), [examples/cursor-mcp-full.json](../examples/cursor-mcp-full.json) (full config with short placeholders). See [examples/README.md](../examples/README.md) for what to replace and an example after replacement.
 
 ***
 
-*MCP Setup v2.0.0 - get_system_resources, env examples, troubleshooting* | *2026-02-03*
+*MCP Setup v2.0.1 - full path to node, template, troubleshooting* | *2026-02-03*
