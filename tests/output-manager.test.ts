@@ -7,9 +7,11 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 const mockGetHistory = vi.fn();
+const mockFetchOutputByFilename = vi.fn();
 const mockFetch = vi.fn();
 vi.mock('../src/comfyui-client.js', () => ({
   getHistory: (...args: unknown[]) => mockGetHistory(...args),
+  fetchOutputByFilename: (...args: unknown[]) => mockFetchOutputByFilename(...args),
 }));
 vi.mock('node-fetch', () => ({ default: (...args: unknown[]) => mockFetch(...args) }));
 
@@ -71,5 +73,33 @@ describe('downloadOutput', () => {
     expect(path).toBe(destPath);
     expect(existsSync(destPath)).toBe(true);
     expect(readFileSync(destPath, 'utf8')).toBe('image-data');
+  });
+});
+
+describe('downloadByFilename', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    tmpDir = mkdtempSync(join(tmpdir(), 'output-manager-'));
+    process.env.COMFYUI_HOST = 'http://127.0.0.1:8188';
+  });
+
+  it('writes file by filename without prompt_id', async () => {
+    const ab = new ArrayBuffer(9);
+    new Uint8Array(ab).set(Buffer.from('png-bytes'));
+    mockFetchOutputByFilename.mockResolvedValueOnce(ab);
+    const { downloadByFilename } = await import('../src/output-manager.js');
+    const destPath = join(tmpDir, 'mcp-comfy-preview_00001_.png');
+    const result = await downloadByFilename('mcp-comfy-preview_00001_.png', destPath, {
+      type: 'output',
+    });
+    expect(result.path).toBe(destPath);
+    expect(result.size).toBe(9);
+    expect(existsSync(destPath)).toBe(true);
+    expect(readFileSync(destPath, 'utf8')).toBe('png-bytes');
+    expect(mockFetchOutputByFilename).toHaveBeenCalledWith('mcp-comfy-preview_00001_.png', {
+      type: 'output',
+    });
   });
 });

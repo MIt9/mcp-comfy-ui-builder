@@ -8,6 +8,24 @@ Project change history. Knowledge base (nodes) → [knowledge/CHANGELOG.md](know
 
 ---
 
+## [2.1.0] – 2026-02-03
+
+### Added
+
+- **get_history(limit?):** MCP tool — GET /history without prompt_id; returns last N prompts with prompt_id, status, outputs. Use when execute_workflow_sync did not return prompt_id (e.g. WebSocket timeout). [src/mcp-server.ts](src/mcp-server.ts), [src/comfyui-client.ts](src/comfyui-client.ts) — getHistory() normalizes object response.
+- **get_last_output():** MCP tool — most recent completed prompt’s first image (prompt_id, filename, view_url). Use when prompt_id was lost; then download_by_filename to save. [src/mcp-server.ts](src/mcp-server.ts).
+- **download_by_filename(filename, dest_path, subfolder?, type?):** MCP tool — download output by filename (no prompt_id). Uses GET /view. [src/mcp-server.ts](src/mcp-server.ts), [src/output-manager.ts](src/output-manager.ts), [src/comfyui-client.ts](src/comfyui-client.ts) — fetchOutputByFilename().
+- **get_generation_recommendations(prompt?):** MCP tool — system resources (max resolution, model size, batch) plus, if prompt suggests text/letters in the image, advice: prefer FLUX/SD3, 25–30 steps; many base models render text poorly. [src/mcp-server.ts](src/mcp-server.ts).
+- **doc/IMAGE-GENERATION-RECOMMENDATIONS.md** — image generation: resources, text-in-image, model choice. Links from AI-ASSISTANT-GUIDE, MCP-SETUP, INDEX, README.
+
+### Changed
+
+- **execute_workflow_sync:** Always returns prompt_id (even on error); outer try/catch returns { prompt_id, status: 'failed', error } so client can use get_history/get_last_output. [src/comfyui-client.ts](src/comfyui-client.ts) — submitPromptAndWaitWithProgress().
+- **getHistory():** When GET /history returns object keyed by prompt_id, normalize to array with prompt_id set; newest first. [src/comfyui-client.ts](src/comfyui-client.ts).
+- **Documentation:** AI-ASSISTANT-GUIDE, MCP-SETUP, workflow-builder, WEBSOCKET-GUIDE — get_history, get_last_output, download_by_filename, recovery when result lost; get_generation_recommendations and text-in-image advice.
+
+---
+
 ## [2.0.1] – 2026-02-03
 
 ### Added

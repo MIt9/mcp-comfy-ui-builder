@@ -89,6 +89,29 @@ export async function downloadOutput(file: OutputFile, destPath: string): Promis
 }
 
 /**
+ * Download an output file by filename (no prompt_id needed). Uses GET /view.
+ * Use when you have filename from get_history or get_last_output.
+ * Returns the written path and size in bytes.
+ */
+export async function downloadByFilename(
+  filename: string,
+  destPath: string,
+  options?: { subfolder?: string; type?: string }
+): Promise<{ path: string; size: number }> {
+  const bytes = await comfyui.fetchOutputByFilename(filename, {
+    subfolder: options?.subfolder,
+    type: options?.type ?? 'output',
+  });
+  const dir = dirname(destPath);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+  const buffer = Buffer.from(bytes);
+  writeFileSync(destPath, buffer);
+  return { path: destPath, size: buffer.length };
+}
+
+/**
  * Download all outputs for a prompt into destDir. Returns paths written.
  * Filenames are kept; subfolder is flattened or used as subdir if desired.
  * Default: write all into destDir with node_id prefix to avoid collisions (e.g. 7_00001.png).

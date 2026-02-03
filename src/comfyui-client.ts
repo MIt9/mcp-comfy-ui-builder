@@ -92,7 +92,18 @@ export async function getHistory(promptId?: string): Promise<HistoryEntry[]> {
   if (promptId && data && typeof data === 'object' && !Array.isArray(data)) {
     return [data as HistoryEntry];
   }
-  return Array.isArray(data) ? (data as HistoryEntry[]) : [];
+  if (Array.isArray(data)) {
+    return data as HistoryEntry[];
+  }
+  // ComfyUI GET /history (no prompt_id) can return object keyed by prompt_id
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    const entries = Object.entries(data as Record<string, HistoryEntry>).map(([id, entry]) => ({
+      ...entry,
+      prompt_id: id,
+    })) as HistoryEntry[];
+    return entries.reverse(); // newest first
+  }
+  return [];
 }
 
 /**
@@ -225,6 +236,29 @@ export function getFirstOutputImageRef(entries: HistoryEntry[]): OutputImageRef 
 }
 
 /**
+ * Fetch file bytes from ComfyUI /view by filename (no prompt_id needed).
+ * Use when you have filename from get_history or get_last_output.
+ */
+export async function fetchOutputByFilename(
+  filename: string,
+  options?: { subfolder?: string; type?: string }
+): Promise<ArrayBuffer> {
+  const base = getBaseUrl().replace(/\/$/, '');
+  const params = new URLSearchParams({
+    filename,
+    type: options?.type ?? 'output',
+    ...(options?.subfolder ? { subfolder: options.subfolder } : {}),
+  });
+  const url = `${base}/view?${params.toString()}`;
+  const res = await fetchWithRetry(url, { method: 'GET' });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`ComfyUI /view failed (${res.status}): ${text || res.statusText}`);
+  }
+  return res.arrayBuffer();
+}
+
+/**
  * Fetch image bytes from ComfyUI /view for a given prompt_id.
  * Returns buffer and suggested filename for upload. Fails if prompt has no image output.
  */
@@ -234,19 +268,10 @@ export async function fetchOutputImageBytes(promptId: string): Promise<{ bytes: 
   if (!ref) {
     throw new Error(`No image output found in history for prompt_id: ${promptId}`);
   }
-  const base = getBaseUrl().replace(/\/$/, '');
-  const params = new URLSearchParams({
-    filename: ref.filename,
-    type: ref.type ?? 'output',
-    ...(ref.subfolder ? { subfolder: ref.subfolder } : {}),
+  const bytes = await fetchOutputByFilename(ref.filename, {
+    subfolder: ref.subfolder,
+    type: ref.type,
   });
-  const url = `${base}/view?${params.toString()}`;
-  const res = await fetchWithRetry(url, { method: 'GET' });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`ComfyUI /view failed (${res.status}): ${text || res.statusText}`);
-  }
-  const bytes = await res.arrayBuffer();
   return { bytes, filename: ref.filename };
 }
 
@@ -326,10 +351,11 @@ export async function submitPromptAndWait(
 /**
  * Submit workflow and wait with WebSocket progress tracking (hybrid approach).
  * Tries WebSocket first for real-time updates, falls back to polling if unavailable.
+ * Always returns an object with prompt_id so the client can use get_history/get_last_output if needed.
  * @param workflow - ComfyUI workflow to execute
  * @param timeoutMs - Maximum wait time in milliseconds
  * @param onProgress - Optional callback for progress updates (only with WebSocket)
- * @returns Execution result with status and outputs
+ * @returns Execution result with status and outputs (prompt_id always present)
  */
 export async function submitPromptAndWaitWithProgress(
   workflow: ComfyUIWorkflow,
@@ -338,16 +364,24 @@ export async function submitPromptAndWaitWithProgress(
 ): Promise<ExecutionResult> {
   const { prompt_id } = await submitPrompt(workflow);
 
-  // Try WebSocket first
   try {
-    const { getWSClient } = await import('./comfyui-ws-client.js');
-    const wsClient = getWSClient();
-    await wsClient.connect();
-
-    return await waitWithWebSocket(wsClient, prompt_id, timeoutMs, onProgress);
-  } catch (wsError) {
-    // Fallback to polling
-    return await waitWithPolling(prompt_id, timeoutMs);
+    // Try WebSocket first
+    try {
+      const { getWSClient } = await import('./comfyui-ws-client.js');
+      const wsClient = getWSClient();
+      await wsClient.connect();
+      return await waitWithWebSocket(wsClient, prompt_id, timeoutMs, onProgress);
+    } catch {
+      // Fallback to polling when WebSocket fails or times out
+      return await waitWithPolling(prompt_id, timeoutMs);
+    }
+  } catch (e) {
+    // Ensure prompt_id is always returned so client can use get_history/get_last_output
+    return {
+      prompt_id,
+      status: 'failed',
+      error: e instanceof Error ? e.message : String(e),
+    };
   }
 }
 

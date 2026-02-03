@@ -52,6 +52,7 @@ Then build the workflow (e.g. via `build_workflow` or dynamic builder) with thes
 | Tool | When to use | ComfyUI needed? |
 |------|-------------|------------------|
 | **get_system_resources** | **Call first** before building/executing workflows: returns GPU/VRAM/RAM and recommendations (max resolution, model size, batch size). Use to avoid OOM. | Yes (COMFYUI_HOST) |
+| **get_generation_recommendations(prompt?)** | Same as get_system_resources plus, if the user prompt suggests **text in the image** (sign, logo, caption, etc.), returns advice: prefer FLUX/SD3, 25–30 steps; many base models render text poorly. Call when planning txt2img/img2img. | Yes (COMFYUI_HOST) for resources |
 | **list_templates** | List available templates (txt2img, img2img) | No |
 | **list_node_types** | List nodes from the knowledge base (optional: category, priority) | No |
 | **get_node_info** | Full info about a node by class name | No |
@@ -72,7 +73,7 @@ Then build the workflow (e.g. via `build_workflow` or dynamic builder) with thes
 **Dynamic workflow:** create_workflow, add_node, connect_nodes, remove_node, set_node_input, get_workflow_json, validate_workflow, finalize_workflow (no ComfyUI).  
 **Node discovery:** discover_nodes_live, search_nodes, get_node_inputs, get_node_outputs, list_node_categories, sync_nodes_to_knowledge (discover/sync need ComfyUI).  
 **Execution:** execute_workflow_sync (submit and wait), get_execution_progress, execute_batch, execute_chain (Yes).  
-**Outputs:** list_outputs, download_output, download_all_outputs (Yes).  
+**Outputs:** get_history, get_last_output, list_outputs, download_output, download_by_filename, download_all_outputs (Yes).  
 **Models:** list_models, get_model_info, check_model_exists, get_workflow_models, check_workflow_models (Yes).  
 **Resources:** get_system_resources — GPU/VRAM/RAM + recommendations; call before building workflows (Yes).  
 **Templates/macros:** create_template, apply_template, validate_template_params, list_macros, insert_macro (no ComfyUI for create/apply/list/insert).  
@@ -86,11 +87,14 @@ For any tool that needs ComfyUI, **COMFYUI_HOST** must be set (default `http://1
 ## Typical scenarios
 
 **Run a workflow on ComfyUI (generation) — recommended order:**
-1. **`get_system_resources`** — get GPU/VRAM/RAM and recommendations (max_width, max_height, suggested_model_size, max_batch_size).
+1. **`get_system_resources`** or **`get_generation_recommendations(prompt)`** — get GPU/VRAM/RAM and recommendations (max_width, max_height, suggested_model_size, max_batch_size). Use **get_generation_recommendations** with the user’s image description when they may want **text in the image** (sign, logo, caption); it returns extra advice (prefer FLUX/SD3, 25–30 steps). See [IMAGE-GENERATION-RECOMMENDATIONS.md](IMAGE-GENERATION-RECOMMENDATIONS.md).
 2. `list_templates` — confirm template (e.g. txt2img) is available.
 3. `build_workflow` with params that **respect** the recommendations (width ≤ max_width, height ≤ max_height, batch_size ≤ max_batch_size; choose checkpoint by suggested_model_size).
 4. Optionally `check_workflow_models(workflow)` — ensure required models exist.
 5. `execute_workflow(workflow)` or `execute_workflow_sync(workflow)`.
+
+**Images with text (signs, logos, captions):**
+- If the user asks for an image that should contain **legible text**, call **`get_generation_recommendations(user_prompt)`** first. It detects text-in-image intent and returns advice: many base models (SD 1.5, SD XL) render text poorly; prefer FLUX, SD 3, or checkpoints known for text; use 25–30 steps and CFG 7–8. Set user expectations if only SD 1.5/XL is available. See [IMAGE-GENERATION-RECOMMENDATIONS.md](IMAGE-GENERATION-RECOMMENDATIONS.md).
 
 **Build txt2img and get JSON (without running ComfyUI):**
 1. `list_templates` — confirm txt2img is available.
@@ -118,6 +122,10 @@ For any tool that needs ComfyUI, **COMFYUI_HOST** must be set (default `http://1
 **Run and wait for result (no polling):**
 1. `execute_workflow_sync(workflow, timeout?)` — submit and wait until done; returns prompt_id and outputs.
 2. Optionally `list_outputs(prompt_id)` then `download_output` / `download_all_outputs` to save files locally.
+
+**Recovery when execute_workflow_sync result was lost (e.g. "No result received from client-side tool execution"):**
+1. `get_history(limit=5)` — get last N prompts with prompt_id and outputs; or `get_last_output()` — get the latest completed run’s first image info (prompt_id, filename, view_url).
+2. `download_by_filename(filename, dest_path, subfolder?, type?)` — save the file locally without needing prompt_id.
 
 **Chain workflows (e.g. txt2img → upscale → img2img):**
 1. `execute_chain(steps)` — steps: array of `{ workflow, params?, inputFrom?: { step, outputNode, outputIndex }, outputTo? }`; output of step N is passed as input to step N+1 when specified.

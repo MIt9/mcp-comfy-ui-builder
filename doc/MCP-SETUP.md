@@ -53,7 +53,7 @@ Tools are grouped by area. **COMFYUI_HOST** is required for execution/queue/outp
 | Tool | Description | Real-Time |
 |------|------|-----------|
 | **execute_workflow(workflow)** | Submit workflow to ComfyUI; returns prompt_id | N/A |
-| **execute_workflow_sync(workflow, timeout?, stream_progress?)** | Submit and wait until done; returns prompt_id, outputs, and progress log | ✅ WebSocket + polling fallback |
+| **execute_workflow_sync(workflow, timeout?, stream_progress?)** | Submit and wait until done; returns prompt_id, outputs, and progress log. Always returns prompt_id (even on error) so you can use get_history/get_last_output if the result was lost (e.g. client-side timeout). | ✅ WebSocket + polling fallback |
 | **execute_workflow_stream(workflow, timeout?)** | Execute with full event history (requires WebSocket) | ✅ WebSocket required |
 | **get_execution_status(prompt_id)** | Status and image outputs for a prompt | N/A |
 | **get_execution_progress(prompt_id)** | Progress info (current node, progress %, queue position) | ✅ WebSocket + polling fallback |
@@ -71,8 +71,11 @@ Tools are grouped by area. **COMFYUI_HOST** is required for execution/queue/outp
 
 | Tool | Description |
 |------|------|
+| **get_history(limit?)** | Get ComfyUI execution history (GET /history) without prompt_id. Returns last N prompts with prompt_id, status, outputs. Use when execute_workflow_sync did not return prompt_id (e.g. WebSocket timeout) to find the latest run. |
+| **get_last_output()** | Get info for the most recent completed prompt output (first image). Returns prompt_id, filename, subfolder, view_url. Use when prompt_id was lost; then use download_by_filename to save the file. |
 | **list_outputs(prompt_id)** | List output files (images, etc.) for a prompt |
-| **download_output(prompt_id, node_id, filename, dest_path)** | Download a single output file |
+| **download_output(prompt_id, node_id, filename, dest_path)** | Download a single output file (requires prompt_id) |
+| **download_by_filename(filename, dest_path, subfolder?, type?)** | Download an output file by filename (no prompt_id). Use when you have filename from get_history or get_last_output. |
 | **download_all_outputs(prompt_id, dest_dir)** | Download all outputs for a prompt to a directory |
 
 ### Resources & model management (COMFYUI_HOST)
@@ -80,6 +83,7 @@ Tools are grouped by area. **COMFYUI_HOST** is required for execution/queue/outp
 | Tool | Description |
 |------|------|
 | **get_system_resources** | Get station GPU/VRAM/RAM and recommendations (max_width, max_height, suggested_model_size, max_batch_size). **Call first** before building or executing workflows to avoid OOM. |
+| **get_generation_recommendations(prompt?)** | Same as get_system_resources plus, if the user prompt suggests **text in the image** (sign, logo, caption), returns advice: prefer FLUX/SD3, 25–30 steps; many base models render text poorly. See [IMAGE-GENERATION-RECOMMENDATIONS.md](IMAGE-GENERATION-RECOMMENDATIONS.md). |
 | **list_models(model_type?)** | List models (checkpoint, lora, vae, controlnet, upscale, etc.) |
 | **get_model_info(name, model_type)** | Details for a model |
 | **check_model_exists(name, model_type)** | Whether the model is present |
@@ -202,7 +206,7 @@ Alternative: `node dist/mcp-server.js`. Server uses **stdio** (stdin/stdout).
 }
 ```
 
-**With execution and ComfyUI (execute_workflow, get_execution_status, list_outputs, etc.):**
+**With execution and ComfyUI (execute_workflow, get_execution_status, get_history, get_last_output, list_outputs, download_by_filename, etc.):**
 ```json
 {
   "mcpServers": {
@@ -219,7 +223,7 @@ Alternative: `node dist/mcp-server.js`. Server uses **stdio** (stdin/stdout).
 
 3. **Restart Cursor** (fully quit and reopen) so it picks up the new config.
 
-Without `COMFYUI_HOST`, tools that need ComfyUI (execute_workflow, get_execution_status, list_outputs, list_models, list_queue, sync_nodes_to_knowledge from live ComfyUI, etc.) will report that ComfyUI is not configured. With `COMFYUI_HOST` set, those tools work if ComfyUI is running at that URL.
+Without `COMFYUI_HOST`, tools that need ComfyUI (execute_workflow, get_execution_status, get_history, get_last_output, list_outputs, download_by_filename, list_models, list_queue, sync_nodes_to_knowledge from live ComfyUI, etc.) will report that ComfyUI is not configured. With `COMFYUI_HOST` set, those tools work if ComfyUI is running at that URL.
 
 ***
 
@@ -322,4 +326,4 @@ Replace the path in `command` with your `which node` result; keep `args` as the 
 
 ***
 
-*MCP Setup v2.0.1 - full path to node, template, troubleshooting* | *2026-02-03*
+*MCP Setup v2.1.0 - get_history, get_last_output, download_by_filename, get_generation_recommendations* | *2026-02-03*

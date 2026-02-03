@@ -23,6 +23,7 @@ More details → [GETTING-STARTED.md](GETTING-STARTED.md).
 | **Connect MCP in Cursor or Claude Desktop** | [MCP-SETUP.md](MCP-SETUP.md) |
 | **Workflow Builder** (templates, save/load, execute) | [workflow-builder.md](workflow-builder.md) |
 | **AI assistant guide** (after npm i -g) | [AI-ASSISTANT-GUIDE.md](AI-ASSISTANT-GUIDE.md) |
+| **Image generation recommendations** (resources, text-in-image, model choice) | [IMAGE-GENERATION-RECOMMENDATIONS.md](IMAGE-GENERATION-RECOMMENDATIONS.md) |
 | **ComfyUI API details** (object_info, endpoints) | [comfyui-api-quick-reference.md](comfyui-api-quick-reference.md), [comfyui-api-detailed-guide.md](comfyui-api-detailed-guide.md) |
 | **How to use knowledge base in code** | [knowledge-base-usage-guide.md](knowledge-base-usage-guide.md), [knowledge/README.md](../knowledge/README.md) |
 | **Docker** (MCP + ComfyUI) | [DOCKER-SETUP.md](DOCKER-SETUP.md) — `docker pull siniidrozd/mcp-comfy-ui-builder` |

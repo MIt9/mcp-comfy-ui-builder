@@ -46,6 +46,20 @@ describe('ComfyUI client', () => {
     expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/history'), expect.any(Object));
   });
 
+  it('getHistory normalizes object response when no prompt_id (ComfyUI format)', async () => {
+    const { getHistory } = await import('../src/comfyui-client.js');
+    const obj = {
+      'id-1': { outputs: {}, status: { status_str: 'completed' } },
+      'id-2': { outputs: { '7': { images: [{ filename: 'out.png' }] } }, status: { status_str: 'completed' } },
+    };
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => obj });
+    const result = await getHistory();
+    expect(result).toHaveLength(2);
+    expect(result[0].prompt_id).toBe('id-2');
+    expect(result[1].prompt_id).toBe('id-1');
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/history'), expect.any(Object));
+  });
+
   it('getHistory returns array with one entry when prompt_id given', async () => {
     const { getHistory } = await import('../src/comfyui-client.js');
     const single = { prompt_id: 'p1', outputs: { '7': { images: [{ filename: 'out.png' }] } } };
@@ -54,6 +68,19 @@ describe('ComfyUI client', () => {
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual(single);
     expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/history/p1'), expect.any(Object));
+  });
+
+  it('fetchOutputByFilename fetches /view by filename', async () => {
+    const { fetchOutputByFilename } = await import('../src/comfyui-client.js');
+    const bytes = new Uint8Array([1, 2, 3]);
+    mockFetch.mockResolvedValueOnce({ ok: true, arrayBuffer: async () => bytes.buffer });
+    const result = await fetchOutputByFilename('out.png', { subfolder: 'output', type: 'output' });
+    expect(result).toBeInstanceOf(ArrayBuffer);
+    expect(new Uint8Array(result)).toEqual(bytes);
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringMatching(/\/view\?.*filename=out\.png.*type=output.*subfolder=output/),
+      expect.any(Object)
+    );
   });
 
   it('getQueue returns queue_running and queue_pending', async () => {

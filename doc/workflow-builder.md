@@ -225,8 +225,11 @@ See [MCP-SETUP.md](MCP-SETUP.md) and [comfyui-api-quick-reference.md](comfyui-ap
 
 After execution:
 
+- **get_history(limit?)** — get ComfyUI execution history without prompt_id (last N prompts with prompt_id, status, outputs). Use when execute_workflow_sync did not return prompt_id (e.g. WebSocket timeout).
+- **get_last_output()** — get the most recent completed prompt’s first image (prompt_id, filename, view_url). Then use **download_by_filename** to save.
 - **list_outputs(prompt_id)** — list output files (images, etc.) for a prompt.
-- **download_output(prompt_id, node_id, filename, dest_path, subfolder?)** — save one file locally.
+- **download_output(prompt_id, node_id, filename, dest_path, subfolder?)** — save one file locally (requires prompt_id).
+- **download_by_filename(filename, dest_path, subfolder?, type?)** — save an output file by filename (no prompt_id). Use when you have filename from get_history or get_last_output.
 - **download_all_outputs(prompt_id, dest_dir, prefix_node_id?)** — save all outputs to a directory.
 
 ***

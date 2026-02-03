@@ -13,6 +13,7 @@
 | Connect MCP (Cursor / Claude); quick connection checklist, env vars, full tool list | [MCP-SETUP.md](MCP-SETUP.md) |
 | Workflow Builder — templates, save/load, execute | [workflow-builder.md](workflow-builder.md) |
 | AI assistant guide — how to use the package (e.g. after npm i -g) | [AI-ASSISTANT-GUIDE.md](AI-ASSISTANT-GUIDE.md) |
+| Image generation recommendations — resources, text-in-image, model choice | [IMAGE-GENERATION-RECOMMENDATIONS.md](IMAGE-GENERATION-RECOMMENDATIONS.md) |
 | Generate and verify (image → caption, check result) | [GENERATE-AND-VERIFY.md](GENERATE-AND-VERIFY.md) |
 | Install custom nodes and models (LoRA, checkpoints, VAE) | [INSTALL-NODES-AND-MODELS.md](INSTALL-NODES-AND-MODELS.md) |
 | ComfyUI API, knowledge base in code | [comfyui-api-quick-reference.md](comfyui-api-quick-reference.md), [comfyui-api-detailed-guide.md](comfyui-api-detailed-guide.md), [knowledge-base-usage-guide.md](knowledge-base-usage-guide.md) |
@@ -33,6 +34,7 @@
 | [MCP-SETUP.md](MCP-SETUP.md) | MCP launch, Cursor/Claude config |
 | [workflow-builder.md](workflow-builder.md) | Templates, params, save/load, ComfyUI workflow format |
 | [AI-ASSISTANT-GUIDE.md](AI-ASSISTANT-GUIDE.md) | AI assistant guide (npm i -g) |
+| [IMAGE-GENERATION-RECOMMENDATIONS.md](IMAGE-GENERATION-RECOMMENDATIONS.md) | Image generation: resources, text-in-image, model choice |
 | [GENERATE-AND-VERIFY.md](GENERATE-AND-VERIFY.md) | Generate and verify workflow |
 | [INSTALL-NODES-AND-MODELS.md](INSTALL-NODES-AND-MODELS.md) | Install custom nodes and models via MCP |
 | [PLUGINS.md](PLUGINS.md) | Data-only plugins (templates/macros) and related MCP tools |

@@ -28,7 +28,7 @@ import { setHybridDiscoveryOptions, getHybridDiscovery } from './node-discovery/
 import * as comfyui from './comfyui-client.js';
 import * as managerCli from './manager-cli.js';
 import { executeBatch } from './workflow/batch-executor.js';
-import { listOutputs, downloadOutput, downloadAllOutputs } from './output-manager.js';
+import { listOutputs, downloadOutput, downloadAllOutputs, downloadByFilename } from './output-manager.js';
 import { ModelManager } from './model-manager.js';
 import {
   createTemplate,
@@ -42,6 +42,19 @@ import { executeChain } from './workflow/chainer.js';
 import type { ComfyUIWorkflow } from './types/comfyui-api-types.js';
 import { loadPlugins, summarizePlugins, type LoadedPlugin } from './plugins/plugin-loader.js';
 import { analyzeSystemResources } from './resource-analyzer.js';
+
+/** Keywords that suggest the user wants legible text in the generated image. */
+const TEXT_IN_IMAGE_KEYWORDS = [
+  'text', 'words', 'letters', 'lettering', 'sign', 'logo', 'caption', 'label', 'written', 'saying', 'quote',
+  'with the text', 'that says', 'that read', 'reading ', 'spelling', 'word ', 'phrase', 'sentence',
+  'billboard', 'poster with', 't-shirt with', 'banner', 'inscription', 'headline', 'title on',
+];
+
+function promptSuggestsTextInImage(prompt: string): boolean {
+  const lower = prompt.toLowerCase().trim();
+  if (!lower) return false;
+  return TEXT_IN_IMAGE_KEYWORDS.some((k) => lower.includes(k));
+}
 
 const KNOWLEDGE_DIR = process.env.COMFYUI_KNOWLEDGE_DIR?.trim() || join(process.cwd(), 'knowledge');
 const BASE_NODES_PATH = join(KNOWLEDGE_DIR, 'base-nodes.json');
@@ -129,7 +142,7 @@ function initPlugins(): void {
 }
 
 const server = new McpServer(
-  { name: 'mcp-comfy-ui-builder', version: '2.0.1' },
+  { name: 'mcp-comfy-ui-builder', version: '2.1.0' },
   { capabilities: { tools: {} } }
 );
 
@@ -981,6 +994,91 @@ server.registerTool(
 );
 
 server.registerTool(
+  'get_history',
+  {
+    description:
+      'Get ComfyUI execution history (GET /history) without prompt_id. Returns last N prompts with prompt_id, status, outputs (filenames), elapsed. Use when execute_workflow_sync did not return prompt_id (e.g. WebSocket timeout) to find the latest run and its outputs. Requires COMFYUI_HOST.',
+    inputSchema: {
+      limit: z.number().int().min(1).max(50).optional().describe('Number of recent history entries (default 5)'),
+    },
+  },
+  async (args) => {
+    if (!comfyui.isComfyUIConfigured()) {
+      return { content: [{ type: 'text', text: 'ComfyUI is not configured. Set COMFYUI_HOST to use get_history.' }] };
+    }
+    try {
+      const entries = await comfyui.getHistory();
+      const limit = args.limit ?? 5;
+      const slice = entries.slice(0, limit).map((e) => ({
+        prompt_id: e.prompt_id ?? '(unknown)',
+        status: (e.status as { status_str?: string })?.status_str ?? 'unknown',
+        outputs: e.outputs,
+        elapsed: (e as { elapsed?: number[] }).elapsed,
+      }));
+      return { content: [{ type: 'text', text: JSON.stringify(slice, null, 2) }] };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `get_history failed: ${msg}` }] };
+    }
+  }
+);
+
+server.registerTool(
+  'get_last_output',
+  {
+    description:
+      'Get info for the most recent completed prompt output (first image). Use when prompt_id was lost (e.g. execute_workflow_sync timed out). Returns prompt_id, filename, subfolder, view_url. Then use download_by_filename to save the file. Requires COMFYUI_HOST.',
+    inputSchema: {},
+  },
+  async () => {
+    if (!comfyui.isComfyUIConfigured()) {
+      return { content: [{ type: 'text', text: 'ComfyUI is not configured. Set COMFYUI_HOST to use get_last_output.' }] };
+    }
+    try {
+      const entries = await comfyui.getHistory();
+      if (entries.length === 0) {
+        return { content: [{ type: 'text', text: 'No completed prompts in history.' }] };
+      }
+      const entry = entries[0];
+      const promptId = entry.prompt_id ?? '(unknown)';
+      const ref = comfyui.getFirstOutputImageRef([entry]);
+      if (!ref) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                prompt_id: promptId,
+                message: 'Latest prompt has no image output.',
+                outputs: entry.outputs,
+              }),
+            },
+          ],
+        };
+      }
+      const base = process.env.COMFYUI_HOST?.replace(/\/$/, '') ?? 'http://127.0.0.1:8188';
+      const params = new URLSearchParams({
+        filename: ref.filename,
+        type: ref.type ?? 'output',
+        ...(ref.subfolder ? { subfolder: ref.subfolder } : {}),
+      });
+      const viewUrl = `${base}/view?${params.toString()}`;
+      const out = {
+        prompt_id: promptId,
+        filename: ref.filename,
+        subfolder: ref.subfolder,
+        type: ref.type ?? 'output',
+        view_url: viewUrl,
+      };
+      return { content: [{ type: 'text', text: JSON.stringify(out, null, 2) }] };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `get_last_output failed: ${msg}` }] };
+    }
+  }
+);
+
+server.registerTool(
   'list_outputs',
   {
     description: 'List all output files (images, gifs) for a completed prompt. Returns prompt_id, node_id, type, filename, url. Requires COMFYUI_HOST.',
@@ -1032,6 +1130,35 @@ server.registerTool(
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       return { content: [{ type: 'text', text: `download_output failed: ${msg}` }] };
+    }
+  }
+);
+
+server.registerTool(
+  'download_by_filename',
+  {
+    description:
+      'Download an output file by filename (no prompt_id needed). Uses GET /view. Use when you have filename from get_history or get_last_output (e.g. after execute_workflow_sync did not return prompt_id). Requires COMFYUI_HOST.',
+    inputSchema: {
+      filename: z.string().describe('Output filename (e.g. from get_last_output or get_history)'),
+      dest_path: z.string().describe('Local path to save the file'),
+      subfolder: z.string().optional().describe('Subfolder (default empty)'),
+      type: z.string().optional().describe('View type (default "output")'),
+    },
+  },
+  async (args) => {
+    if (!comfyui.isComfyUIConfigured()) {
+      return { content: [{ type: 'text', text: 'ComfyUI is not configured. Set COMFYUI_HOST to use download_by_filename.' }] };
+    }
+    try {
+      const result = await downloadByFilename(args.filename, args.dest_path, {
+        subfolder: args.subfolder,
+        type: args.type ?? 'output',
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `download_by_filename failed: ${msg}` }] };
     }
   }
 );
@@ -1228,6 +1355,52 @@ server.registerTool(
       const msg = e instanceof Error ? e.message : String(e);
       return { content: [{ type: 'text', text: `get_system_resources failed: ${msg}` }] };
     }
+  }
+);
+
+server.registerTool(
+  'get_generation_recommendations',
+  {
+    description:
+      'Get recommendations for image generation: system resources (max resolution, model size, batch) and, if the user prompt suggests text/letters in the image, advice on models and settings. Many base models (SD 1.5, SD XL) render text poorly; FLUX, SD 3, or checkpoints trained for text work better. Call when planning a txt2img or img2img workflow; pass the user\'s image description as prompt to get text-in-image advice when relevant. Requires COMFYUI_HOST for resource stats.',
+    inputSchema: {
+      prompt: z.string().optional().describe('User\'s image description or goal (e.g. "a sign that says Hello"). If it suggests text/letters in the image, recommendations will include model and setting advice for legible text.'),
+    },
+  },
+  async (args) => {
+    const result: {
+      system?: Record<string, unknown>;
+      text_in_image_advice?: string;
+      summary: string[];
+    } = { summary: [] };
+
+    if (comfyui.isComfyUIConfigured()) {
+      try {
+        const stats = await comfyui.getSystemStats();
+        const rec = analyzeSystemResources(stats);
+        result.system = rec;
+        result.summary.push(rec.summary);
+        if (rec.warnings?.length) {
+          result.summary.push(...rec.warnings);
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        result.summary.push(`System resources unavailable: ${msg}. Use conservative defaults (512×512, light model, batch 1).`);
+      }
+    } else {
+      result.summary.push('ComfyUI not configured; use conservative defaults (512×512, light model, batch 1).');
+    }
+
+    const prompt = (args.prompt ?? '').trim();
+    if (prompt && promptSuggestsTextInImage(prompt)) {
+      result.text_in_image_advice =
+        'Legible text in image: many base models (SD 1.5, SD XL base) render text poorly (blurry, wrong letters). ' +
+        'Prefer FLUX, SD 3, or checkpoints known for text rendering (e.g. FLUX.1 dev/schnell, SD3 medium). ' +
+        'Consider 25–30 steps and CFG 7–8 for clearer detail. If only SD 1.5/XL is available, set user expectations: text may be imperfect.';
+      result.summary.push(result.text_in_image_advice);
+    }
+
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
   }
 );
 

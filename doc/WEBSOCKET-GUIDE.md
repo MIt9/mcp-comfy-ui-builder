@@ -184,6 +184,8 @@ console.log('Chain completed:', results.map(r => r.status));
 }
 ```
 
+**Recovery when the result is lost (e.g. client-side timeout, "No result received from client-side tool execution"):** The server always returns `prompt_id` when the workflow was submitted. If the client did not receive it, use **get_history(limit=5)** to list the last N runs (with prompt_id and outputs), or **get_last_output()** to get the latest completed run’s first image (prompt_id, filename, view_url). Then use **download_by_filename(filename, dest_path)** to save the file without needing prompt_id.
+
 ### get_execution_progress (Enhanced)
 
 **Now checks WebSocket first:**
