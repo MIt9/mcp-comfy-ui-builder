@@ -100,7 +100,8 @@ export async function getHistory(promptId?: string): Promise<HistoryEntry[]> {
     return [withId as HistoryEntry];
   }
   if (Array.isArray(data)) {
-    return data as HistoryEntry[];
+    const arr = data as HistoryEntry[];
+    return arr.length > 1 ? [...arr].reverse() : arr; // newest first (ComfyUI array is often oldest-first)
   }
   // ComfyUI GET /history (no prompt_id) can return object keyed by prompt_id
   if (data && typeof data === 'object' && !Array.isArray(data)) {

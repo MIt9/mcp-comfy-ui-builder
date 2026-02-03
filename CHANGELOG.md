@@ -8,6 +8,19 @@ Project change history. Knowledge base (nodes) → [knowledge/CHANGELOG.md](know
 
 ---
 
+## [2.1.5] – 2026-02-03
+
+### Fixed (Bug_Report_3)
+
+- **list_outputs не бачить свіжий промпт:** Якщо GET `/history/{prompt_id}` повертає порожній результат (fresh prompt), fallback на GET `/history` і пошук prompt у повному списку. [src/output-manager.ts](src/output-manager.ts) — `listOutputs()`.
+- **get_history(limit=N) повертав найстаріші, не найновіші:** Для array-відповіді ComfyUI додано reverse (newest first). [src/comfyui-client.ts](src/comfyui-client.ts) — `getHistory()`.
+
+### Tests
+
+- **output-manager.test.ts:** Тест fallback — коли GET /history/{id} порожній, listOutputs бере з full history. [tests/output-manager.test.ts](tests/output-manager.test.ts).
+
+---
+
 ## [2.1.4] – 2026-02-03
 
 ### Fixed (Bug_Report_2 — залишок)

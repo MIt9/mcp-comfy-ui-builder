@@ -40,11 +40,33 @@ describe('listOutputs', () => {
     const { listOutputs } = await import('../src/output-manager.js');
     const files = await listOutputs('p1');
     expect(files).toHaveLength(1);
+    expect(mockGetHistory).toHaveBeenCalledWith('p1');
     expect(files[0].prompt_id).toBe('p1');
     expect(files[0].node_id).toBe('7');
     expect(files[0].filename).toBe('00001.png');
     expect(files[0].url).toContain('/view?');
     expect(files[0].url).toContain('filename=00001.png');
+  });
+
+  it('falls back to full history when GET /history/{id} returns empty (fresh prompt)', async () => {
+    mockGetHistory
+      .mockResolvedValueOnce([]) // GET /history/p1 returns empty
+      .mockResolvedValueOnce([
+        { prompt_id: 'other', outputs: {} },
+        {
+          prompt_id: 'p1',
+          outputs: {
+            '7': { images: [{ filename: 'fresh.png', subfolder: 'output', type: 'output' }] },
+          },
+        },
+      ]);
+    const { listOutputs } = await import('../src/output-manager.js');
+    const files = await listOutputs('p1');
+    expect(files).toHaveLength(1);
+    expect(files[0].filename).toBe('fresh.png');
+    expect(mockGetHistory).toHaveBeenCalledTimes(2);
+    expect(mockGetHistory).toHaveBeenNthCalledWith(1, 'p1');
+    expect(mockGetHistory).toHaveBeenNthCalledWith(2); // no args
   });
 });
 

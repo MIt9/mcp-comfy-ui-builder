@@ -32,9 +32,15 @@ function buildViewUrl(filename: string, subfolder?: string, type: string = 'outp
 
 /**
  * List all output files for a completed prompt (from GET /history).
+ * If GET /history/{prompt_id} returns empty (e.g. fresh prompt), fallback to full history.
  */
 export async function listOutputs(promptId: string): Promise<OutputFile[]> {
-  const entries = await comfyui.getHistory(promptId);
+  let entries = await comfyui.getHistory(promptId);
+  if (entries.length === 0) {
+    const allEntries = (await comfyui.getHistory()) ?? [];
+    const match = allEntries.find((e) => (e.prompt_id ?? '').toString() === promptId);
+    if (match) entries = [match];
+  }
   if (entries.length === 0) {
     return [];
   }
