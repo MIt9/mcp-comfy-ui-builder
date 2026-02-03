@@ -216,8 +216,8 @@ export async function downloadByFilename(
     subfolder: options?.subfolder,
     type: options?.type ?? 'output',
   });
-  let buffer = Buffer.from(bytes);
-  const quality = Math.min(100, Math.max(1, options.convert_quality ?? WEBP_QUALITY));
+  let buffer: Buffer = Buffer.from(bytes);
+  const quality = Math.min(100, Math.max(1, options?.convert_quality ?? WEBP_QUALITY));
   const ext = filename.split('.').pop()?.toLowerCase();
   const isImage = ext === 'png' || ext === 'jpg' || ext === 'jpeg' || ext === 'webp' || ext === 'gif';
 
@@ -225,7 +225,7 @@ export async function downloadByFilename(
   if (options?.output_format && isImage) {
     try {
       const { buffer: converted, mime, ext: outExt } = await convertImageToFormat(buffer, options.output_format, quality);
-      buffer = converted;
+      buffer = Buffer.from(converted);
       const outFilename = filename.replace(IMAGE_EXT, `.${outExt}`);
 
       if (options?.returnBase64) {
@@ -257,7 +257,7 @@ export async function downloadByFilename(
     if (isImage && maxBytes > 0 && buffer.length > maxBytes) {
       try {
         const { buffer: webpBuf, mime: webpMime, ext: webpExt } = await convertImageToFormat(buffer, 'webp', quality);
-        outBuffer = webpBuf;
+        outBuffer = Buffer.from(webpBuf);
         mime = webpMime;
         outFilename = filename.replace(IMAGE_EXT, `.${webpExt}`);
         converted = true;

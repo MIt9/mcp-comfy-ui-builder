@@ -6,6 +6,14 @@ Project change history. Knowledge base (nodes) → [knowledge/CHANGELOG.md](know
 
 ## [Unreleased]
 
+## [2.4.1] – 2026-02-03
+
+### Fixed (TypeScript build)
+
+- **output-manager.ts:** `options` possibly undefined — use `options?.convert_quality`. Buffer assignability (TS2322) — use `Buffer.from(converted)` / `Buffer.from(webpBuf)` and explicit `let buffer: Buffer` so CI/build passes. [src/output-manager.ts](src/output-manager.ts).
+
+---
+
 ## [2.4.0] – 2026-02-03
 
 ### Added (output format, restyle workflow)
