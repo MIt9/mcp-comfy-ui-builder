@@ -133,6 +133,21 @@ describe('workflow-builder', () => {
     expect(workflow['1'].inputs).toMatchObject({ image: 'ComfyUI_00001.png' });
   });
 
+  it('listTemplates includes txt2img_flux', () => {
+    const list = listTemplates();
+    expect(list).toContain('txt2img_flux');
+  });
+
+  it('buildFromTemplate("txt2img_flux") returns FLUX workflow with CLIPTextEncodeFlux, ModelSamplingFlux, cfg=1', () => {
+    const workflow = buildFromTemplate('txt2img_flux', { prompt: 'a cat', width: 1024, height: 1024 });
+    expect(workflow['1'].class_type).toBe('CheckpointLoaderSimple');
+    expect(workflow['2'].class_type).toBe('CLIPTextEncodeFlux');
+    expect(workflow['4'].class_type).toBe('ModelSamplingFlux');
+    expect(workflow['6'].class_type).toBe('KSampler');
+    expect((workflow['6'].inputs as { cfg?: number }).cfg).toBe(1);
+    expect(workflow['8'].class_type).toBe('SaveImage');
+  });
+
   it('listTemplates includes inpainting, upscale, txt2img_lora, controlnet, batch', () => {
     const list = listTemplates();
     expect(list).toContain('inpainting');

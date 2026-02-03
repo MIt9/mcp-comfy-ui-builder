@@ -22,9 +22,9 @@ describe('listOutputs', () => {
   });
 
   it('returns empty when no history', async () => {
-    mockGetHistory.mockResolvedValueOnce([]);
+    mockGetHistory.mockResolvedValue([]);
     const { listOutputs } = await import('../src/output-manager.js');
-    const files = await listOutputs('p1');
+    const files = await listOutputs('p1', { retryDelayMs: 0 });
     expect(files).toEqual([]);
   });
 
@@ -38,7 +38,7 @@ describe('listOutputs', () => {
       },
     ]);
     const { listOutputs } = await import('../src/output-manager.js');
-    const files = await listOutputs('p1');
+    const files = await listOutputs('p1', { retryDelayMs: 0 });
     expect(files).toHaveLength(1);
     expect(mockGetHistory).toHaveBeenCalledWith('p1');
     expect(files[0].prompt_id).toBe('p1');
@@ -49,7 +49,7 @@ describe('listOutputs', () => {
   });
 
   it('retries and returns outputs when history appears after delay (timing)', async () => {
-    // Attempt 1: empty; attempt 2: empty; attempt 3: has entry
+    // Attempt 1–2: empty; attempt 3: has entry (retryDelayMs: 0 so no real wait)
     mockGetHistory
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
@@ -64,11 +64,11 @@ describe('listOutputs', () => {
         },
       ]);
     const { listOutputs } = await import('../src/output-manager.js');
-    const files = await listOutputs('p1');
+    const files = await listOutputs('p1', { retryDelayMs: 0 });
     expect(files).toHaveLength(1);
     expect(files[0].filename).toBe('delayed.png');
     expect(mockGetHistory).toHaveBeenCalledTimes(5);
-  }, 10_000);
+  });
 
   it('falls back to full history when GET /history/{id} returns empty (fresh prompt)', async () => {
     mockGetHistory
@@ -83,7 +83,7 @@ describe('listOutputs', () => {
         },
       ]);
     const { listOutputs } = await import('../src/output-manager.js');
-    const files = await listOutputs('p1');
+    const files = await listOutputs('p1', { retryDelayMs: 0 });
     expect(files).toHaveLength(1);
     expect(files[0].filename).toBe('fresh.png');
     expect(mockGetHistory).toHaveBeenCalledTimes(2);

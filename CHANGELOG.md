@@ -6,6 +6,30 @@ Project change history. Knowledge base (nodes) → [knowledge/CHANGELOG.md](know
 
 ## [Unreleased]
 
+## [2.3.0] – 2026-02-03
+
+### Added (ComfyUI_MCP_Feedback — FLUX, Apple Silicon)
+
+- **txt2img_flux template:** FLUX txt2img workflow (CheckpointLoaderSimple → CLIPTextEncodeFlux → ModelSamplingFlux → KSampler cfg=1 → VAEDecode → SaveImage). Params: width, height, steps, prompt/clip_l/t5xxl, guidance, ckpt_name (e.g. flux1-dev-fp8.safetensors). [src/workflow/workflow-builder.ts](src/workflow/workflow-builder.ts).
+- **Resource check before FLUX:** `build_workflow` with template `txt2img_flux` checks `get_system_resources` when ComfyUI is configured; fails with clear error if `flux_ready` is false or resolution exceeds `flux_max_width`×`flux_max_height`. [src/mcp-server.ts](src/mcp-server.ts).
+- **flux_ready, flux_max_width, flux_max_height:** `get_system_resources` now returns FLUX suitability (true when VRAM tier is high or very_high, ~12GB+). [src/resource-analyzer.ts](src/resource-analyzer.ts).
+- **platform_hints for Apple Silicon:** When GPU name suggests M1/M2/M3 or MPS, `get_system_resources` returns `platform_hints` suggesting M-Flux (Mflux-ComfyUI), ComfyUI-MLX and other MPS/MLX-optimized models. Same hints appear in `get_generation_recommendations` and in `build_workflow` error when txt2img_flux is used without sufficient resources. [src/resource-analyzer.ts](src/resource-analyzer.ts), [src/mcp-server.ts](src/mcp-server.ts).
+- **Docs:** [doc/IMAGE-GENERATION-RECOMMENDATIONS.md](doc/IMAGE-GENERATION-RECOMMENDATIONS.md) — section "Platform-specific models (Apple Silicon M1/M2/M3)" (M-Flux, ComfyUI-MLX). [doc/MCP-SETUP.md](doc/MCP-SETUP.md) — get_system_resources mentions flux_ready and platform_hints.
+
+### Added (ComfyUI_MCP_Feedback — adaptive timeout, base64, errors, model hint)
+
+- **Adaptive timeout (4.2):** `get_system_resources` returns **recommended_timeout_ms** (by tier; ~2.5× on MPS/Apple). `execute_workflow_sync` uses it when `timeout_ms` is omitted. [src/resource-analyzer.ts](src/resource-analyzer.ts), [src/mcp-server.ts](src/mcp-server.ts).
+- **Base64 / WebP when large (4.3):** When `download_by_filename` is called with `return_base64: true` and file size > 800 KB, image is auto-converted to WebP (quality 85) to stay under ~1MB. Optional params: `max_base64_bytes`, `convert_quality`. Dependency: sharp. [src/output-manager.ts](src/output-manager.ts), [src/mcp-server.ts](src/mcp-server.ts).
+- **get_error_details (4.4):** New tool `get_error_details(prompt_id)` returns full error details from ComfyUI history (node_id, exception_type, exception_message, full traceback). Use when execution failed. [src/mcp-server.ts](src/mcp-server.ts).
+- **suggest_template_for_checkpoint (4.5):** New tool `suggest_template_for_checkpoint(ckpt_name)` suggests template (txt2img_flux or txt2img) from checkpoint filename (flux/sdxl/sd1.5 patterns). [src/mcp-server.ts](src/mcp-server.ts).
+- **listOutputs retry delay option:** `listOutputs(promptId, options?)` accepts optional `retryDelayMs` (e.g. 0 in tests to avoid real delay). [src/output-manager.ts](src/output-manager.ts).
+
+### Tests
+
+- **resource-analyzer.test.ts:** flux_ready only for high/very_high; platform_hints for Apple M1; recommended_timeout_ms (higher on Apple).
+- **workflow-builder.test.ts:** listTemplates includes txt2img_flux; buildFromTemplate('txt2img_flux') returns FLUX graph with CLIPTextEncodeFlux, ModelSamplingFlux, cfg=1.
+- **output-manager.test.ts:** use `listOutputs(..., { retryDelayMs: 0 })` instead of long timeout so tests run without real delay.
+
 ---
 
 ## [2.2.1] – 2026-02-03

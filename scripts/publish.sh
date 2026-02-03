@@ -42,12 +42,12 @@ echo "--- MCP Registry ---"
 mcp-publisher login github
 mcp-publisher publish
 
+echo "--- update package localy ---"
+npm install -g mcp-comfy-ui-builder@latest
+
 echo "--- docker tag & push ---"
 docker tag mcp-comfy-ui-builder:latest "siniidrozd/mcp-comfy-ui-builder:${VERSION}"
 docker push "siniidrozd/mcp-comfy-ui-builder:${VERSION}"
 docker push siniidrozd/mcp-comfy-ui-builder:latest
-
-echo "--- update package localy ---"
-npm install -g mcp-comfy-ui-builder@latest
 
 echo "Done. Published version $VERSION (git, npm, docker)."

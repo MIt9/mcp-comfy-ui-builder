@@ -505,14 +505,64 @@ server.registerTool(
   'build_workflow',
   {
     description:
-      'Build a ComfyUI workflow from a template and parameters. Returns workflow JSON ready to execute or save. No ComfyUI connection needed.',
+      'Build a ComfyUI workflow from a template and parameters. Returns workflow JSON ready to execute or save. For txt2img_flux, call get_system_resources first and use only when flux_ready is true (FLUX needs ~12GB+ VRAM).',
     inputSchema: {
-      template: z.string().describe('Template id (e.g. txt2img). Use list_templates to see available.'),
-      params: z.record(z.string(), z.unknown()).optional().describe('Optional: width, height, steps, cfg, prompt, negative_prompt, seed, ckpt_name, filename_prefix, batch_size, denoise'),
+      template: z.string().describe('Template id (e.g. txt2img, txt2img_flux). Use list_templates to see available.'),
+      params: z.record(z.string(), z.unknown()).optional().describe('Optional: width, height, steps, cfg, prompt, negative_prompt, seed, ckpt_name, filename_prefix, batch_size, denoise; for txt2img_flux: clip_l, t5xxl, guidance'),
     },
   },
-  (args) => {
+  async (args) => {
     try {
+      if (args.template === 'txt2img_flux' && comfyui.isComfyUIConfigured()) {
+        const stats = await comfyui.getSystemStats();
+        const rec = analyzeSystemResources(stats);
+        if (!rec.flux_ready) {
+          const hints = rec.platform_hints;
+          const suggestion =
+            hints && hints.length > 0
+              ? `Call get_system_resources first. ${hints[0]} Or use txt2img (SD/SDXL) if flux_ready is false.`
+              : 'Call get_system_resources first. Use txt2img (SD/SDXL) or lower resolution if flux_ready is false.';
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    error: 'Insufficient resources for FLUX. FLUX requires ~12GB+ VRAM (flux_ready from get_system_resources).',
+                    flux_ready: false,
+                    vram_total_gb: rec.vram_total_gb,
+                    suggestion,
+                    ...(rec.platform_hints?.length ? { platform_hints: rec.platform_hints } : {}),
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        }
+        const params = (args.params ?? {}) as Record<string, unknown>;
+        const width = typeof params.width === 'number' ? params.width : 1024;
+        const height = typeof params.height === 'number' ? params.height : 1024;
+        if (rec.flux_max_width > 0 && rec.flux_max_height > 0 && (width > rec.flux_max_width || height > rec.flux_max_height)) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    error: `FLUX resolution ${width}×${height} exceeds recommended ${rec.flux_max_width}×${rec.flux_max_height} for this GPU.`,
+                    flux_max_width: rec.flux_max_width,
+                    flux_max_height: rec.flux_max_height,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        }
+      }
       const workflow = buildFromTemplate(args.template, args.params ?? {});
       const text = JSON.stringify(workflow, null, 2);
       return { content: [{ type: 'text', text }] };
@@ -520,6 +570,90 @@ server.registerTool(
       const msg = e instanceof Error ? e.message : String(e);
       return { content: [{ type: 'text', text: `build_workflow failed: ${msg}` }] };
     }
+  }
+);
+
+server.registerTool(
+  'suggest_template_for_checkpoint',
+  {
+    description:
+      'Suggest workflow template (txt2img_flux or txt2img) from checkpoint filename. FLUX checkpoints (e.g. flux1-dev-fp8.safetensors) use txt2img_flux; SD XL / SD 1.5 use txt2img. Call before build_workflow when the user did not specify a template.',
+    inputSchema: {
+      ckpt_name: z.string().describe('Checkpoint filename (e.g. flux1-dev-fp8.safetensors, sd_xl_base_1.0.safetensors)'),
+    },
+  },
+  (args) => {
+    const name = String(args.ckpt_name).toLowerCase();
+    if (/flux|flux1|flux_/.test(name)) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                template: 'txt2img_flux',
+                ckpt_name: args.ckpt_name,
+                reason: 'Checkpoint name suggests FLUX; use template txt2img_flux. Call get_system_resources first and ensure flux_ready is true.',
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+    if (/sdxl|sd_xl|sd3|sd_3/.test(name)) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                template: 'txt2img',
+                ckpt_name: args.ckpt_name,
+                reason: 'Checkpoint name suggests SD XL or SD 3; use template txt2img.',
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+    if (/sd1\.5|sd_15|v1-5|v1_5|sd15/.test(name)) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                template: 'txt2img',
+                ckpt_name: args.ckpt_name,
+                reason: 'Checkpoint name suggests SD 1.5; use template txt2img.',
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              template: 'txt2img',
+              ckpt_name: args.ckpt_name,
+              reason: 'Unknown checkpoint type; default to txt2img. For FLUX checkpoints use txt2img_flux.',
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
   }
 );
 
@@ -752,10 +886,10 @@ server.registerTool(
   'execute_workflow_sync',
   {
     description:
-      'Submit a ComfyUI workflow and wait until execution completes with real-time progress (WebSocket if available, polling fallback). Returns prompt_id, status (completed/failed/timeout), and outputs. Use when you need the result before continuing. Requires COMFYUI_HOST.',
+      'Submit a ComfyUI workflow and wait until execution completes with real-time progress (WebSocket if available, polling fallback). Returns prompt_id, status (completed/failed/timeout), and outputs. When timeout_ms is omitted, uses recommended_timeout_ms from get_system_resources (higher on MPS/Apple). Use when you need the result before continuing. Requires COMFYUI_HOST.',
     inputSchema: {
       workflow: z.string().describe('Workflow JSON string (from build_workflow or loaded file)'),
-      timeout_ms: z.number().int().min(1000).optional().describe('Max wait in milliseconds (default 300000)'),
+      timeout_ms: z.number().int().min(1000).optional().describe('Max wait in milliseconds. When omitted, uses get_system_resources recommended_timeout_ms (e.g. 1.2M on MPS).'),
       stream_progress: z.boolean().optional().describe('Stream progress updates via WebSocket (default true)'),
     },
   },
@@ -780,9 +914,10 @@ server.registerTool(
     if (!validation.valid) {
       return { content: [{ type: 'text', text: `Workflow validation failed:\n${validation.errors.join('\n')}` }] };
     }
+    let rec: ReturnType<typeof analyzeSystemResources> | undefined;
     try {
       const stats = await comfyui.getSystemStats();
-      const rec = analyzeSystemResources(stats);
+      rec = analyzeSystemResources(stats);
       const dims = getWorkflowResolution(parsed);
       if (dims && (dims.width > rec.max_width || dims.height > rec.max_height)) {
         return {
@@ -804,6 +939,7 @@ server.registerTool(
     } catch {
       // If get_system_stats fails (e.g. ComfyUI busy), proceed without resolution guard
     }
+    const timeoutMs = args.timeout_ms ?? rec?.recommended_timeout_ms ?? 300_000;
     const streamProgress = args.stream_progress ?? true;
     const progressUpdates: string[] = [];
     let prompt_id: string | undefined;
@@ -812,7 +948,7 @@ server.registerTool(
       prompt_id = submitted.prompt_id;
       const result = await comfyui.waitForCompletion(
         prompt_id,
-        args.timeout_ms,
+        timeoutMs,
         streamProgress
           ? (progress) => {
               const status = `[${progress.status}] ${progress.current_node ?? 'waiting'}`;
@@ -916,6 +1052,79 @@ server.registerTool(
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       return { content: [{ type: 'text', text: `get_execution_status failed: ${msg}` }] };
+    }
+  }
+);
+
+server.registerTool(
+  'get_error_details',
+  {
+    description:
+      'Get full error details for a prompt (node_id, exception_type, exception_message, full traceback). Use when execute_workflow_sync failed or get_execution_status shows errors. Returns structured errors from ComfyUI history status.messages. Requires COMFYUI_HOST.',
+    inputSchema: {
+      prompt_id: z.string().describe('Prompt id from execute_workflow or execute_workflow_sync'),
+    },
+  },
+  async (args) => {
+    if (!comfyui.isComfyUIConfigured()) {
+      return {
+        content: [{ type: 'text', text: 'ComfyUI is not configured. Set COMFYUI_HOST to use get_error_details.' }],
+      };
+    }
+    try {
+      const entries = await comfyui.getHistory(args.prompt_id);
+      if (entries.length === 0) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                { prompt_id: args.prompt_id, error: 'No history found for this prompt_id. It may still be running or not yet recorded.' },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+      const entry = entries[0];
+      const statusObj = entry.status as { status_str?: string; messages?: unknown[] } | undefined;
+      const statusStr = statusObj?.status_str;
+      const messages = statusObj?.messages ?? [];
+      const errors: Array<{
+        node_id?: string;
+        exception_type?: string;
+        exception_message?: string;
+        traceback?: string[];
+      }> = [];
+      for (const m of messages) {
+        if (m && typeof m === 'object' && ('node_id' in m || 'exception_message' in m)) {
+          const msg = m as {
+            node_id?: string;
+            exception_message?: string;
+            exception_type?: string;
+            traceback?: string[];
+          };
+          errors.push({
+            node_id: msg.node_id,
+            exception_type: msg.exception_type,
+            exception_message: msg.exception_message,
+            traceback: Array.isArray(msg.traceback) ? msg.traceback : undefined,
+          });
+        } else {
+          errors.push({ exception_message: String(m) });
+        }
+      }
+      const out = {
+        prompt_id: args.prompt_id,
+        status: statusStr,
+        errors: errors.length ? errors : undefined,
+        message: errors.length ? undefined : 'No error messages in history for this prompt.',
+      };
+      return { content: [{ type: 'text', text: JSON.stringify(out, null, 2) }] };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: 'text', text: `get_error_details failed: ${msg}` }] };
     }
   }
 );
@@ -1255,13 +1464,15 @@ server.registerTool(
   'download_by_filename',
   {
     description:
-      'Download an output file by filename (no prompt_id needed). Uses GET /view. Use when you have filename from get_history or get_last_output. If return_base64 is true, file is not written to disk; returns base64 data (for remote MCP when bash runs on another host). Requires COMFYUI_HOST.',
+      'Download an output file by filename (no prompt_id needed). Uses GET /view. Use when you have filename from get_history or get_last_output. If return_base64 is true, file is not written to disk; returns base64 data. When size > 800 KB, automatically converts to WebP to stay under 1MB base64 limits. Requires COMFYUI_HOST.',
     inputSchema: {
       filename: z.string().describe('Output filename (e.g. from get_last_output or get_history)'),
       dest_path: z.string().describe('Local path to save the file (ignored when return_base64 is true)'),
       subfolder: z.string().optional().describe('Subfolder (default empty)'),
       type: z.string().optional().describe('View type (default "output")'),
-      return_base64: z.boolean().optional().describe('If true, return file as base64 instead of writing to dest_path (for remote MCP)'),
+      return_base64: z.boolean().optional().describe('If true, return file as base64 (auto WebP when > 800 KB)'),
+      max_base64_bytes: z.number().int().min(0).optional().describe('When return_base64 and file size > this, convert to WebP (default 819200). Set 0 to disable.'),
+      convert_quality: z.number().min(1).max(100).optional().describe('WebP/JPEG quality when converting (default 85)'),
     },
   },
   async (args) => {
@@ -1273,6 +1484,8 @@ server.registerTool(
         subfolder: args.subfolder,
         type: args.type ?? 'output',
         returnBase64: args.return_base64 ?? false,
+        max_base64_bytes: args.max_base64_bytes,
+        convert_quality: args.convert_quality,
       });
       return { content: [{ type: 'text', text: JSON.stringify(result) }] };
     } catch (e) {
@@ -1451,7 +1664,7 @@ server.registerTool(
   'get_system_resources',
   {
     description:
-      'Get ComfyUI station resources (GPU/VRAM/RAM) and recommendations for model size, resolution, and batch size. Call this first before building or executing workflows to avoid OOM. Requires COMFYUI_HOST.',
+      'Get ComfyUI station resources (GPU/VRAM/RAM) and recommendations for model size, resolution, and batch size. Returns flux_ready (FLUX needs ~12GB+ VRAM) and platform_hints (e.g. Apple Silicon: M-Flux, ComfyUI-MLX). Call this first before building or executing workflows to avoid OOM. Requires COMFYUI_HOST.',
     inputSchema: {},
   },
   async () => {
@@ -1501,6 +1714,9 @@ server.registerTool(
         result.summary.push(rec.summary);
         if (rec.warnings?.length) {
           result.summary.push(...rec.warnings);
+        }
+        if (rec.platform_hints?.length) {
+          result.summary.push(...rec.platform_hints);
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);

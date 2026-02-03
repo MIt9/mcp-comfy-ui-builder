@@ -14,7 +14,7 @@ Publishable to the [MCP Registry](https://modelcontextprotocol.io/registry/about
 
 - **Knowledge base:** Seed `knowledge/base-nodes.json` and `node-compatibility.json` from bundled data (62 seed nodes; 100–600+ after sync). No external services required for suggest/build.
 - **Sync:** Custom packs from ComfyUI-Manager; nodes from running ComfyUI via `sync-nodes` CLI or on MCP startup.
-- **MCP server (50+ tools):** Node discovery, dynamic workflow builder, 8 templates, WebSocket real-time execution, batch/chain, model management, plugin system.
+- **MCP server (50+ tools):** Node discovery, dynamic workflow builder, 9 templates (txt2img, txt2img_flux, img2img, …), WebSocket real-time execution, batch/chain, model management, plugin system.
 - **Real-time execution:** Sub-second progress via WebSocket with automatic polling fallback; ~90% less network traffic for batch runs.
 
 ## Install
@@ -62,7 +62,7 @@ Single entry point — **task-oriented navigation**:
 - **[doc/DOCKER-SETUP.md](doc/DOCKER-SETUP.md)** — `docker pull siniidrozd/mcp-comfy-ui-builder` | docker-compose for MCP + ComfyUI
 - **Knowledge base:** [knowledge/README.md](knowledge/README.md), [doc/knowledge-base-usage-guide.md](doc/knowledge-base-usage-guide.md)
 - **Workflow Builder:** [doc/workflow-builder.md](doc/workflow-builder.md) — templates, params, save/load, ComfyUI format
-- **Planning:** [ROADMAP.md](ROADMAP.md), [NEXT-STEPS.md](NEXT-STEPS.md), [TODO.md](TODO.md) — current v2.0.x, next Phase 10 (QoL)
+- **Planning:** [ROADMAP.md](ROADMAP.md), [NEXT-STEPS.md](NEXT-STEPS.md), [TODO.md](TODO.md) — current v2.3.x, next Phase 10 (QoL)
 - **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md)
 - **MCP Registry:** [server.json](server.json) and `mcpName` in package.json; see [MCP Registry quickstart](https://modelcontextprotocol.io/registry/quickstart) to publish after `npm publish`.
 

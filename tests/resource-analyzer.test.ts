@@ -65,6 +65,18 @@ describe('resource-analyzer', () => {
       expect(rec.max_height).toBe(1024);
       expect(rec.suggested_model_size).toBe('heavy');
       expect(rec.max_batch_size).toBe(8);
+      expect(rec.flux_ready).toBe(true);
+      expect(rec.flux_max_width).toBe(1024);
+      expect(rec.flux_max_height).toBe(1024);
+    });
+
+    it('sets flux_ready true only for high/very_high VRAM (12GB+)', () => {
+      expect(analyzeSystemResources(makeStats(3)).flux_ready).toBe(false);
+      expect(analyzeSystemResources(makeStats(6)).flux_ready).toBe(false);
+      expect(analyzeSystemResources(makeStats(10)).flux_ready).toBe(true);
+      expect(analyzeSystemResources(makeStats(16)).flux_ready).toBe(true);
+      expect(analyzeSystemResources(makeStats(10)).flux_max_width).toBe(1024);
+      expect(analyzeSystemResources(makeStats(3)).flux_max_width).toBe(0);
     });
 
     it('returns unknown tier when no devices', () => {
@@ -87,6 +99,39 @@ describe('resource-analyzer', () => {
       expect(rec.raw!.vram_total_bytes).toBe(8 * BYTES_PER_GB);
       expect(rec.vram_total_gb).toBe(8);
       expect(rec.ram_total_gb).toBe(16);
+    });
+
+    it('adds platform_hints for Apple Silicon (M1/M2/M3, MPS)', () => {
+      const statsApple: SystemStatsResponse = {
+        system: { ram_total: 16 * BYTES_PER_GB, ram_free: 8 * BYTES_PER_GB },
+        devices: [
+          { name: 'Apple M1', vram_total: 8 * BYTES_PER_GB, vram_free: 4 * BYTES_PER_GB },
+        ],
+      };
+      const rec = analyzeSystemResources(statsApple);
+      expect(rec.platform_hints).toBeDefined();
+      expect(rec.platform_hints!.length).toBeGreaterThan(0);
+      expect(rec.platform_hints![0]).toMatch(/Apple Silicon|M-Flux|ComfyUI-MLX|MPS/);
+    });
+
+    it('does not add platform_hints for non-Apple GPU', () => {
+      const rec = analyzeSystemResources(makeStats(8));
+      expect(rec.platform_hints).toBeUndefined();
+    });
+
+    it('returns recommended_timeout_ms (higher on Apple/MPS)', () => {
+      const recLow = analyzeSystemResources(makeStats(3));
+      expect(recLow.recommended_timeout_ms).toBe(120_000);
+      const recHigh = analyzeSystemResources(makeStats(16));
+      expect(recHigh.recommended_timeout_ms).toBe(600_000);
+      const statsApple: SystemStatsResponse = {
+        system: { ram_total: 16 * BYTES_PER_GB, ram_free: 8 * BYTES_PER_GB },
+        devices: [
+          { name: 'Apple M1', vram_total: 16 * BYTES_PER_GB, vram_free: 8 * BYTES_PER_GB },
+        ],
+      };
+      const recApple = analyzeSystemResources(statsApple);
+      expect(recApple.recommended_timeout_ms).toBe(1_500_000); // 600_000 * 2.5
     });
   });
 

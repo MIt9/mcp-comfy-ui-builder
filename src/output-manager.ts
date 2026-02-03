@@ -1,10 +1,12 @@
 /**
  * Output manager: list and download ComfyUI prompt outputs (images, etc.).
  * Uses GET /history and GET /view.
+ * When return_base64 and size > 800KB, converts to WebP to stay under typical 1MB base64 limits.
  */
 import fetch from 'node-fetch';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import sharp from 'sharp';
 import * as comfyui from './comfyui-client.js';
 import type { HistoryEntry, HistoryNodeOutput, HistoryImageOutput } from './types/comfyui-api-types.js';
 
@@ -46,13 +48,19 @@ function isHistoryEntryFinal(entry: HistoryEntry): boolean {
   return hasOutputs;
 }
 
+export interface ListOutputsOptions {
+  /** Delay in ms between retries (default LIST_OUTPUTS_RETRY_DELAY_MS). Use 0 in tests to avoid real delay. */
+  retryDelayMs?: number;
+}
+
 /**
  * List all output files for a completed prompt (from GET /history).
  * If GET /history/{prompt_id} returns empty (e.g. fresh prompt), fallback to full history.
  * Retries up to LIST_OUTPUTS_MAX_RETRIES with delay — ComfyUI may need ~2s to write to history after completed.
  * Throws if prompt is still running/pending so the caller can show a clear message instead of "No outputs".
  */
-export async function listOutputs(promptId: string): Promise<OutputFile[]> {
+export async function listOutputs(promptId: string, options?: ListOutputsOptions): Promise<OutputFile[]> {
+  const delayMs = options?.retryDelayMs ?? LIST_OUTPUTS_RETRY_DELAY_MS;
   const tryList = async (): Promise<OutputFile[]> => {
     let entries = (await comfyui.getHistory(promptId)) ?? [];
     if (entries.length === 0) {
@@ -112,7 +120,7 @@ export async function listOutputs(promptId: string): Promise<OutputFile[]> {
       if (attempt === LIST_OUTPUTS_MAX_RETRIES - 1) throw e;
     }
     if (attempt < LIST_OUTPUTS_MAX_RETRIES - 1) {
-      await new Promise((r) => setTimeout(r, LIST_OUTPUTS_RETRY_DELAY_MS));
+      await new Promise((r) => setTimeout(r, delayMs));
     }
   }
   return [];
@@ -136,17 +144,32 @@ export async function downloadOutput(file: OutputFile, destPath: string): Promis
   return destPath;
 }
 
+const BASE64_CONVERT_THRESHOLD_BYTES = 800 * 1024; // 800 KB — auto-convert to WebP when larger
+const WEBP_QUALITY = 85;
+
 /**
  * Download an output file by filename (no prompt_id needed). Uses GET /view.
  * Use when you have filename from get_history or get_last_output.
  * Returns the written path and size in bytes.
- * When returnBase64 is true, does not write to disk; returns base64 data for remote MCP (MCP on one host, bash on another).
+ * When returnBase64 is true, does not write to disk; returns base64 data for remote MCP.
+ * If size > 800 KB, automatically converts to WebP (quality 85) to stay under typical 1MB base64 limits.
  */
 export async function downloadByFilename(
   filename: string,
   destPath: string,
-  options?: { subfolder?: string; type?: string; returnBase64?: boolean }
-): Promise<{ path: string; size: number } | { filename: string; mime: string; encoding: 'base64'; data: string }> {
+  options?: {
+    subfolder?: string;
+    type?: string;
+    returnBase64?: boolean;
+    /** When return_base64 and size > this (bytes), convert to WebP. Default 800*1024. Set 0 to disable. */
+    max_base64_bytes?: number;
+    /** Quality for WebP/JPEG conversion (1–100). Default 85. */
+    convert_quality?: number;
+  }
+): Promise<
+  | { path: string; size: number }
+  | { filename: string; mime: string; encoding: 'base64'; data: string; converted?: boolean; original_size?: number }
+> {
   const bytes = await comfyui.fetchOutputByFilename(filename, {
     subfolder: options?.subfolder,
     type: options?.type ?? 'output',
@@ -154,22 +177,42 @@ export async function downloadByFilename(
   const buffer = Buffer.from(bytes);
 
   if (options?.returnBase64) {
+    const maxBytes = options.max_base64_bytes ?? BASE64_CONVERT_THRESHOLD_BYTES;
+    const quality = Math.min(100, Math.max(1, options.convert_quality ?? WEBP_QUALITY));
+    let outBuffer = buffer;
+    let mime = 'application/octet-stream';
+    let outFilename = filename;
+    let converted = false;
     const ext = filename.split('.').pop()?.toLowerCase();
-    const mime =
-      ext === 'png'
-        ? 'image/png'
-        : ext === 'jpg' || ext === 'jpeg'
-          ? 'image/jpeg'
-          : ext === 'webp'
-            ? 'image/webp'
-            : ext === 'gif'
-              ? 'image/gif'
-              : 'application/octet-stream';
+    if (ext === 'png' || ext === 'jpg' || ext === 'jpeg' || ext === 'webp' || ext === 'gif') {
+      mime =
+        ext === 'png'
+          ? 'image/png'
+          : ext === 'jpg' || ext === 'jpeg'
+            ? 'image/jpeg'
+            : ext === 'webp'
+              ? 'image/webp'
+              : ext === 'gif'
+                ? 'image/gif'
+                : 'application/octet-stream';
+      if (maxBytes > 0 && buffer.length > maxBytes) {
+        try {
+          const webpBuf = await sharp(buffer).webp({ quality }).toBuffer();
+          outBuffer = Buffer.from(webpBuf);
+          mime = 'image/webp';
+          outFilename = filename.replace(/\.[a-z]+$/i, '.webp');
+          converted = true;
+        } catch {
+          // Keep original if sharp fails
+        }
+      }
+    }
     return {
-      filename,
+      filename: outFilename,
       mime,
       encoding: 'base64',
-      data: buffer.toString('base64'),
+      data: outBuffer.toString('base64'),
+      ...(converted && { converted: true, original_size: buffer.length }),
     };
   }
 

@@ -58,6 +58,27 @@ Text-to-image: CheckpointLoaderSimple → CLIPTextEncode (positive + negative) �
 
 Example: `build_workflow("txt2img", { width: 512, height: 768, prompt: "a cat", steps: 30 })`.
 
+### txt2img_flux
+
+FLUX text-to-image: CheckpointLoaderSimple → CLIPTextEncodeFlux (clip_l, t5xxl, guidance) → ModelSamplingFlux → EmptyLatentImage → KSampler (cfg=1) → VAEDecode → SaveImage. **Call get_system_resources first** and use only when **flux_ready** is true (~12GB+ VRAM). Use ckpt_name like `flux1-dev-fp8.safetensors` or `flux1-schnell-fp8.safetensors`.
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| width | number | 1024 | Latent width |
+| height | number | 1024 | Latent height |
+| steps | number | 28 | Sampler steps |
+| prompt | string | '' | Used for both clip_l and t5xxl if clip_l/t5xxl not set |
+| clip_l | string | '' | Short keywords (style, quality) |
+| t5xxl | string | '' | Long description (scene, details) |
+| negative_prompt | string | '' | Negative conditioning |
+| guidance | number | 3.5 | CLIPTextEncodeFlux guidance |
+| seed | number | 0 | Random seed |
+| ckpt_name | string | flux1-dev-fp8.safetensors | FLUX checkpoint filename |
+| filename_prefix | string | ComfyUI_flux | SaveImage prefix |
+| batch_size | number | 1 | EmptyLatentImage batch |
+
+Example: `build_workflow("txt2img_flux", { prompt: "a crocodile toy", width: 1024, height: 1024 })`. Use **suggest_template_for_checkpoint(ckpt_name)** to pick template from checkpoint filename.
+
 ### img2img
 
 Image-to-image: LoadImage → VAEEncode → CheckpointLoaderSimple → CLIPTextEncode (positive + negative) → KSampler → VAEDecode → SaveImage.

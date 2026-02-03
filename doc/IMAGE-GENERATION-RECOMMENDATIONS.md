@@ -38,8 +38,19 @@ Many diffusion models **render text poorly**: blurry, wrong letters, or gibberis
 ### MCP tools to use
 
 - **get_generation_recommendations(prompt?)** — Returns system resource limits and, if the prompt suggests text-in-image, advice on models and settings. Call when planning a txt2img/img2img for a user request that might include text.
-- **get_system_resources** — Resource limits only (no prompt analysis).
+- **get_system_resources** — Resource limits only (no prompt analysis). Also returns **flux_ready** (FLUX needs ~12GB+ VRAM) and **platform_hints** (e.g. Apple Silicon alternatives).
 - **list_models** / **check_workflow_models** — See which checkpoints (e.g. FLUX, SD3) are available before building the workflow.
+
+---
+
+## Platform-specific models (Apple Silicon M1/M2/M3)
+
+On **Apple Silicon** (M1/M2/M3, MPS), `get_system_resources` may return **platform_hints** suggesting alternatives that run with lower memory than desktop FLUX:
+
+- **M-Flux** (Mflux-ComfyUI) — MLX port of FLUX for Apple Silicon; install via ComfyUI-Manager or [Mflux-ComfyUI](https://github.com/raysers/Mflux-ComfyUI).
+- **ComfyUI-MLX** — MLX-optimized nodes for Flux on Apple Silicon (faster load, lower memory); see [ComfyUI-MLX](https://github.com/thoddnn/comfyui-mlx).
+
+Use **txt2img** for SD 1.5 / SD XL, or install M-Flux/MLX custom nodes for FLUX-style generation when `flux_ready` is false or when you prefer MPS/MLX-optimized models.
 
 ---
 

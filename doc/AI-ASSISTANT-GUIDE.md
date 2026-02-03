@@ -55,7 +55,7 @@ Then build the workflow (e.g. via `build_workflow` or dynamic builder) with thes
 | **get_generation_recommendations(prompt?)** | Same as get_system_resources plus, if the user prompt suggests **text in the image** (sign, logo, caption, etc.), returns advice: prefer FLUX/SD3, 25–30 steps; many base models render text poorly. Call when planning txt2img/img2img. | Yes (COMFYUI_HOST) for resources |
 | **list_templates** | List available templates (txt2img, img2img) | No |
 | **list_node_types** | List nodes from the knowledge base (optional: category, priority) | No |
-| **get_node_info** | Full info about a node by class name | No |
+| **get_node_info** | Full info about a node by class name (types, defaults; for enum-style inputs exposes `type: "COMBO"` and a `choices` array) | No |
 | **check_compatibility** | Whether one node’s output can connect to another’s input | No |
 | **suggest_nodes** | Suggest nodes by task description or type (task_description / input_type) | No |
 | **build_workflow** | Build workflow JSON from a template (e.g. txt2img) + params (width, height, steps, cfg, prompt, negative_prompt, seed, etc.) | No |
@@ -113,6 +113,7 @@ For any tool that needs ComfyUI, **COMFYUI_HOST** must be set (default `http://1
 
 **Explore nodes (no generation):**
 - `list_node_types`, `get_node_info(node_name)`, `check_compatibility(from_node, to_node)`, `suggest_nodes(task_description or input_type)`.
+- For **detailed enum options** (e.g. all possible `sampler_name` / `scheduler` values for `KSampler`), prefer `get_node_inputs(node_name)`, which returns the raw ComfyUI definition with full enum lists; `get_node_info` is a higher-level summary (it exposes them as `COMBO` + `choices` but not the original UI metadata).
 
 **Control queue and interruption:**
 - `interrupt_execution()` or `interrupt_execution(prompt_id)` — stop current run (or a specific one by prompt_id).

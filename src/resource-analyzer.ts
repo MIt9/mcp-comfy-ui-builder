@@ -33,6 +33,25 @@ export interface ResourceRecommendations {
   summary: string;
   /** Optional warnings (e.g. low VRAM). */
   warnings: string[];
+  /**
+   * Whether VRAM is sufficient for FLUX (dual-CLIP, ~12GB+ recommended).
+   * Call get_system_resources before using txt2img_flux; if false, use txt2img (SD/SDXL) or lower resolution.
+   */
+  flux_ready: boolean;
+  /** Max width recommended for FLUX (0 if flux_ready is false). */
+  flux_max_width: number;
+  /** Max height recommended for FLUX (0 if flux_ready is false). */
+  flux_max_height: number;
+  /**
+   * Optional platform-specific model hints (e.g. Apple Silicon: M-Flux, ComfyUI-MLX).
+   * Use when gpu_name suggests M1/M2/M3 or MPS; these models may run with lower VRAM than desktop FLUX.
+   */
+  platform_hints?: string[];
+  /**
+   * Recommended timeout for execute_workflow_sync (ms). MPS/Apple Silicon is ~2–3× slower; value is higher on Apple.
+   * Use when timeout_ms is not passed to avoid premature timeout on slow backends.
+   */
+  recommended_timeout_ms: number;
   /** Raw stats snapshot (for debugging). */
   raw?: {
     vram_total_bytes: number;
@@ -110,7 +129,7 @@ function recommendationsFromTier(
         max_height: 1024,
         suggested_model_size: 'heavy',
         max_batch_size: 8,
-        summary: 'Very high VRAM: SD XL and large resolutions; batch 4–8.',
+        summary: 'Very high VRAM: SD XL and FLUX; batch 4–8.',
         warnings: [],
       };
     default:
@@ -147,6 +166,31 @@ export function analyzeSystemResources(stats: SystemStatsResponse): ResourceReco
   const gpuName = primary?.name ?? 'unknown';
   const rec = recommendationsFromTier(tier, vramFreeGb, vramTotalGb);
 
+  /** FLUX needs ~12GB+ VRAM (dual CLIP + large UNet). high/very_high = 12GB+ */
+  const fluxReady = tier === 'high' || tier === 'very_high';
+  const fluxMax = fluxReady ? { width: 1024, height: 1024 } : { width: 0, height: 0 };
+
+  /** Apple Silicon (M1/M2/M3, MPS): suggest M-Flux, ComfyUI-MLX and other MPS/MLX-optimized models. */
+  const platformHints: string[] = [];
+  const gpuLower = String(gpuName).toLowerCase();
+  const isMpsOrApple = /apple|m1|m2|m3|mps|metal/.test(gpuLower);
+  if (isMpsOrApple) {
+    platformHints.push(
+      'Apple Silicon (M1/M2/M3): M-Flux (Mflux-ComfyUI), ComfyUI-MLX and other MPS/MLX-optimized models may run with lower memory than desktop FLUX; use txt2img for SD 1.5/SDXL, or install M-Flux/MLX nodes for FLUX-style generation.'
+    );
+  }
+
+  /** Base timeout by tier (typical 1024×1024 ~28 steps). MPS/Apple ~2.5× slower. */
+  const baseTimeoutByTier: Record<ResourceTier, number> = {
+    low: 120_000,
+    medium: 240_000,
+    high: 480_000,
+    very_high: 600_000,
+    unknown: 300_000,
+  };
+  const baseTimeout = baseTimeoutByTier[tier];
+  const recommendedTimeoutMs = isMpsOrApple ? Math.round(baseTimeout * 2.5) : baseTimeout;
+
   return {
     tier,
     gpu_name: gpuName,
@@ -160,6 +204,11 @@ export function analyzeSystemResources(stats: SystemStatsResponse): ResourceReco
     max_batch_size: rec.max_batch_size,
     summary: rec.summary,
     warnings: rec.warnings,
+    flux_ready: fluxReady,
+    flux_max_width: fluxMax.width,
+    flux_max_height: fluxMax.height,
+    ...(platformHints.length > 0 && { platform_hints: platformHints }),
+    recommended_timeout_ms: recommendedTimeoutMs,
     raw: {
       vram_total_bytes: vramTotal,
       vram_free_bytes: vramFree,

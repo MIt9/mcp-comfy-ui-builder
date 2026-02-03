@@ -40,8 +40,9 @@ Tools are grouped by area. **COMFYUI_HOST** is required for execution/queue/outp
 
 | Tool | Description |
 |------|------|
-| **list_templates** | List workflow template ids (e.g. txt2img, img2img, inpainting) |
-| **build_workflow(template, params?)** | Build ComfyUI workflow JSON from template |
+| **list_templates** | List workflow template ids (e.g. txt2img, txt2img_flux, img2img, inpainting) |
+| **build_workflow(template, params?)** | Build ComfyUI workflow JSON from template. For txt2img_flux call get_system_resources first (flux_ready). |
+| **suggest_template_for_checkpoint(ckpt_name)** | Suggest template (txt2img_flux or txt2img) from checkpoint filename (flux/sdxl/sd1.5). Call before build_workflow when user did not specify template. |
 | **create_template(workflow, params_def)** | Create a parameterized template from a workflow |
 | **apply_template(template, values)** | Apply parameter values to a template; returns workflow JSON |
 | **validate_template_params(template, values)** | Check that values satisfy template parameters |
@@ -53,9 +54,10 @@ Tools are grouped by area. **COMFYUI_HOST** is required for execution/queue/outp
 | Tool | Description | Real-Time |
 |------|------|-----------|
 | **execute_workflow(workflow)** | Submit workflow to ComfyUI; returns prompt_id | N/A |
-| **execute_workflow_sync(workflow, timeout?, stream_progress?)** | Submit and wait until done; returns prompt_id, outputs, and progress log. Always returns prompt_id (even on error) so you can use get_history/get_last_output if the result was lost (e.g. client-side timeout). For long runs the MCP client may disconnect before the server responds—use get_history(limit=5) or get_last_output() to recover prompt_id and outputs. | ✅ WebSocket + polling fallback |
+| **execute_workflow_sync(workflow, timeout?, stream_progress?)** | Submit and wait until done; returns prompt_id, outputs, and progress log. When timeout omitted, uses **recommended_timeout_ms** from get_system_resources (higher on MPS/Apple). Always returns prompt_id (even on error) so you can use get_history/get_last_output if the result was lost. | ✅ WebSocket + polling fallback |
 | **execute_workflow_stream(workflow, timeout?)** | Execute with full event history (requires WebSocket) | ✅ WebSocket required |
 | **get_execution_status(prompt_id)** | Status and image outputs for a prompt | N/A |
+| **get_error_details(prompt_id)** | Full error details (node_id, exception_type, exception_message, full traceback). Use when execute_workflow_sync failed or get_execution_status shows errors. | N/A |
 | **get_execution_progress(prompt_id)** | Progress info (current node, progress %, queue position) | ✅ WebSocket + polling fallback |
 | **execute_batch(workflows, concurrency?)** | Run multiple workflows with optimized shared WebSocket | ✅ Pre-connects WebSocket |
 | **execute_chain(steps)** | Run workflow chain with data passing (output N → input N+1) | ✅ Pre-connects WebSocket |
@@ -75,14 +77,14 @@ Tools are grouped by area. **COMFYUI_HOST** is required for execution/queue/outp
 | **get_last_output()** | Get info for the most recent completed prompt output (first image). Returns prompt_id, filename, subfolder, view_url. Use when prompt_id was lost; then use download_by_filename to save the file. |
 | **list_outputs(prompt_id)** | List output files (images, etc.) for a prompt |
 | **download_output(prompt_id, node_id, filename, dest_path)** | Download a single output file (requires prompt_id) |
-| **download_by_filename(filename, dest_path, subfolder?, type?)** | Download an output file by filename (no prompt_id). Use when you have filename from get_history or get_last_output. |
+| **download_by_filename(filename, dest_path, subfolder?, type?, return_base64?, max_base64_bytes?, convert_quality?)** | Download an output file by filename (no prompt_id). When return_base64 true and size > 800 KB, auto-converts to WebP to stay under ~1MB. Use when you have filename from get_history or get_last_output. |
 | **download_all_outputs(prompt_id, dest_dir)** | Download all outputs for a prompt to a directory |
 
 ### Resources & model management (COMFYUI_HOST)
 
 | Tool | Description |
 |------|------|
-| **get_system_resources** | Get station GPU/VRAM/RAM and recommendations (max_width, max_height, suggested_model_size, max_batch_size). **Call first** before building or executing workflows to avoid OOM. |
+| **get_system_resources** | Get station GPU/VRAM/RAM and recommendations (max_width, max_height, suggested_model_size, max_batch_size). Returns **flux_ready**, **platform_hints** (e.g. Apple Silicon: M-Flux, ComfyUI-MLX), and **recommended_timeout_ms** (used by execute_workflow_sync when timeout omitted; higher on MPS/Apple). **Call first** before building or executing workflows to avoid OOM. |
 | **get_generation_recommendations(prompt?)** | Same as get_system_resources plus, if the user prompt suggests **text in the image** (sign, logo, caption), returns advice: prefer FLUX/SD3, 25–30 steps; many base models render text poorly. See [IMAGE-GENERATION-RECOMMENDATIONS.md](IMAGE-GENERATION-RECOMMENDATIONS.md). |
 | **list_models(model_type?)** | List models (checkpoint, lora, vae, controlnet, upscale, etc.) |
 | **get_model_info(name, model_type)** | Details for a model |
@@ -326,4 +328,4 @@ Replace the path in `command` with your `which node` result; keep `args` as the 
 
 ***
 
-*MCP Setup v2.2.1 - get_history, get_last_output, download_by_filename, get_generation_recommendations* | *2026-02-03*
+*MCP Setup v2.3.0 - get_error_details, suggest_template_for_checkpoint, recommended_timeout_ms, base64/WebP* | *2026-02-03*

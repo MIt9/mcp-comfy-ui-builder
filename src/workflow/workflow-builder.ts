@@ -93,6 +93,26 @@ export type ControlNetParams = {
   filename_prefix?: string;
 };
 
+/** Params for txt2img_flux template. FLUX uses dual CLIP (clip_l + t5xxl) and cfg=1. Call get_system_resources first; use only when flux_ready is true. */
+export type Txt2ImgFluxParams = {
+  width?: number;
+  height?: number;
+  steps?: number;
+  /** Short keywords for CLIP-L (style, quality). */
+  clip_l?: string;
+  /** Long description for T5-XXL (scene, details). */
+  t5xxl?: string;
+  /** Combined prompt: used for both clip_l and t5xxl when clip_l/t5xxl not set. */
+  prompt?: string;
+  negative_prompt?: string;
+  seed?: number;
+  ckpt_name?: string;
+  filename_prefix?: string;
+  batch_size?: number;
+  /** Guidance scale (CLIPTextEncodeFlux). FLUX typically 3–4. */
+  guidance?: number;
+};
+
 export type BatchVariation = { seed?: number; prompt?: string };
 export type BatchParams = {
   base_params?: Txt2ImgParams;
@@ -112,6 +132,22 @@ const DEFAULT_TXT2IMG = {
   filename_prefix: 'ComfyUI',
   batch_size: 1,
   denoise: 1,
+};
+
+/** FLUX: use FP8 checkpoint (e.g. flux1-dev-fp8.safetensors) or full UNet + DualCLIPLoader. CFG must be 1. */
+const DEFAULT_TXT2IMG_FLUX = {
+  width: 1024,
+  height: 1024,
+  steps: 28,
+  clip_l: '',
+  t5xxl: '',
+  prompt: '',
+  negative_prompt: '',
+  seed: 0,
+  ckpt_name: 'flux1-dev-fp8.safetensors',
+  filename_prefix: 'ComfyUI_flux',
+  batch_size: 1,
+  guidance: 3.5,
 };
 
 /** Default KSampler inputs required by ComfyUI (sampler_name, scheduler). */
@@ -292,6 +328,71 @@ function buildInpainting(params: InpaintingParams): ComfyUIWorkflow {
     '10': {
       class_type: 'SaveImage',
       inputs: { images: ['9', 0], filename_prefix: p.filename_prefix },
+    },
+  };
+  return nodes;
+}
+
+/**
+ * Build FLUX txt2img: CheckpointLoaderSimple → CLIPTextEncodeFlux (pos/neg) → ModelSamplingFlux → EmptyLatentImage → KSampler (cfg=1) → VAEDecode → SaveImage.
+ * Requires flux_ready from get_system_resources (e.g. 12GB+ VRAM). Use ckpt_name like flux1-dev-fp8.safetensors or flux1-schnell-fp8.safetensors.
+ */
+function buildTxt2ImgFlux(params: Txt2ImgFluxParams): ComfyUIWorkflow {
+  const p = { ...DEFAULT_TXT2IMG_FLUX, ...params };
+  const posClipL = p.clip_l !== undefined && p.clip_l !== '' ? p.clip_l : p.prompt ?? '';
+  const posT5xxl = p.t5xxl !== undefined && p.t5xxl !== '' ? p.t5xxl : p.prompt ?? '';
+  const nodes: Record<string, ComfyUINodeDef> = {
+    '1': {
+      class_type: 'CheckpointLoaderSimple',
+      inputs: { ckpt_name: p.ckpt_name },
+    },
+    '2': {
+      class_type: 'CLIPTextEncodeFlux',
+      inputs: {
+        clip: ['1', 1],
+        clip_l: posClipL,
+        t5xxl: posT5xxl,
+        guidance: p.guidance ?? 3.5,
+      },
+    },
+    '3': {
+      class_type: 'CLIPTextEncodeFlux',
+      inputs: {
+        clip: ['1', 1],
+        clip_l: p.negative_prompt ?? '',
+        t5xxl: p.negative_prompt ?? '',
+        guidance: 0,
+      },
+    },
+    '4': {
+      class_type: 'ModelSamplingFlux',
+      inputs: { model: ['1', 0], width: p.width, height: p.height },
+    },
+    '5': {
+      class_type: 'EmptyLatentImage',
+      inputs: { width: p.width, height: p.height, batch_size: p.batch_size },
+    },
+    '6': {
+      class_type: 'KSampler',
+      inputs: {
+        ...DEFAULT_KSAMPLER,
+        model: ['4', 0],
+        positive: ['2', 0],
+        negative: ['3', 0],
+        latent_image: ['5', 0],
+        seed: p.seed,
+        steps: p.steps,
+        cfg: 1,
+        denoise: 1,
+      },
+    },
+    '7': {
+      class_type: 'VAEDecode',
+      inputs: { samples: ['6', 0], vae: ['1', 2] },
+    },
+    '8': {
+      class_type: 'SaveImage',
+      inputs: { images: ['7', 0], filename_prefix: p.filename_prefix },
     },
   };
   return nodes;
@@ -581,6 +682,7 @@ function buildImageCaption(params: ImageCaptionParams): ComfyUIWorkflow {
 
 const TEMPLATES: Record<string, (params: Record<string, unknown>) => ComfyUIWorkflow> = {
   txt2img: (params) => buildTxt2Img(params as Txt2ImgParams),
+  txt2img_flux: (params) => buildTxt2ImgFlux(params as Txt2ImgFluxParams),
   img2img: (params) => buildImg2Img(params as Img2ImgParams),
   image_caption: (params) => buildImageCaption(params as ImageCaptionParams),
   inpainting: (params) => buildInpainting(params as InpaintingParams),
