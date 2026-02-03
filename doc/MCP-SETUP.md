@@ -328,4 +328,4 @@ Replace the path in `command` with your `which node` result; keep `args` as the 
 
 ***
 
-*MCP Setup v2.3.0 - get_error_details, suggest_template_for_checkpoint, recommended_timeout_ms, base64/WebP* | *2026-02-03*
+*MCP Setup v2.3.1 - get_error_details, suggest_template_for_checkpoint, recommended_timeout_ms, base64/WebP* | *2026-02-03*
