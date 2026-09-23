@@ -12,8 +12,10 @@
 **Tell your AI assistant what image to generate — it builds and runs the ComfyUI workflow for you.**  
 Works with Claude Desktop, Cursor, and any MCP-compatible client.
 
+![Demo](assets/demo.gif)
 
 Publishable to the [MCP Registry](https://modelcontextprotocol.io/registry/about) via `server.json` and `mcpName`.
+
 
 ## What is this
 
