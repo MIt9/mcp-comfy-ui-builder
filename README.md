@@ -1,5 +1,7 @@
 # mcp-comfy-ui-builder
 
+> **Control ComfyUI from Claude or Cursor** — 50+ MCP tools for node discovery, dynamic workflow building, real-time WebSocket execution, and model management. No JSON editing required.
+
 <img src="assets/icon.svg" width="48" height="48" alt="" align="left" />
 
 [![CI](https://github.com/MIt9/mcp-comfy-ui-builder/actions/workflows/ci.yml/badge.svg)](https://github.com/MIt9/mcp-comfy-ui-builder/actions/workflows/ci.yml)
@@ -7,7 +9,10 @@
 [![Docker](https://img.shields.io/docker/v/siniidrozd/mcp-comfy-ui-builder?label=docker)](https://hub.docker.com/r/siniidrozd/mcp-comfy-ui-builder)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**ComfyUI Node Discovery** — seed knowledge base and MCP tools for Cursor/Claude.  
+**Tell your AI assistant what image to generate — it builds and runs the ComfyUI workflow for you.**  
+Works with Claude Desktop, Cursor, and any MCP-compatible client.
+
+
 Publishable to the [MCP Registry](https://modelcontextprotocol.io/registry/about) via `server.json` and `mcpName`.
 
 ## What is this
