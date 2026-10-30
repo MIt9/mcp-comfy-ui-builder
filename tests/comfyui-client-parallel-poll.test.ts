@@ -11,6 +11,7 @@ vi.mock('node-fetch', () => ({ default: mockFetch }));
 // WS connects but never emits progress — would eventually timeout
 vi.mock('../src/comfyui-ws-client.js', () => ({
   getWSClient: () => ({
+    getClientId: () => 'parallel-test-client',
     connect: () => Promise.resolve(),
     subscribe: () => ({ unsubscribe: () => {} }),
     isConnected: () => true,

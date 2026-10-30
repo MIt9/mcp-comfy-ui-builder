@@ -6,7 +6,7 @@ import type { ObjectInfo, ObjectInfoNode } from '../types/comfyui-api-types.js';
 import type { BaseNodesJson, NodeDescription } from '../types/node-types.js';
 import { addNode, updateCompatibility } from './updater.js';
 
-/** Normalized node info for get_node_inputs / get_node_outputs (live or KB). */
+/** Normalized node information (live or knowledge base). */
 export interface NodeInfo {
   class_name: string;
   display_name: string;
@@ -19,6 +19,8 @@ export interface NodeInfo {
   output: string[];
   output_name: string[];
   source: 'live' | 'knowledge';
+  priority?: NodeDescription['priority'];
+  use_cases?: string[];
 }
 
 /** Filters for search_nodes. */
@@ -26,7 +28,11 @@ export interface NodeFilters {
   category?: string;
   input_type?: string;
   output_type?: string;
+  priority?: NodeDescription['priority'];
+  task?: string;
 }
+
+export type NodeSource = 'local' | 'live' | 'merged';
 
 /** Result of syncing live nodes to knowledge base. */
 export interface SyncResult {
@@ -53,20 +59,29 @@ function normalizeLiveNode(className: string, raw: ObjectInfoNode): NodeInfo {
 }
 
 function normalizeKnowledgeNode(className: string, desc: NodeDescription): NodeInfo {
-  const required: Record<string, unknown> = {};
-  for (const [name, spec] of Object.entries(desc.input_types?.required ?? {})) {
-    const s = spec as { type?: string; default?: unknown };
-    required[name] = s?.type != null ? [s.type, s.default != null ? { default: s.default } : {}] : [];
-  }
+  const normalizeInputs = (inputs: Record<string, unknown>): Record<string, unknown> =>
+    Object.fromEntries(Object.entries(inputs).map(([name, spec]) => {
+      if (Array.isArray(spec) || typeof spec === 'string') return [name, spec];
+      if (spec && typeof spec === 'object' && 'type' in spec) {
+        const { type, choices, ...config } = spec as Record<string, unknown>;
+        return [name, [choices ?? type, config]];
+      }
+      return [name, []];
+    }));
   return {
     class_name: className,
     display_name: desc.display_name ?? className,
     category: desc.category ?? 'unknown',
     description: desc.description,
-    input: { required, optional: desc.input_types?.optional ?? {} },
+    input: {
+      required: normalizeInputs(desc.input_types?.required ?? {}),
+      optional: normalizeInputs(desc.input_types?.optional ?? {}),
+    },
     output: desc.return_types ?? [],
     output_name: desc.return_names ?? [],
     source: 'knowledge',
+    priority: desc.priority,
+    use_cases: desc.use_cases ?? [],
   };
 }
 
@@ -82,8 +97,14 @@ function inputTypeOf(value: unknown): string {
 /** Check if a node matches filters (category, input_type, output_type). */
 function nodeMatchesFilters(info: NodeInfo, filters?: NodeFilters): boolean {
   if (!filters) return true;
-  if (filters.category != null && filters.category !== '' && info.category !== filters.category) {
+  if (filters.category != null && filters.category !== '' && info.category.toLowerCase() !== filters.category.toLowerCase()) {
     return false;
+  }
+  if (filters.priority && info.priority !== filters.priority) return false;
+  if (filters.task?.trim()) {
+    const task = filters.task.trim().toLowerCase();
+    if (![info.description ?? '', info.display_name, ...(info.use_cases ?? [])]
+      .some((value) => value.toLowerCase().includes(task))) return false;
   }
   if (filters.input_type != null && filters.input_type !== '') {
     const types = Object.values(info.input.required ?? {})
@@ -167,9 +188,12 @@ export class HybridNodeDiscovery {
    * Search nodes by query and optional filters (category, input_type, output_type).
    * Merges live and knowledge; live entries override KB for same class_name.
    */
-  async searchNodes(query: string, filters?: NodeFilters): Promise<NodeInfo[]> {
-    const live = await this.getLiveObjectInfo();
-    const base = this.loadBaseNodes();
+  async searchNodes(query: string, filters?: NodeFilters, source: NodeSource = 'merged'): Promise<NodeInfo[]> {
+    const live = source === 'local' ? null : await this.getLiveObjectInfo();
+    if (source === 'live' && live == null) {
+      throw new Error('Live ComfyUI node inventory is unavailable. Check COMFYUI_HOST and that ComfyUI is running.');
+    }
+    const base = source === 'live' ? { nodes: {} } : this.loadBaseNodes();
     const byClass = new Map<string, NodeInfo>();
 
     if (base.nodes) {
@@ -180,7 +204,12 @@ export class HybridNodeDiscovery {
     }
     if (live) {
       for (const [className, raw] of Object.entries(live)) {
-        byClass.set(className, normalizeLiveNode(className, raw));
+        const local = byClass.get(className);
+        byClass.set(className, {
+          ...normalizeLiveNode(className, raw),
+          ...(local?.priority && { priority: local.priority }),
+          ...(local?.use_cases && { use_cases: local.use_cases }),
+        });
       }
     }
 

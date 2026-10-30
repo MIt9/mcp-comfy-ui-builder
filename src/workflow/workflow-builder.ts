@@ -108,7 +108,7 @@ export type ControlNetParams = {
   filename_prefix?: string;
 };
 
-/** Params for txt2img_flux template. FLUX uses dual CLIP (clip_l + t5xxl) and cfg=1. Call get_system_resources first; use only when flux_ready is true. */
+/** Params for txt2img_flux template. FLUX uses dual CLIP (clip_l + t5xxl) and cfg=1. Call get_generation_recommendations first; use only when flux_ready is true. */
 export type Txt2ImgFluxParams = {
   width?: number;
   height?: number;
@@ -433,7 +433,7 @@ function buildInpainting(params: InpaintingParams): ComfyUIWorkflow {
 
 /**
  * Build FLUX txt2img: CheckpointLoaderSimple → CLIPTextEncodeFlux (pos/neg) → ModelSamplingFlux → EmptyLatentImage → KSampler (cfg=1) → VAEDecode → SaveImage.
- * Requires flux_ready from get_system_resources (e.g. 12GB+ VRAM). Use ckpt_name like flux1-dev-fp8.safetensors or flux1-schnell-fp8.safetensors.
+ * Requires flux_ready from get_generation_recommendations (e.g. 12GB+ VRAM). Use ckpt_name like flux1-dev-fp8.safetensors or flux1-schnell-fp8.safetensors.
  */
 function buildTxt2ImgFlux(params: Txt2ImgFluxParams): ComfyUIWorkflow {
   const p = { ...DEFAULT_TXT2IMG_FLUX, ...params };

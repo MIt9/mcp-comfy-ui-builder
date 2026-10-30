@@ -19,6 +19,9 @@ describe('ComfyUI client', () => {
 
   it('submitPrompt returns prompt_id', async () => {
     const { submitPrompt } = await import('../src/comfyui-client.js');
+    const { getWSClient } = await import('../src/comfyui-ws-client.js');
+    const wsClient = getWSClient();
+    const connect = vi.spyOn(wsClient, 'connect');
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ prompt_id: 'abc-123' }),
@@ -32,9 +35,11 @@ describe('ComfyUI client', () => {
       expect.stringContaining('/prompt'),
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ prompt: workflow }),
+        body: JSON.stringify({ prompt: workflow, client_id: wsClient.getClientId() }),
       })
     );
+    expect(connect).not.toHaveBeenCalled();
+    connect.mockRestore();
   });
 
   it('getHistory returns array when no prompt_id', async () => {
@@ -68,6 +73,12 @@ describe('ComfyUI client', () => {
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual(single);
     expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/history/p1'), expect.any(Object));
+  });
+
+  it('getHistory returns no entries for a prompt not recorded yet', async () => {
+    const { getHistory } = await import('../src/comfyui-client.js');
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    expect(await getHistory('pending')).toEqual([]);
   });
 
   it('getHistory normalizes keyed response for GET /history/{prompt_id} (ComfyUI format)', async () => {

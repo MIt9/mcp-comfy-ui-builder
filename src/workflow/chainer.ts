@@ -9,11 +9,12 @@ import type { ComfyUIWorkflow, ComfyUINodeDef } from '../types/comfyui-api-types
 export interface ChainStepInputFrom {
   step: number;
   outputNode: string;
+  /** Zero-based image index in the selected output node's images array. */
   outputIndex: number;
 }
 
 export interface ChainStep {
-  /** Workflow JSON object or saved workflow name (from workflows/<name>.json). */
+  /** Workflow JSON object/string or saved workflow name (from workflows/<name>.json). */
   workflow: ComfyUIWorkflow | string;
   /** Override node inputs: { nodeId: { inputName: value } }. */
   params?: Record<string, Record<string, unknown>>;
@@ -62,9 +63,14 @@ async function resolveStepWorkflow(
 ): Promise<ComfyUIWorkflow> {
   let raw: ComfyUIWorkflow;
   if (typeof step.workflow === 'string') {
-    raw = await loadWorkflow(step.workflow);
+    raw = /^[\s]*[\[{]/.test(step.workflow)
+      ? JSON.parse(step.workflow) as ComfyUIWorkflow
+      : await loadWorkflow(step.workflow);
   } else {
     raw = step.workflow;
+  }
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new Error('Invalid workflow JSON: expected object');
   }
   const workflow = cloneWorkflow(raw);
   if (step.params) {
@@ -106,33 +112,36 @@ export async function executeChain(
 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
-    let workflow = await resolveStepWorkflow(step);
-
-    if (step.inputFrom != null && step.outputTo != null && results[step.inputFrom.step]) {
-      const prev = results[step.inputFrom.step];
-      if (prev.status === 'completed' && prev.prompt_id) {
-        try {
-          const uploaded = await comfyui.prepareImageForWorkflow(prev.prompt_id);
-          const filename = uploaded.subfolder ? `${uploaded.subfolder}/${uploaded.name}` : uploaded.name;
-          const nodeId = findNodeWithInput(workflow, step.outputTo);
-          if (nodeId) {
-            const node = workflow[nodeId] as ComfyUINodeDef;
-            node.inputs[step.outputTo] = filename;
-          }
-        } catch (e) {
-          results.push({
-            stepIndex: i,
-            prompt_id: '',
-            status: 'failed',
-            error: `Failed to pass image from step ${step.inputFrom.step}: ${e instanceof Error ? e.message : String(e)}`,
-          });
-          if (stopOnError) return results;
-          continue;
-        }
-      }
-    }
-
     try {
+      const workflow = await resolveStepWorkflow(step);
+      if ((step.inputFrom != null) !== (step.outputTo != null)) {
+        throw new Error('inputFrom and outputTo must be provided together');
+      }
+      if (step.inputFrom && step.outputTo != null) {
+        const { step: sourceStep, outputNode, outputIndex } = step.inputFrom;
+        if (!Number.isInteger(sourceStep) || sourceStep < 0 || sourceStep >= i) {
+          throw new Error('inputFrom.step must reference an earlier step');
+        }
+        const previous = results[sourceStep];
+        if (previous?.status !== 'completed') {
+          throw new Error(`Cannot use output from failed step ${sourceStep}`);
+        }
+        if (!Number.isInteger(outputIndex) || outputIndex < 0) {
+          throw new Error('inputFrom.outputIndex must be a non-negative image index');
+        }
+        const nodeId = findNodeWithInput(workflow, step.outputTo);
+        if (!nodeId) throw new Error(`No target node has input "${step.outputTo}"`);
+        const output = previous.outputs && Object.hasOwn(previous.outputs, outputNode)
+          ? previous.outputs[outputNode] as { images?: Array<{ filename?: string; subfolder?: string; type?: string }> }
+          : undefined;
+        const image = output?.images?.[outputIndex];
+        if (!image || typeof image.filename !== 'string' || !image.filename) {
+          throw new Error(`No image at output node "${outputNode}" index ${outputIndex} in step ${sourceStep}`);
+        }
+        const bytes = await comfyui.fetchOutputByFilename(image.filename, { subfolder: image.subfolder, type: image.type ?? 'output' });
+        const uploaded = await comfyui.uploadImage(bytes, image.filename);
+        workflow[nodeId].inputs[step.outputTo] = uploaded.subfolder ? `${uploaded.subfolder}/${uploaded.name}` : uploaded.name;
+      }
       const result = useWebSocket
         ? await comfyui.submitPromptAndWaitWithProgress(workflow, timeoutMs)
         : await comfyui.submitPromptAndWait(workflow, timeoutMs);

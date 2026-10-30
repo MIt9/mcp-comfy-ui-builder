@@ -58,13 +58,14 @@ async function fetchWithRetry(url: string, options: FetchOptions = {}): Promise<
 }
 
 /**
- * Submit a workflow to ComfyUI. POST /prompt with body { prompt: workflow }.
+ * Submit a workflow to ComfyUI with the shared WebSocket client's identity.
  * Returns prompt_id.
  */
 export async function submitPrompt(workflow: ComfyUIWorkflow): Promise<SubmitPromptResponse> {
+  const { getWSClient } = await import('./comfyui-ws-client.js');
   const res = await fetchWithRetry('/prompt', {
     method: 'POST',
-    body: JSON.stringify({ prompt: workflow }),
+    body: JSON.stringify({ prompt: workflow, client_id: getWSClient().getClientId() }),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -95,9 +96,9 @@ export async function getHistory(promptId?: string): Promise<HistoryEntry[]> {
     const entry =
       keyed[promptId] != null
         ? (keyed[promptId] as HistoryEntry)
-        : (keyed.outputs != null && keyed.status != null ? data : Object.values(keyed)[0]) as HistoryEntry;
-    const withId = entry && typeof entry === 'object' ? { ...entry, prompt_id: promptId } : (data as HistoryEntry);
-    return [withId as HistoryEntry];
+        : (keyed.outputs != null || keyed.status != null || keyed.prompt_id != null ? data : Object.values(keyed)[0]) as HistoryEntry;
+    if (!entry || typeof entry !== 'object') return [];
+    return [{ ...entry, prompt_id: promptId }];
   }
   if (Array.isArray(data)) {
     const arr = data as HistoryEntry[];
@@ -258,7 +259,7 @@ function swapHostInUrl(url: string): string | null {
 
 /**
  * Fetch file bytes from ComfyUI /view by filename (no prompt_id needed).
- * Use when you have filename from get_history or get_last_output.
+ * Use when you have filename from get_history or list_outputs(selector=latest_image).
  * On 404, retries with alternate host (127.0.0.1 ↔ localhost) when ComfyUI binds differently.
  */
 export async function fetchOutputByFilename(
@@ -359,16 +360,29 @@ const POLL_FALLBACK_DELAY_MS = 3000; // delay before polling when WS shows 100% 
 const POLL_FALLBACK_TIMEOUT_MS = 10_000; // short poll timeout (execution already done on disk)
 
 /** ComfyUI history status_str values that mean execution is finished (no more queue). */
-const FINAL_STATUS_STRINGS = ['success', 'finished', 'error', 'canceled', 'cached'];
+const FINAL_STATUS_STRINGS = ['success', 'finished', 'completed', 'error', 'canceled', 'cached'];
 
-function isHistoryEntryFinal(entry: HistoryEntry): boolean {
-  const statusObj = entry.status as { status_str?: string; messages?: unknown[] } | undefined;
-  const statusStr = statusObj?.status_str?.toLowerCase();
-  const hasError = Boolean(statusObj?.messages?.length);
-  if (hasError) return true;
-  if (statusStr && FINAL_STATUS_STRINGS.includes(statusStr)) return true;
-  const hasOutputs = Boolean(entry.outputs && Object.keys(entry.outputs).length > 0);
-  return hasOutputs;
+/** Interpret recorded completion once for polling and WebSocket reconciliation. */
+export function getHistoryExecutionResult(entry: HistoryEntry, promptId: string): ExecutionResult | null {
+  const statusObj = entry.status as { status_str?: string; messages?: unknown[]; completed?: boolean } | undefined;
+  const status = statusObj?.status_str?.toLowerCase();
+  const messages = statusObj?.messages ?? [];
+  const errorEvents = messages.filter((message) => {
+    if (Array.isArray(message)) return message[0] === 'execution_error' || message[0] === 'execution_interrupted';
+    return message && typeof message === 'object' && ('exception_message' in message || 'exception_type' in message);
+  });
+  const succeededEvent = messages.some((message) => Array.isArray(message) && message[0] === 'execution_success');
+  const failed = status === 'error' || status === 'canceled' || errorEvents.length > 0;
+  const terminal = failed || statusObj?.completed === true || succeededEvent || (status != null && FINAL_STATUS_STRINGS.includes(status));
+  // Old ComfyUI variants omit status; preserve output-only completion, but a
+  // known nonfinal status must not become complete merely due to partial output.
+  if (!terminal && (status != null || !entry.outputs || Object.keys(entry.outputs).length === 0)) return null;
+  return {
+    prompt_id: promptId,
+    status: failed ? 'failed' : 'completed',
+    outputs: entry.outputs,
+    ...(failed && { error: errorEvents.length ? JSON.stringify(errorEvents[0]) : status === 'canceled' ? 'Canceled' : 'Execution failed (see get_execution for details)' }),
+  };
 }
 
 /**
@@ -386,30 +400,12 @@ export async function submitPromptAndWait(
     const entries = await getHistory(prompt_id);
     if (entries.length > 0) {
       const entry = entries[0];
-      if (!isHistoryEntryFinal(entry)) {
+      const result = getHistoryExecutionResult(entry, prompt_id);
+      if (!result) {
         await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
         continue;
       }
-      const statusObj = entry.status as { status_str?: string; messages?: unknown[] } | undefined;
-      const messages = statusObj?.messages ?? [];
-      const statusStr = statusObj?.status_str?.toLowerCase();
-      // Treat status_str 'error' or 'canceled' as failure even when messages is empty (ComfyUI may not populate messages).
-      const hasError = statusStr === 'error' || statusStr === 'canceled' || Boolean(messages?.length);
-      const errorDetail = hasError
-        ? (messages?.length
-            ? typeof messages[0] === 'object' && messages[0] !== null
-              ? JSON.stringify(messages[0])
-              : String(messages[0])
-            : statusStr === 'error'
-              ? 'Execution failed (see get_execution_status for details)'
-              : 'Canceled')
-        : undefined;
-      return {
-        prompt_id,
-        status: hasError ? 'failed' : 'completed',
-        outputs: entry.outputs,
-        error: errorDetail,
-      };
+      return result;
     }
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
@@ -419,7 +415,7 @@ export async function submitPromptAndWait(
 /**
  * Submit workflow and wait with WebSocket progress tracking (hybrid approach).
  * Tries WebSocket first for real-time updates, falls back to polling if unavailable.
- * Always returns an object with prompt_id so the client can use get_history/get_last_output if needed.
+ * Always returns an object with prompt_id so the client can use get_history/list_outputs(selector=latest_image) if needed.
  * @param workflow - ComfyUI workflow to execute
  * @param timeoutMs - Maximum wait time in milliseconds
  * @param onProgress - Optional callback for progress updates (only with WebSocket)
@@ -450,8 +446,16 @@ export async function submitPromptAndWaitWithProgress(
 export async function waitForCompletion(
   promptId: string,
   timeoutMs: number = DEFAULT_SYNC_TIMEOUT_MS,
-  onProgress?: (progress: import('./types/comfyui-api-types.js').ExecutionProgress) => void
+  onProgress?: (progress: import('./types/comfyui-api-types.js').ExecutionProgress) => void,
+  transport: 'auto' | 'websocket' | 'polling' = 'auto'
 ): Promise<ExecutionResult> {
+  if (transport === 'polling') return waitWithPolling(promptId, timeoutMs);
+  if (transport === 'websocket') {
+    const { getWSClient } = await import('./comfyui-ws-client.js');
+    const wsClient = getWSClient();
+    await wsClient.connect();
+    return waitWithWebSocket(wsClient, promptId, timeoutMs, onProgress, false);
+  }
   const wsPromise = (async (): Promise<ExecutionResult | null> => {
     try {
       const { getWSClient } = await import('./comfyui-ws-client.js');
@@ -483,7 +487,8 @@ async function waitWithWebSocket(
   wsClient: Awaited<ReturnType<typeof import('./comfyui-ws-client.js').getWSClient>>,
   promptId: string,
   timeoutMs: number,
-  onProgress?: (progress: import('./types/comfyui-api-types.js').ExecutionProgress) => void
+  onProgress?: (progress: import('./types/comfyui-api-types.js').ExecutionProgress) => void,
+  allowPollingFallback = true
 ): Promise<ExecutionResult> {
   return new Promise((resolve, reject) => {
     let subscription: ReturnType<typeof wsClient.subscribe> | null = null;
@@ -491,8 +496,11 @@ async function waitWithWebSocket(
     let pollFallbackId: NodeJS.Timeout | null = null;
     let completedOrResolving = false;
     let pollFallbackScheduled = false;
+    let settled = false;
+    let reconcilingCompletion = false;
 
     const cleanup = () => {
+      settled = true;
       if (subscription) subscription.unsubscribe();
       subscription = null;
       if (timeoutId) clearTimeout(timeoutId);
@@ -504,16 +512,35 @@ async function waitWithWebSocket(
     subscription = wsClient.subscribe(
       promptId,
       (progress) => {
+        if (settled) return;
         onProgress?.(progress);
 
         if (progress.status === 'completed') {
+          if (reconcilingCompletion) return;
           completedOrResolving = true;
-          cleanup();
-          resolve({
+          const websocketResult: ExecutionResult = {
             prompt_id: promptId,
             status: 'completed',
             outputs: progress.outputs,
-          });
+          };
+          if (Object.keys(progress.outputs ?? {}).length > 0) {
+            cleanup();
+            resolve(websocketResult);
+          } else {
+            // Cached nodes may emit completion without executed/output events.
+            // Keep the original timeout active while reconciling once.
+            reconcilingCompletion = true;
+            void getHistory(promptId).then((entries) => {
+              if (settled) return;
+              const recorded = entries[0] ? getHistoryExecutionResult(entries[0], promptId) : null;
+              cleanup();
+              resolve(recorded ?? websocketResult);
+            }).catch(() => {
+              if (settled) return;
+              cleanup();
+              resolve(websocketResult);
+            });
+          }
         } else if (progress.status === 'failed') {
           completedOrResolving = true;
           cleanup();
@@ -521,8 +548,10 @@ async function waitWithWebSocket(
             prompt_id: promptId,
             status: 'failed',
             error: progress.error?.message,
+            outputs: progress.outputs,
           });
         } else if (
+          allowPollingFallback &&
           !completedOrResolving &&
           !pollFallbackScheduled &&
           progress.current_node_progress !== undefined &&
@@ -532,17 +561,26 @@ async function waitWithWebSocket(
           completedOrResolving = true;
           pollFallbackId = setTimeout(async () => {
             cleanup();
-            const result = await waitWithPolling(promptId, POLL_FALLBACK_TIMEOUT_MS);
-            resolve(result);
+            try {
+              resolve(await waitWithPolling(promptId, POLL_FALLBACK_TIMEOUT_MS));
+            } catch (error) {
+              reject(error);
+            }
           }, POLL_FALLBACK_DELAY_MS);
         }
       },
       (error) => {
+        if (settled) return;
         cleanup();
         reject(error);
       }
     );
 
+    // A subscriber may synchronously receive a terminal cached event.
+    if (settled) {
+      cleanup();
+      return;
+    }
     timeoutId = setTimeout(() => {
       cleanup();
       resolve({
@@ -551,6 +589,24 @@ async function waitWithWebSocket(
         error: `Timed out after ${timeoutMs}ms`,
       });
     }, timeoutMs);
+
+    if (!allowPollingFallback) {
+      // Subscribe before this read: a fast/cached run may have finished before
+      // its prompt_id was returned by POST /prompt. This is one reconciliation
+      // read, never a recurring polling fallback.
+      void getHistory(promptId).then((entries) => {
+        if (settled) return;
+        const entry = entries[0];
+        if (!entry) return;
+        const result = getHistoryExecutionResult(entry, promptId);
+        if (!result) return;
+        cleanup();
+        resolve(result);
+      }).catch(() => {
+        // History can be temporarily unavailable; the live subscription and
+        // completion timeout remain authoritative.
+      });
+    }
   });
 }
 
@@ -565,29 +621,12 @@ async function waitWithPolling(promptId: string, timeoutMs: number): Promise<Exe
     const entries = await getHistory(promptId);
     if (entries.length > 0) {
       const entry = entries[0];
-      if (!isHistoryEntryFinal(entry)) {
+      const result = getHistoryExecutionResult(entry, promptId);
+      if (!result) {
         await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
         continue;
       }
-      const statusObj = entry.status as { status_str?: string; messages?: unknown[] } | undefined;
-      const messages = statusObj?.messages ?? [];
-      const statusStr = statusObj?.status_str?.toLowerCase();
-      const hasError = statusStr === 'error' || statusStr === 'canceled' || Boolean(messages?.length);
-      const errorDetail = hasError
-        ? (messages?.length
-            ? typeof messages[0] === 'object' && messages[0] !== null
-              ? JSON.stringify(messages[0])
-              : String(messages[0])
-            : statusStr === 'error'
-              ? 'Execution failed (see get_execution_status for details)'
-              : 'Canceled')
-        : undefined;
-      return {
-        prompt_id: promptId,
-        status: hasError ? 'failed' : 'completed',
-        outputs: entry.outputs,
-        error: errorDetail,
-      };
+      return result;
     }
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }

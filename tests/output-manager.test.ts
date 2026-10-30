@@ -2,7 +2,7 @@
  * Unit tests for output-manager (mocked getHistory, fetch).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, existsSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import sharp from 'sharp';
@@ -218,5 +218,48 @@ describe('downloadByFilename', () => {
     const result = await downloadByFilename('a.png', destPath, { output_format: 'webp' });
     expect('path' in result).toBe(true);
     if ('path' in result) expect(result.path).toBe(join(tmpDir, 'noext.webp'));
+  });
+});
+
+describe('downloadAllOutputs path containment', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.COMFYUI_HOST = 'http://127.0.0.1:8188';
+  });
+
+  it.each([
+    { filename: '../outside.png', nodeId: '7', prefix: false },
+    { filename: '../../outside.png', nodeId: '7', prefix: true },
+    { filename: '..\\outside.png', nodeId: '7', prefix: false },
+    { filename: '/tmp/outside.png', nodeId: '7', prefix: false },
+    { filename: 'C:\\outside.png', nodeId: '7', prefix: false },
+    { filename: 'safe.png', nodeId: '../..', prefix: true },
+  ])('rejects untrusted output path $filename / $nodeId before downloading', async ({ filename, nodeId, prefix }) => {
+    const parent = mkdtempSync(join(tmpdir(), 'output-containment-'));
+    const outside = join(parent, 'outside.png');
+    writeFileSync(outside, 'original');
+    mockGetHistory.mockResolvedValue([{ prompt_id: 'p1', outputs: {
+      '1': { images: [{ filename: 'safe-first.png', subfolder: '', type: 'output' }] },
+      [nodeId]: { images: [{ filename, subfolder: '', type: 'output' }] },
+    } }]);
+    try {
+      const { downloadAllOutputs } = await import('../src/output-manager.js');
+      await expect(downloadAllOutputs('p1', join(parent, 'downloads'), { prefixNodeId: prefix })).rejects.toThrow('plain path segments');
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(readFileSync(outside, 'utf8')).toBe('original');
+      expect(existsSync(join(parent, 'downloads'))).toBe(false);
+    } finally { rmSync(parent, { recursive: true, force: true }); }
+  });
+
+  it('downloads plain filenames inside the selected directory', async () => {
+    const parent = mkdtempSync(join(tmpdir(), 'output-containment-'));
+    mockGetHistory.mockResolvedValue([{ prompt_id: 'p1', outputs: { '7': { images: [{ filename: 'image.png', subfolder: 'remote-subfolder', type: 'output' }] } } }]);
+    mockFetch.mockResolvedValue({ ok: true, arrayBuffer: async () => Buffer.from('image') });
+    try {
+      const { downloadAllOutputs } = await import('../src/output-manager.js');
+      const paths = await downloadAllOutputs('p1', parent);
+      expect(paths).toEqual([join(parent, '7_image.png')]);
+      expect(readFileSync(paths[0], 'utf8')).toBe('image');
+    } finally { rmSync(parent, { recursive: true, force: true }); }
   });
 });

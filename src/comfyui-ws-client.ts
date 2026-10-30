@@ -69,6 +69,11 @@ class ComfyUIWSClient {
     this.wsUrl = this.buildWsUrl();
   }
 
+  /** Identity used by both POST /prompt and the WebSocket connection. Does not connect. */
+  getClientId(): string {
+    return this.clientId;
+  }
+
   private buildWsUrl(): string {
     const host = process.env.COMFYUI_HOST ?? 'http://127.0.0.1:8188';
     const wsHost = host

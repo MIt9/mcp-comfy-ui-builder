@@ -9,6 +9,6 @@ export default defineConfig({
     coverage: { reporter: ['text'], include: ['src/**/*.ts'], exclude: ['**/*.test.ts', '**/node_modules/**'] },
   },
   resolve: {
-    alias: { '@': path.resolve(__dirname, 'src') },
+    alias: { '@': path.resolve(import.meta.dirname, 'src') },
   },
 });

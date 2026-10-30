@@ -12,6 +12,7 @@ vi.mock('node-fetch', () => ({ default: mockFetch }));
 
 // Mock WebSocket: emits 100% progress but never completed (one MPS scenario)
 const createWSMockWith100Percent = () => ({
+  getClientId: () => 'fallback-test-client',
   connect: () => Promise.resolve(),
   subscribe: (promptId: string, onProgress: (p: unknown) => void) => {
     queueMicrotask(() => {

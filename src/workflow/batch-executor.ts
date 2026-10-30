@@ -54,33 +54,28 @@ export async function executeBatch(config: BatchConfig): Promise<BatchResult[]> 
   }
 
   async function runOne(item: (typeof queue)[0]): Promise<void> {
+    let result: ExecutionResult;
     try {
-      const result = useWebSocket
+      result = useWebSocket
         ? await comfyui.submitPromptAndWaitWithProgress(item.workflow, timeoutMs)
         : await comfyui.submitPromptAndWait(item.workflow, timeoutMs);
-
-      const batchResult: BatchResult = {
-        index: item.index,
-        prompt_id: result.prompt_id,
-        status: result.status === 'completed' ? 'completed' : 'failed',
-        outputs: result.outputs,
-        error: result.error,
-      };
-      results.push(batchResult);
-      onProgress?.(item.index, workflows.length, result);
     } catch (e) {
-      const batchResult: BatchResult = {
-        index: item.index,
+      result = {
         prompt_id: '',
         status: 'failed',
         error: e instanceof Error ? e.message : String(e),
       };
-      results.push(batchResult);
-      onProgress?.(item.index, workflows.length, { prompt_id: '', status: 'failed', error: batchResult.error });
     }
+    results.push({ index: item.index, prompt_id: result.prompt_id, status: result.status === 'completed' ? 'completed' : 'failed', outputs: result.outputs, error: result.error });
+    // Observer failures must not duplicate results or change execution outcomes.
+    try { onProgress?.(item.index, workflows.length, result); } catch { /* Execution result remains authoritative. */ }
   }
 
   while (queue.length > 0 || running.length > 0) {
+    if (stopOnError && results.some((r) => r.status === 'failed')) {
+      await Promise.all(running);
+      break;
+    }
     while (running.length < maxConcurrency && queue.length > 0) {
       const item = queue.shift()!;
       const promise = runOne(item).then(() => {
@@ -88,10 +83,6 @@ export async function executeBatch(config: BatchConfig): Promise<BatchResult[]> 
         if (i >= 0) running.splice(i, 1);
       });
       running.push(promise);
-    }
-    if (stopOnError && results.some((r) => r.status === 'failed')) {
-      await Promise.all(running);
-      break;
     }
     if (running.length > 0) {
       await Promise.race(running);

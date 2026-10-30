@@ -188,7 +188,7 @@ async function convertImageToFormat(
 
 /**
  * Download an output file by filename (no prompt_id needed). Uses GET /view.
- * Use when you have filename from get_history or get_last_output.
+ * Use when you have filename from get_history or list_outputs(selector=latest_image).
  * Returns the written path and size in bytes.
  * When returnBase64 is true, does not write to disk; returns base64 data for remote MCP.
  * If size > 800 KB, automatically converts to WebP (quality 85) to stay under typical 1MB base64 limits.
@@ -306,6 +306,14 @@ export async function downloadAllOutputs(
   const files = await listOutputs(promptId);
   const paths: string[] = [];
   const prefix = options?.prefixNodeId !== false;
+  // History is supplied by the remote server/custom nodes; it must not select
+  // local paths outside the directory chosen by the caller.
+  const isSafeSegment = (value: string) => value.length > 0 && value !== '.' && value !== '..' && !/[\\/:\0]/.test(value);
+  for (const file of files) {
+    if (!isSafeSegment(file.filename) || (prefix && !isSafeSegment(file.node_id))) {
+      throw new Error('Output filename and node id must be plain path segments without directory traversal.');
+    }
+  }
   for (const file of files) {
     const baseName = prefix ? `${file.node_id}_${file.filename}` : file.filename;
     const destPath = join(destDir, baseName);

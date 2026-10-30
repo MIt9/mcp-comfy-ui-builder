@@ -1,6 +1,6 @@
 /**
  * Dynamic Workflow Builder: create and mutate ComfyUI workflows in memory.
- * Used with WorkflowStore for MCP tools create_workflow, add_node, connect_nodes, etc.
+ * Used with WorkflowStore for MCP tools create_workflow, add_node, set_node_input, etc.
  */
 import type { ComfyUIWorkflow, ComfyUINodeDef } from '../types/comfyui-api-types.js';
 
@@ -62,10 +62,10 @@ export function connectNodes(
   inputName: string
 ): void {
   const toNode = ctx.workflow[toNodeId];
-  if (!toNode) {
+  if (!Object.hasOwn(ctx.workflow, toNodeId) || !toNode) {
     throw new Error(`Node "${toNodeId}" not found`);
   }
-  if (!ctx.workflow[fromNodeId]) {
+  if (!Object.hasOwn(ctx.workflow, fromNodeId) || !ctx.workflow[fromNodeId]) {
     throw new Error(`Node "${fromNodeId}" not found`);
   }
   toNode.inputs[inputName] = [fromNodeId, outputIndex];
@@ -76,7 +76,7 @@ export function connectNodes(
  */
 export function removeNode(ctx: WorkflowContext, nodeId: string): void {
   const node = ctx.workflow[nodeId];
-  if (!node) {
+  if (!Object.hasOwn(ctx.workflow, nodeId) || !node) {
     throw new Error(`Node "${nodeId}" not found`);
   }
   delete ctx.workflow[nodeId];
@@ -92,7 +92,7 @@ export function setNodeInput(
   value: unknown
 ): void {
   const node = ctx.workflow[nodeId];
-  if (!node) {
+  if (!Object.hasOwn(ctx.workflow, nodeId) || !node) {
     throw new Error(`Node "${nodeId}" not found`);
   }
   node.inputs[inputName] = value;

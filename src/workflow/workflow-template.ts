@@ -101,7 +101,7 @@ export function applyTemplate(
 }
 
 /**
- * Validate that values satisfy the template (required params present, types acceptable).
+ * Validate effective values, including defaults used during application.
  */
 export function validateTemplateParams(
   template: WorkflowTemplate,
@@ -109,7 +109,7 @@ export function validateTemplateParams(
 ): TemplateValidationResult {
   const errors: string[] = [];
   for (const param of template.parameters) {
-    const value = values[param.name];
+    const value = values[param.name] ?? param.default;
     if (value === undefined || value === null) {
       if (param.required) {
         errors.push(`Missing required parameter: ${param.name}`);

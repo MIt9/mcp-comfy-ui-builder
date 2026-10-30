@@ -46,6 +46,18 @@ describe('ComfyUI WebSocket Client', () => {
     expect(client.isConnected()).toBe(true);
   });
 
+  it('exposes the same stable client id used in the WebSocket URL without connecting', async () => {
+    const { getWSClient } = await import('../src/comfyui-ws-client.js');
+    const client = getWSClient();
+    const identity = client.getClientId();
+    expect(identity).toBeTruthy();
+    expect(client.getClientId()).toBe(identity);
+    expect(client.isConnected()).toBe(false);
+    await client.connect();
+    const wsUrl = (client as unknown as { wsUrl: string }).wsUrl;
+    expect(new URL(wsUrl).searchParams.get('clientId')).toBe(identity);
+  });
+
   it('builds correct WebSocket URL from COMFYUI_HOST', async () => {
     process.env.COMFYUI_HOST = 'http://localhost:8188';
     const { getWSClient, resetWSClient } = await import('../src/comfyui-ws-client.js');

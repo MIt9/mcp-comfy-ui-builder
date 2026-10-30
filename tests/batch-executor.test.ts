@@ -67,4 +67,20 @@ describe('executeBatch', () => {
     expect(results[0].status).toBe('failed');
     expect(results[0].error).toBe('Node error');
   });
+
+  it('does not submit another workflow after the first failure with stopOnError', async () => {
+    mockSubmitPromptAndWait.mockResolvedValue({ prompt_id: 'failed', status: 'failed', error: 'bad node' });
+    const { executeBatch } = await import('../src/workflow/batch-executor.js');
+    const results = await executeBatch({ workflows: [{}, {}], concurrency: 1, stopOnError: true });
+    expect(mockSubmitPromptAndWait).toHaveBeenCalledTimes(1);
+    expect(results).toHaveLength(1);
+  });
+
+  it('keeps one authoritative result when the progress observer throws', async () => {
+    mockSubmitPromptAndWait.mockResolvedValue({ prompt_id: 'ok', status: 'completed', outputs: {} });
+    const { executeBatch } = await import('../src/workflow/batch-executor.js');
+    const results = await executeBatch({ workflows: [{}], onProgress: () => { throw new Error('observer failed'); } });
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({ prompt_id: 'ok', status: 'completed' });
+  });
 });

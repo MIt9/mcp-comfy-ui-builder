@@ -35,7 +35,7 @@ export interface ResourceRecommendations {
   warnings: string[];
   /**
    * Whether VRAM is sufficient for FLUX (dual-CLIP, ~12GB+ recommended).
-   * Call get_system_resources before using txt2img_flux; if false, use txt2img (SD/SDXL) or lower resolution.
+   * Call get_generation_recommendations before using txt2img_flux; if false, use txt2img (SD/SDXL) or lower resolution.
    */
   flux_ready: boolean;
   /** Max width recommended for FLUX (0 if flux_ready is false). */
@@ -48,7 +48,7 @@ export interface ResourceRecommendations {
    */
   platform_hints?: string[];
   /**
-   * Recommended timeout for execute_workflow_sync (ms). MPS/Apple Silicon is ~2–3× slower; value is higher on Apple.
+   * Recommended timeout for execute_workflow (ms). MPS/Apple Silicon is ~2–3× slower; value is higher on Apple.
    * Use when timeout_ms is not passed to avoid premature timeout on slow backends.
    */
   recommended_timeout_ms: number;

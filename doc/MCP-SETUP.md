@@ -1,136 +1,135 @@
-# MCP Server — ComfyUI Node Discovery
+# MCP Server — ComfyUI
 
-> How to connect the MCP server in Cursor and Claude Desktop
+Connect this MCP server in Cursor or Claude Desktop to use its **40 tools**.
 
-***
+## Choosing tools
 
-## What the server provides
+1. Call `get_generation_recommendations(prompt?, checkpoint?)` before generation. Inspect `recommendations.flux_ready`, resolution limits, and recommended timeout when resources are available.
+2. Use `search_nodes(source="local|live|merged")` to find classes and `get_node_info(section="all|inputs|outputs")` to inspect them.
+3. Build a preset with `build_workflow(template, params)`. Restyling uses `template="restyle"` with `image` and `style` in params.
+4. Assemble manually with `create_workflow`, `add_node`, and `set_node_input`. An input takes either `value` or `connection={node_id, output_index}`. Validate references and export JSON before execution.
+5. `execute_workflow(workflow)` waits for a result. Set `wait=false` to return a prompt id immediately. Inspect that run with `get_execution(view="summary|progress|errors")`.
+6. Get files with `list_outputs(prompt_id)` and `download_outputs`. If the prompt id is unknown, use `get_history` or `list_outputs(selector="latest_image")`.
 
-Tools are grouped by area. **COMFYUI_HOST** is required for execution/queue/output/model tools (default `http://127.0.0.1:8188`). **COMFYUI_PATH** is required for install tools (see [INSTALL-NODES-AND-MODELS.md](INSTALL-NODES-AND-MODELS.md)).
+`execute_batch` handles independent workflows; `execute_chain` passes images between dependent steps. Custom template JSON uses `create_template` and `apply_template`; `list_templates` lists named presets instead.
 
-### Knowledge & node discovery (no ComfyUI)
+## Tool catalog
 
-| Tool | Description |
-|------|------|
-| **list_node_types** | List nodes from knowledge (optional: category, priority) |
-| **get_node_info(node_name)** | Full information about a node from base-nodes.json |
-| **check_compatibility(from_node, to_node)** | Whether output of one node can be connected to input of another |
-| **suggest_nodes(task_description \| input_type)** | Node suggestions by task description or output type |
-| **discover_nodes_live** | Fetch all node definitions from running ComfyUI (object_info) |
-| **search_nodes(query, category?)** | Search nodes by name/category (knowledge + live cache) |
-| **get_node_inputs(node_name)** | Required/optional inputs for a node |
-| **get_node_outputs(node_name)** | Output types and names for a node |
-| **list_node_categories** | List all node categories (from live or knowledge) |
-| **sync_nodes_to_knowledge** | Write live object_info into knowledge base. Also: MCP syncs on startup (background) when ComfyUI is available; CLI `npm run sync-nodes` for one-shot or daemon. |
+There are no compatibility aliases. Parameters named `workflow` take ComfyUI API workflow **JSON strings** unless their schema explicitly permits another form. Live access defaults to `http://127.0.0.1:8188`; set `COMFYUI_HOST` for another address, and `COMFYUI_PATH` for installation and process restart. Local discovery, construction, template operations, and saved workflows work offline.
 
-### Dynamic workflow builder (no ComfyUI)
+### Nodes — 5 tools
 
-| Tool | Description |
-|------|------|
-| **create_workflow** | Create empty dynamic workflow; returns workflow_id (e.g. wf_xxx) |
-| **add_node(workflow_id, class_type, inputs?)** | Add node to dynamic workflow; returns node id |
-| **connect_nodes(workflow_id, from_node, output_idx, to_node, input_name)** | Connect two nodes |
-| **remove_node(workflow_id, node_id)** | Remove node from dynamic workflow |
-| **set_node_input(workflow_id, node_id, input_name, value)** | Set literal input on node |
-| **get_workflow_json(workflow_id)** | Get workflow JSON for execute_workflow or save_workflow |
-| **validate_workflow(workflow_id)** | Validate dynamic workflow (refs exist) |
-| **finalize_workflow(workflow_id)** | Get workflow JSON (same as get_workflow_json) |
+| Tool | Parameters and behavior |
+|------|-------------------------|
+| `search_nodes` | `source="local|live|merged"` (default merged), optional `query`, `task`, `category`, `priority`, `input_type`, `output_type`, `limit` (default 100), `offset` (default 0). Returns `{total, offset, nodes}` with source information. Local never contacts ComfyUI; live fails if unavailable. Priority uses local metadata. |
+| `get_node_info` | `node_name`, `section="all|inputs|outputs"` (default all). Returns a normalized definition or selected ports, preferring live with local fallback. |
+| `check_compatibility` | `from_node`, `to_node`. Checks compatible types using local knowledge. |
+| `list_node_categories` | Lists unique live/local categories. |
+| `sync_nodes_to_knowledge` | Adds previously unknown live nodes to local knowledge. Requires running ComfyUI. Startup also attempts a background sync. |
 
-### Templates & build (no ComfyUI)
+### Dynamic workflows — 6 tools
 
-| Tool | Description |
-|------|------|
-| **list_templates** | List workflow template ids (e.g. txt2img, img2img, restyle, inpainting) |
-| **build_workflow(template, params?)** | Build ComfyUI workflow JSON from template. For txt2img_flux call get_system_resources first (flux_ready). |
-| **build_restyle_workflow(image, style, …)** | Build workflow that turns your image into a chosen style (cartoon, oil_painting, anime, etc.). Returns workflow JSON + recipe (prompt and params) for regeneration. |
-| **suggest_template_for_checkpoint(ckpt_name)** | Suggest template (txt2img_flux or txt2img) from checkpoint filename (flux/sdxl/sd1.5). Call before build_workflow when user did not specify template. |
-| **create_template(workflow, params_def)** | Create a parameterized template from a workflow |
-| **apply_template(template, values)** | Apply parameter values to a template; returns workflow JSON |
-| **validate_template_params(template, values)** | Check that values satisfy template parameters |
-| **list_macros** | List available macros (e.g. upscale_refine) |
-| **insert_macro(workflow_id, macro_id, input_connections)** | Insert a macro into a dynamic workflow |
+| Tool | Parameters and behavior |
+|------|-------------------------|
+| `create_workflow` | Creates an empty in-memory workflow and returns `workflow_id`. |
+| `add_node` | `workflow_id`, `class_type`, optional `inputs`. Returns node id. |
+| `set_node_input` | `workflow_id`, target `node_id`, `input_name`, exactly one of `value` or `connection={node_id, output_index}`. Overwrites a literal/link. Connections require both nodes to exist. |
+| `remove_node` | `workflow_id`, `node_id`. Removes a node; references to it may become invalid. |
+| `get_workflow_json` | `workflow_id`. Exports JSON without validating, saving, executing, or locking the context. |
+| `validate_workflow` | `workflow_id`. Checks references and output indices. |
 
-### Execution (COMFYUI_HOST) 📡 WebSocket-enhanced (v0.5.0+)
+### Presets, templates, and macros — 6 tools
 
-| Tool | Description | Real-Time |
-|------|------|-----------|
-| **execute_workflow(workflow)** | Submit workflow to ComfyUI; returns prompt_id | N/A |
-| **execute_workflow_sync(workflow, timeout?, stream_progress?)** | Submit and wait until done; returns prompt_id, outputs, and progress log. When timeout omitted, uses **recommended_timeout_ms** from get_system_resources (higher on MPS/Apple). Always returns prompt_id (even on error) so you can use get_history/get_last_output if the result was lost. | ✅ WebSocket + polling fallback |
-| **execute_workflow_stream(workflow, timeout?)** | Execute with full event history (requires WebSocket) | ✅ WebSocket required |
-| **get_execution_status(prompt_id)** | Status and image outputs for a prompt | N/A |
-| **get_error_details(prompt_id)** | Full error details (node_id, exception_type, exception_message, full traceback). Use when execute_workflow_sync failed or get_execution_status shows errors. | N/A |
-| **get_execution_progress(prompt_id)** | Progress info (current node, progress %, queue position) | ✅ WebSocket + polling fallback |
-| **execute_batch(workflows, concurrency?)** | Run multiple workflows with optimized shared WebSocket | ✅ Pre-connects WebSocket |
-| **execute_chain(steps)** | Run workflow chain with data passing (output N → input N+1) | ✅ Pre-connects WebSocket |
+| Tool | Parameters and behavior |
+|------|-------------------------|
+| `list_templates` | Lists preset ids accepted by `build_workflow`. |
+| `build_workflow` | `template`, optional `params`. Builds JSON without execution. Restyle params require `image` (ComfyUI input filename) and `style`; returns `{workflow, recipe}`. Other presets return workflow JSON directly. |
+| `create_template` | `workflow`, `params` (definitions with node bindings), optional `name`, `description`, `category`. Returns custom template JSON without saving/registering it. |
+| `apply_template` | `template` (custom JSON), `values`, optional `validate_only`. Validates then instantiates JSON; `validate_only=true` returns `{valid, errors}` only. |
+| `list_macros` | Lists reusable sub-workflow blocks and input ports. |
+| `insert_macro` | `workflow_id`, `macro_id`, `input_connections`. Inserts a block and returns node mappings/output ports. |
 
-**WebSocket Features:**
-- **Sub-second updates:** <100ms latency (vs 1.5s polling)
-- **Node-level tracking:** See exactly which node is executing
-- **Progress percentage:** Real-time progress (0-100%)
-- **90% reduced traffic:** Single connection vs multiple HTTP requests
-- **Auto-fallback:** Gracefully falls back to polling if WebSocket unavailable
+### Execution and history — 5 tools
 
-### Outputs (COMFYUI_HOST)
+| Tool | Parameters and behavior |
+|------|-------------------------|
+| `execute_workflow` | `workflow`, `wait` (default true), `include_events` (default false), optional `timeout_ms`, `progress_transport="auto|websocket|polling"` (default auto). Waits for completion or queues and returns a prompt id. Event collection returns a count and at most the last 10 events. |
+| `get_execution` | `prompt_id`, `view="summary|progress|errors"` (default summary). Reads recorded outputs, current progress/queue status, or full exception details without submitting a new run. |
+| `execute_batch` | `workflows` (JSON strings), optional `concurrency`, `stop_on_error`, `timeout_ms`. Runs independent workflows. |
+| `execute_chain` | `steps`, optional `timeout_ms`, `stop_on_error`. Steps support JSON/saved names, node input overrides, `inputFrom`, and `outputTo`. |
+| `get_history` | Optional `limit` (default 5, max 50). Lists recent recorded prompts and outputs. |
 
-| Tool | Description |
-|------|------|
-| **get_history(limit?)** | Get ComfyUI execution history (GET /history) without prompt_id. Returns last N prompts with prompt_id, status, outputs. Use when execute_workflow_sync did not return prompt_id (e.g. WebSocket timeout) to find the latest run. |
-| **get_last_output()** | Get info for the most recent completed prompt output (first image). Returns prompt_id, filename, subfolder, view_url. Use when prompt_id was lost; then use download_by_filename to save the file. |
-| **list_outputs(prompt_id)** | List output files (images, etc.) for a prompt |
-| **download_output(prompt_id, node_id, filename, dest_path, subfolder?, output_format?, convert_quality?)** | Download a single output file (requires prompt_id). Use output_format (png/jpeg/webp) to convert image before saving. |
-| **download_by_filename(filename, dest_path, subfolder?, type?, return_base64?, max_base64_bytes?, convert_quality?, output_format?)** | Download an output file by filename (no prompt_id). When return_base64 true and size > 800 KB, auto-converts to WebP to stay under ~1MB. Use output_format (png/jpeg/webp) to always convert image. Use when you have filename from get_history or get_last_output. |
-| **download_all_outputs(prompt_id, dest_dir)** | Download all outputs for a prompt to a directory |
+With `wait=false`, omit completion timeout, event collection, and a non-default transport. Event collection requires waiting and auto/WebSocket transport. Auto uses WebSocket with polling fallback; explicit WebSocket requires that connection. Polling does not collect WebSocket events. Omitted timeout uses the resource recommendation or 300000 ms.
 
-### Resources & model management (COMFYUI_HOST)
+### Outputs — 3 tools
 
-| Tool | Description |
-|------|------|
-| **get_system_resources** | Get station GPU/VRAM/RAM and recommendations (max_width, max_height, suggested_model_size, max_batch_size). Returns **flux_ready**, **platform_hints** (e.g. Apple Silicon: M-Flux, ComfyUI-MLX), and **recommended_timeout_ms** (used by execute_workflow_sync when timeout omitted; higher on MPS/Apple). **Call first** before building or executing workflows to avoid OOM. |
-| **get_generation_recommendations(prompt?)** | Same as get_system_resources plus, if the user prompt suggests **text in the image** (sign, logo, caption), returns advice: prefer FLUX/SD3, 25–30 steps; many base models render text poorly. See [IMAGE-GENERATION-RECOMMENDATIONS.md](IMAGE-GENERATION-RECOMMENDATIONS.md). |
-| **list_models(model_type?)** | List models (checkpoint, lora, vae, controlnet, upscale, etc.) |
-| **get_model_info(name, model_type)** | Details for a model |
-| **check_model_exists(name, model_type)** | Whether the model is present |
-| **get_workflow_models(workflow)** | Models required by a workflow |
-| **check_workflow_models(workflow)** | Check which required models are missing |
+| Tool | Parameters and behavior |
+|------|-------------------------|
+| `list_outputs` | Exactly one of `prompt_id` or `selector="latest_image"`. Returns `{prompt_id, files}`. Selector finds the newest history entry containing an image, then lists its outputs. |
+| `download_outputs` | `source`, `destination`, optional `output_format="png|jpeg|webp"`, `convert_quality`. Retrieves one file to disk/base64 or all prompt outputs to a directory. Disk destinations may overwrite files. |
+| `prepare_image_for_workflow` | `prompt_id`. Fetches the first output image and uploads it to ComfyUI input; returns its filename for LoadImage. |
 
-### Queue & control (COMFYUI_HOST)
+Single-file download:
 
-| Tool | Description |
-|------|------|
-| **list_queue** | List running and pending prompts |
-| **interrupt_execution(prompt_id?)** | Stop current run or specific prompt |
-| **clear_queue** | Clear all pending and running |
-| **delete_queue_items(prompt_ids)** | Remove items from queue by prompt_id |
+```json
+{
+  "source": {"kind": "file", "filename": "image.png", "prompt_id": "PROMPT_ID", "node_id": "9"},
+  "destination": {"kind": "file", "path": "/absolute/path/result.webp"},
+  "output_format": "webp"
+}
+```
 
-### Save / load (no ComfyUI)
+A file source also accepts optional `subfolder` and `type="output|input|temp"`. Direct filename retrieval defaults to output storage. Providing `prompt_id` verifies ownership and resolves the actual storage type from history; an explicit type must match. `node_id` requires `prompt_id`.
 
-| Tool | Description |
-|------|------|
-| **save_workflow(name, workflow)** | Save workflow to workflows/\<name\>.json; returns path |
-| **list_saved_workflows** | List saved workflows (names and paths) from workflows/ |
-| **load_workflow(name_or_path)** | Load workflow by name or path; returns JSON for execute_workflow |
+For inline data, use `destination={"kind":"base64","max_bytes":819200}` without a path. Large images may be converted to WebP; `max_bytes=0` disables automatic conversion.
 
-### Utility
+All files from one prompt:
 
-| Tool | Description |
-|------|------|
-| **prepare_image_for_workflow(image_path, dest_name?)** | Copy image into ComfyUI input folder; returns filename for workflow |
+```json
+{
+  "source": {"kind": "prompt", "prompt_id": "PROMPT_ID"},
+  "destination": {"kind": "directory", "path": "/absolute/path/results", "prefix_node_id": true}
+}
+```
 
-### Plugins (no ComfyUI)
+Prompt downloads require a directory destination and do not accept conversion options.
 
-| Tool | Description |
-|------|------|
-| **list_plugins** | List loaded plugins from `plugins/*/plugin.json` (id, name, version, macros/templates counts) |
-| **reload_plugins** | Reload plugins from `plugins/*/plugin.json` and refresh macro registry |
+### Models and recommendations — 3 tools
 
-### Install (COMFYUI_PATH)
+| Tool | Parameters and behavior |
+|------|-------------------------|
+| `list_models` | Optional `type` and exact filename `name`. Returns `{found, models}`; empty models means no match. Types: checkpoint, lora, vae, controlnet, upscale, embedding, clip. Requires ComfyUI. |
+| `get_workflow_models` | `workflow`, `check_availability` (default false). Extracts `required` offline; checking adds `ready`, `found`, `missing` and requires ComfyUI. |
+| `get_generation_recommendations` | Optional `prompt`, `checkpoint`. Returns `resources`, `recommendations`, `warnings`, text-rendering advice, and a filename-based template suggestion. Offline resources/recommendations are null, with conservative fallback advice. Suggestions are heuristics, not architecture verification. |
 
-| Tool | Description |
-|------|------|
-| **install_custom_node(node_names, channel?, mode?)** | Install custom node packs via ComfyUI-Manager cm-cli |
-| **install_model(url, model_type?)** | Download model/LoRA/VAE by URL to ComfyUI models folder |
+### Queue and process control — 5 tools
 
-Data is loaded from `knowledge/base-nodes.json` and `knowledge/node-compatibility.json` at server startup. See [workflow-builder.md](workflow-builder.md) for templates and workflow format and [PLUGINS.md](PLUGINS.md) for plugin structure.
+| Tool | Parameters and behavior |
+|------|-------------------------|
+| `list_queue` | Lists running and pending prompts. |
+| `interrupt_execution` | Optional `prompt_id`, `cleanup_after_ms`. Sends an interrupt and can subsequently remove the prompt from the queue. |
+| `clear_queue` | Clears pending items; does not itself send an execution interrupt. |
+| `delete_queue_items` | `prompt_ids`. Removes selected queue items. |
+| `reload_comfyui` | Optional `wait_for_ready` (default true), `sync_after_restart`, `wait_timeout_ms`. Restarts ComfyUI and optionally syncs nodes. Requires COMFYUI_PATH and uses COMFYUI_HOST for its port. |
+
+### Saved workflows — 3 tools
+
+| Tool | Parameters and behavior |
+|------|-------------------------|
+| `save_workflow` | `name`, `workflow`. Saves JSON to `workflows/<name>.json`. |
+| `list_saved_workflows` | Lists saved workflow names and paths. |
+| `load_workflow` | `name_or_path`. Loads workflow JSON by name or path. |
+
+### Plugins and installation — 4 tools
+
+| Tool | Parameters and behavior |
+|------|-------------------------|
+| `list_plugins` | Lists loaded plugins and contributed macro/template counts. |
+| `reload_plugins` | Reloads `plugins/*/plugin.json` and refreshes the macro registry. |
+| `install_custom_node` | `node_names`, optional `channel`, `mode`. Installs packs through ComfyUI-Manager; restart to load them. Requires COMFYUI_PATH. |
+| `install_model` | `url`, optional `model_type`. Downloads into a ComfyUI model directory. Requires COMFYUI_PATH. |
+
+Knowledge data comes from `knowledge/base-nodes.json` and `knowledge/node-compatibility.json`. See [workflow-builder.md](workflow-builder.md) for workflow format and [PLUGINS.md](PLUGINS.md) for plugin structure.
 
 ***
 
@@ -142,7 +141,7 @@ Use this checklist for the fastest setup.
 
 | Requirement | Description |
 |-------------|-------------|
-| **Node.js 18+** | Required to run the server. |
+| **Node.js 22.12+** | Required to run the server. |
 | **Build once** | From project root: `npm install && npm run build`. Creates `dist/mcp-server.js` and fills `knowledge/` from seed. |
 | **Absolute path** | In Cursor/Claude config you must pass the **full path** to `dist/mcp-server.js` (e.g. `/home/user/mcp-comfy-ui-builder/dist/mcp-server.js`). Relative paths or paths without `dist/mcp-server.js` will not work. |
 | **Restart after config change** | After editing MCP config, fully restart Cursor or quit and reopen Claude Desktop. |
@@ -209,7 +208,7 @@ Alternative: `node dist/mcp-server.js`. Server uses **stdio** (stdin/stdout).
 }
 ```
 
-**With execution and ComfyUI (execute_workflow, get_execution_status, get_history, get_last_output, list_outputs, download_by_filename, etc.):**
+**With execution and ComfyUI (execute_workflow, get_execution, get_history, list_outputs, download_outputs, etc.):**
 ```json
 {
   "mcpServers": {
@@ -226,7 +225,7 @@ Alternative: `node dist/mcp-server.js`. Server uses **stdio** (stdin/stdout).
 
 3. **Restart Cursor** (fully quit and reopen) so it picks up the new config.
 
-Without `COMFYUI_HOST`, tools that need ComfyUI (execute_workflow, get_execution_status, get_history, get_last_output, list_outputs, download_by_filename, list_models, list_queue, sync_nodes_to_knowledge from live ComfyUI, etc.) will report that ComfyUI is not configured. With `COMFYUI_HOST` set, those tools work if ComfyUI is running at that URL.
+Live tools use `http://127.0.0.1:8188` when `COMFYUI_HOST` is omitted. Set it for another host or port. If that server is stopped, live requests report a connection error; local knowledge searches and workflow construction remain available. `COMFYUI_PYTHON` optionally selects the interpreter for restart/install; otherwise the installation's `.venv` or `venv` is used.
 
 ***
 
@@ -255,21 +254,18 @@ For real-time execution tracking, set **COMFYUI_HOST** environment variable:
 export COMFYUI_HOST="http://localhost:8188"
 ```
 
-Or in `.env` file:
-```env
-COMFYUI_HOST=http://localhost:8188
-```
+For desktop clients, put this variable in the MCP configuration's `env` block so the spawned server receives it.
 
 ### Verifying WebSocket Connection
 
 After setting COMFYUI_HOST, test with:
 
 ```
-User: "Execute a simple workflow and show me progress"
+User: "Submit a simple workflow with wait=false, then inspect its prompt_id with get_execution(view=progress)"
 
-Check response for:
-- "progress_method": "websocket" ← Real-time enabled ✅
-- "progress_method": "polling" ← Fallback mode (check COMFYUI_HOST)
+Check the get_execution response for:
+- "method": "websocket" ← Real-time enabled ✅
+- "method": "polling" ← History/queue fallback; cached WebSocket progress is unavailable
 ```
 
 ### Docker Setup
@@ -303,7 +299,7 @@ See [WEBSOCKET-GUIDE.md](WEBSOCKET-GUIDE.md) for advanced usage.
 | **"ComfyUI is not configured"** | Set `COMFYUI_HOST` in the MCP server config (`env` block). Example: `"COMFYUI_HOST": "http://127.0.0.1:8188"`. ComfyUI must be running at that URL. |
 | **ENOENT base-nodes.json / sync_nodes_to_knowledge** | MCP may be started from another app with a different working directory. Set `COMFYUI_KNOWLEDGE_DIR` to the full path of the package `knowledge/` folder, or run MCP from the package root. See [GETTING-STARTED.md](GETTING-STARTED.md#knowledge-base-and-sync_nodes_to_knowledge). |
 | **install_custom_node fails (ModuleNotFoundError: rich)** | ComfyUI-Manager cm-cli needs Python package `rich`. Run `pip install rich` in the same Python environment used by ComfyUI. See [INSTALL-NODES-AND-MODELS.md](INSTALL-NODES-AND-MODELS.md). |
-| **WebSocket not connecting** (progress_method: "polling") | Check: 1) ComfyUI is running (`curl http://localhost:8188/system_stats`), 2) COMFYUI_HOST is set correctly, 3) WebSocket endpoint works (`wscat -c ws://localhost:8188/ws?clientId=test`). **Note:** Polling fallback is automatic and works fine. |
+| **WebSocket not connecting** (method: "polling") | Check: 1) ComfyUI is running (`curl http://localhost:8188/system_stats`), 2) COMFYUI_HOST is set correctly, 3) WebSocket endpoint works (`wscat -c ws://localhost:8188/ws?clientId=test`). **Note:** Polling fallback is automatic and works fine. |
 
 ### Command: full path to node
 
@@ -329,4 +325,4 @@ Replace the path in `command` with your `which node` result; keep `args` as the 
 
 ***
 
-*MCP Setup v2.3.1 - get_error_details, suggest_template_for_checkpoint, recommended_timeout_ms, base64/WebP* | *2026-02-03*
+*MCP Setup — consolidated 40-tool API*

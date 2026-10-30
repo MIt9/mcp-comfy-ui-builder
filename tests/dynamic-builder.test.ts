@@ -50,6 +50,17 @@ describe('dynamic-builder', () => {
     expect(() => connectNodes(ctx, '99', 0, '1', 'model')).toThrow('Node "99" not found');
   });
 
+  it.each(['constructor', '__proto__', 'toString'])('rejects inherited property %s as a node id without mutation', (inheritedId) => {
+    const ctx = createWorkflow();
+    addNode(ctx, 'Node', { value: 'original' });
+    expect(() => connectNodes(ctx, inheritedId, 0, '1', 'value')).toThrow(`Node "${inheritedId}" not found`);
+    expect(() => connectNodes(ctx, '1', 0, inheritedId, 'value')).toThrow(`Node "${inheritedId}" not found`);
+    expect(() => setNodeInput(ctx, inheritedId, 'value', 'changed')).toThrow(`Node "${inheritedId}" not found`);
+    expect(() => removeNode(ctx, inheritedId)).toThrow(`Node "${inheritedId}" not found`);
+    expect(ctx.workflow['1'].inputs).toEqual({ value: 'original' });
+    expect(Object.keys(ctx.workflow)).toEqual(['1']);
+  });
+
   it('removeNode deletes node', () => {
     const ctx = createWorkflow();
     addNode(ctx, 'CheckpointLoaderSimple', {});

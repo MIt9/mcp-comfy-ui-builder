@@ -6,7 +6,7 @@
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 22.12+
 
 ***
 
@@ -34,7 +34,7 @@
    export COMFYUI_HOST="http://localhost:8188"
    ```
 
-5. **Before generation:** AI assistants should call **`get_system_resources`** first. It returns GPU/VRAM/RAM and recommendations (max resolution, model size, batch size). Use these to build workflows that avoid out-of-memory (OOM) on the station. See [AI-ASSISTANT-GUIDE.md](AI-ASSISTANT-GUIDE.md).
+5. **Before generation:** AI assistants should call **`get_generation_recommendations`** first. Its `resources` and `recommendations` fields contain GPU/VRAM/RAM and recommendations (max resolution, model size, batch size). Use these to build workflows that avoid out-of-memory (OOM) on the station. See [AI-ASSISTANT-GUIDE.md](AI-ASSISTANT-GUIDE.md).
 
 ***
 
@@ -52,33 +52,9 @@ The MCP server now supports **real-time progress tracking** via WebSocket with a
 
 ### Example: Execute Workflow with Progress
 
-In Claude Desktop:
+Use `execute_workflow` with workflow JSON and `wait=true` (the default). Set `include_events=true` to receive `event_count` and the last 10 progress events alongside the result. The default `progress_transport="auto"` combines WebSocket updates with polling completion checks.
 
-```
-User: "Execute this txt2img workflow and show me progress"
-
-Claude uses: execute_workflow_sync with stream_progress=true
-
-Response includes:
-{
-  "prompt_id": "abc-123",
-  "status": "completed",
-  "progress_method": "websocket",    ← Real-time updates!
-  "progress_log": [
-    "Queued (position: 0)",
-    "Node 1 started",
-    "Node 3 started",
-    "Node 3 progress: 25%",           ← Live progress
-    "Node 3 progress: 50%",
-    "Node 3 progress: 75%",
-    "Node 3 completed",
-    "Node 7 started",
-    "Node 7 completed",
-    "Execution finished"
-  ],
-  "outputs": { ... }
-}
-```
+Use `wait=false` to return a `prompt_id` immediately, then inspect it with `get_execution(prompt_id, view="progress")`. Recorded outputs and image view URLs are available with `view="summary"`; exception details use `view="errors"`.
 
 ### Setup for Real-Time Features
 
@@ -104,17 +80,16 @@ Response includes:
    "Execute a simple workflow and show progress"
    ```
 
-   Look for `"progress_method": "websocket"` in the response.
+   With `include_events=true`, inspect `event_count` and `events` in the response. Polling completion can succeed even when no WebSocket events arrive.
 
 ### Available Tools
 
 | Tool | Real-Time Support | Description |
 |------|------------------|-------------|
-| `execute_workflow_sync` | ✅ Yes | Execute with progress streaming |
+| `execute_workflow` | ✅ Yes | Wait for results or queue immediately; choose transport and optional recent events |
 | `execute_batch` | ✅ Yes | Optimized batch with shared WebSocket |
 | `execute_chain` | ✅ Yes | Sequential workflows with progress per step |
-| `get_execution_progress` | ✅ Yes | Check real-time progress for prompt_id |
-| `execute_workflow_stream` | ✅ Required | Stream all events (WebSocket only) |
+| `get_execution` | ✅ Yes | Use view=progress for live state; summary/errors read recorded results |
 
 See [WEBSOCKET-GUIDE.md](WEBSOCKET-GUIDE.md) for detailed usage.
 
@@ -171,4 +146,4 @@ MCP also syncs on startup when ComfyUI is available.
 
 ***
 
-*Getting Started v2.3.1 - get_system_resources, txt2img_flux, platform_hints, adaptive timeout* | *2026-02-03*
+*Getting Started v2.3.1 - get_generation_recommendations, txt2img_flux, platform_hints, adaptive timeout* | *2026-02-03*

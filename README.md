@@ -1,6 +1,6 @@
 # mcp-comfy-ui-builder
 
-> **Control ComfyUI from Claude or Cursor** — 50+ MCP tools for node discovery, dynamic workflow building, real-time WebSocket execution, and model management. No JSON editing required.
+> **Control ComfyUI from Claude or Cursor** — 40 MCP tools for node discovery, dynamic workflow building, real-time WebSocket execution, and model management. No JSON editing required.
 
 <img src="assets/icon.svg" width="48" height="48" alt="" align="left" />
 
@@ -21,7 +21,7 @@ Publishable to the [MCP Registry](https://modelcontextprotocol.io/registry/about
 
 - **Knowledge base:** Seed `knowledge/base-nodes.json` and `node-compatibility.json` from bundled data (62 seed nodes; 100–600+ after sync). No external services required for suggest/build.
 - **Sync:** Custom packs from ComfyUI-Manager; nodes from running ComfyUI via `sync-nodes` CLI or on MCP startup.
-- **MCP server (50+ tools):** Node discovery, dynamic workflow builder, 9 templates (txt2img, txt2img_flux, img2img, …), WebSocket real-time execution, batch/chain, model management, plugin system.
+- **MCP server (40 tools):** Node discovery, dynamic workflow builder, 9 templates (txt2img, txt2img_flux, img2img, …), WebSocket real-time execution, batch/chain, model management, plugin system.
 - **Real-time execution:** Sub-second progress via WebSocket with automatic polling fallback; ~90% less network traffic for batch runs.
 
 ## Install
@@ -34,6 +34,14 @@ Or from source: `git clone https://github.com/MIt9/mcp-comfy-ui-builder.git && c
 
 ## Quick start
 
+From npm, start the packaged MCP executable:
+
+```bash
+npx mcp-comfy-ui-builder
+```
+
+From a source checkout:
+
 1. **Build** (postbuild fills knowledge from seed)
 
    ```bash
@@ -44,7 +52,7 @@ Or from source: `git clone https://github.com/MIt9/mcp-comfy-ui-builder.git && c
 2. **Use knowledge in code**
 
    ```ts
-   import baseNodes from './knowledge/base-nodes.json' assert { type: 'json' };
+    import baseNodes from './knowledge/base-nodes.json' with { type: 'json' };
    ```
 
 ## Commands
@@ -55,6 +63,7 @@ Or from source: `git clone https://github.com/MIt9/mcp-comfy-ui-builder.git && c
 | `npm run sync-manager` | Update custom packs list from ComfyUI-Manager |
 | `npm run sync-nodes` | Sync nodes from running ComfyUI to knowledge base (requires COMFYUI_HOST) |
 | `npm test` | Run tests (vitest) |
+| `COMFYUI_HOST=http://127.0.0.1:8188 npm run test:live` | Exercise MCP against a running ComfyUI with checkpoint-free workflows |
 | `npm run mcp` | Start MCP server (after `npm run build`) |
 
 ## Documentation
@@ -75,20 +84,21 @@ Single entry point — **task-oriented navigation**:
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 22.12+
 
 ## MCP Server (Cursor / Claude)
 
-Server provides 50+ tools across 9 categories:
+Server provides 40 tools across 9 categories:
 
 ### Core Features
 
 **Node Discovery:**
-- **list_node_types**, **get_node_info**, **check_compatibility**, **suggest_nodes**
-- **discover_nodes_live**, **search_nodes**, **sync_nodes_to_knowledge**
+- **search_nodes** — Search local, live, or merged node catalogs with task and port filters
+- **get_node_info** — Inspect a node or select only inputs/outputs
+- **check_compatibility**, **list_node_categories**, **sync_nodes_to_knowledge**
 
 **Dynamic Workflow Builder:**
-- **create_workflow**, **add_node**, **connect_nodes**, **validate_workflow**
+- **create_workflow**, **add_node**, **set_node_input**, **validate_workflow**
 - Build workflows programmatically without JSON manipulation
 
 **Templates & Macros:**
@@ -97,19 +107,20 @@ Server provides 50+ tools across 9 categories:
 - **list_macros**, **insert_macro** — Reusable sub-workflows
 
 **Real-time execution 📡**
-- **execute_workflow_sync** — Execute with **WebSocket progress streaming** (sub-second updates)
-- **execute_workflow_stream** — Full event history collection (WebSocket-only)
-- **get_execution_progress** — Real-time progress with node-level granularity
+- **execute_workflow** — Wait for a result by default; `wait=false` queues immediately; `include_events=true` adds the last 10 events and total count
+- **get_execution** — Select recorded results, live progress, or error details with `view`
 - **execute_batch** — Concurrent execution with **90% reduced network traffic**
 - **execute_chain** — Sequential workflows with data passing
 
 **Resources & Model Management:**
-- **get_system_resources** — GPU/VRAM/RAM + recommendations (max resolution, model size, batch size); **call first** before building workflows to avoid OOM
-- **list_models**, **check_model_exists**, **get_workflow_models**
+- **get_generation_recommendations** — GPU/VRAM/RAM + recommendations (max resolution, model size, batch size); **call first** before building workflows to avoid OOM
+- **list_models** — List models or look up an exact filename
+- **get_workflow_models** — Extract dependencies; `check_availability=true` also checks installed models
 - Supports checkpoint, lora, vae, controlnet, upscale, embedding, clip
 
 **Outputs & Queue:**
-- **list_outputs**, **download_output**, **download_all_outputs**
+- **list_outputs** — Select a known prompt or the latest image-producing prompt
+- **download_outputs** — Download one file, all outputs of a prompt, or return one file as base64
 - **list_queue**, **interrupt_execution**, **clear_queue**
 
 **Plugins:**
@@ -145,7 +156,7 @@ Or without npm: `node dist/mcp-server.js`. Server works via **stdio** (stdin/std
 
 ### Connect MCP (Cursor / Claude)
 
-**What you need:** Node.js 18+, one-time build (`npm run build`), **absolute path** to `dist/mcp-server.js`, restart after config change. If the server fails to start with **«spawn node ENOENT»**, use the **full path to node** in `command` (run `which node` and put that path). See [doc/MCP-SETUP.md](doc/MCP-SETUP.md) → Troubleshooting.
+**What you need:** Node.js 22.12+, one-time build (`npm run build`), **absolute path** to `dist/mcp-server.js`, restart after config change. If the server fails to start with **«spawn node ENOENT»**, use the **full path to node** in `command` (run `which node` and put that path). See [doc/MCP-SETUP.md](doc/MCP-SETUP.md) → Troubleshooting.
 
 **Minimal config** (knowledge and workflow tools only):
 ```json
@@ -161,7 +172,7 @@ Or without npm: `node dist/mcp-server.js`. Server works via **stdio** (stdin/std
 
 Use full path in `command` (e.g. `"/opt/homebrew/bin/node"`) if Cursor/IDE reports «spawn node ENOENT».
 
-**With ComfyUI execution** (execute_workflow, get_execution_status, list_outputs, etc.): add `"env": { "COMFYUI_HOST": "http://127.0.0.1:8188" }` to the server block. See [doc/MCP-SETUP.md](doc/MCP-SETUP.md) for full checklist, optional env vars (COMFYUI_PATH, COMFYUI_KNOWLEDGE_DIR), and troubleshooting.
+**With ComfyUI execution** (execute_workflow, get_execution, list_outputs, etc.): add `"env": { "COMFYUI_HOST": "http://127.0.0.1:8188" }` to the server block. See [doc/MCP-SETUP.md](doc/MCP-SETUP.md) for full checklist, optional env vars (COMFYUI_PATH, COMFYUI_KNOWLEDGE_DIR), and troubleshooting.
 
 ### Publish on GitHub
 

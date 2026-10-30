@@ -1,10 +1,13 @@
 {
   "name": "mcp-comfy-ui-builder",
-  "version": "2.4.1",
-  "description": "MCP server for ComfyUI: seed knowledge base (62+ nodes), 50+ tools for workflow building, real-time execution (WebSocket), batch/chain, model management. For Cursor and Claude.",
+  "version": "3.0.0",
+  "description": "MCP server for ComfyUI: seed knowledge base (62+ nodes), 40 tools for workflow building, real-time execution (WebSocket), batch/chain, model management. For Cursor and Claude.",
   "mcpName": "io.github.MIt9/comfy-ui-builder",
   "type": "module",
   "main": "dist/cli.js",
+  "bin": {
+    "mcp-comfy-ui-builder": "dist/mcp-server.js"
+  },
   "scripts": {
     "build": "tsc",
     "postbuild": "node dist/cli.js seed",
@@ -15,6 +18,7 @@
     "seed": "tsx src/cli.ts seed",
     "mcp": "node dist/mcp-server.js",
     "test": "vitest run",
+    "test:live": "node scripts/live-mcp-smoke.mjs",
     "test:watch": "vitest",
     "test:docker": "./scripts/test-docker.sh"
   },
@@ -50,7 +54,7 @@
     "@modelcontextprotocol/sdk": "^1.25.3",
     "commander": "^12.1.0",
     "node-fetch": "^3.3.2",
-    "sharp": "^0.33.5",
+    "sharp": "^0.35.5",
     "ws": "^8.16.0",
     "zod": "^4.3.6"
   },
@@ -59,9 +63,9 @@
     "@types/ws": "^8.5.10",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.6"
+    "vitest": "^5.0.5"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22.12.0"
   }
 }

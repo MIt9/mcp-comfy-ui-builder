@@ -1,25 +1,26 @@
+#!/usr/bin/env node
 /**
- * MCP server: list_node_types, get_node_info, check_compatibility, suggest_nodes;
- * discover_nodes_live, search_nodes, get_node_inputs, get_node_outputs, list_node_categories, sync_nodes_to_knowledge, reload_comfyui (Node Discovery);
- * list_templates, build_workflow, save_workflow, list_saved_workflows, load_workflow;
- * create_workflow, add_node, connect_nodes, remove_node, set_node_input, get_workflow_json, validate_workflow, finalize_workflow (dynamic workflow);
- * execute_workflow, get_execution_status, list_queue, interrupt_execution, clear_queue, delete_queue_items (require COMFYUI_HOST for execution/queue tools);
- * list_models, get_model_info, check_model_exists, get_workflow_models, check_workflow_models (Model Management);
- * create_template, apply_template, validate_template_params, list_macros, insert_macro, execute_chain (Workflow Composition).
+ * MCP stdio server: node discovery, workflow assembly, execution, outputs,
+ * model dependencies, reusable templates/macros, queue control, and installation.
+ * Consolidated tool groups are registered from src/tools/.
  */
+import { registerResourceTools } from './tools/resource-tools.js';
+import { registerNodeTools } from './tools/node-tools.js';
+import { registerWorkflowTools } from './tools/workflow-tools.js';
+import { registerExecutionTools } from './tools/execution-tools.js';
+
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { BaseNodesJson, NodeCompatibilityData, NodeDescription } from './types/node-types.js';
-import { buildFromTemplate, listTemplates, buildRestyleWithRecipe, STYLE_PROMPTS } from './workflow/workflow-builder.js';
+import { listTemplates } from './workflow/workflow-builder.js';
 import { saveWorkflow, listSavedWorkflows, loadWorkflow } from './workflow/workflow-storage.js';
 import {
   addNode,
-  connectNodes,
   removeNode,
-  setNodeInput,
   getWorkflow as getWorkflowFromContext,
   validateWorkflow as validateWorkflowContext,
 } from './workflow/dynamic-builder.js';
@@ -28,35 +29,17 @@ import { setHybridDiscoveryOptions, getHybridDiscovery } from './node-discovery/
 import * as comfyui from './comfyui-client.js';
 import * as managerCli from './manager-cli.js';
 import { executeBatch } from './workflow/batch-executor.js';
-import { listOutputs, downloadOutput, downloadAllOutputs, downloadByFilename } from './output-manager.js';
 import { ModelManager } from './model-manager.js';
 import {
   createTemplate,
-  applyTemplate,
-  validateTemplateParams,
-  type WorkflowTemplate,
   type ParameterDefinition,
 } from './workflow/workflow-template.js';
 import { listMacros, getMacro, insertMacro as insertMacroIntoContext, registerPluginMacros } from './workflow/macro.js';
 import { executeChain } from './workflow/chainer.js';
 import type { ComfyUIWorkflow } from './types/comfyui-api-types.js';
 import { loadPlugins, summarizePlugins, type LoadedPlugin } from './plugins/plugin-loader.js';
-import { analyzeSystemResources, getWorkflowResolution } from './resource-analyzer.js';
 
-/** Keywords that suggest the user wants legible text in the generated image. */
-const TEXT_IN_IMAGE_KEYWORDS = [
-  'text', 'words', 'letters', 'lettering', 'sign', 'logo', 'caption', 'label', 'written', 'saying', 'quote',
-  'with the text', 'that says', 'that read', 'reading ', 'spelling', 'word ', 'phrase', 'sentence',
-  'billboard', 'poster with', 't-shirt with', 'banner', 'inscription', 'headline', 'title on',
-];
-
-function promptSuggestsTextInImage(prompt: string): boolean {
-  const lower = prompt.toLowerCase().trim();
-  if (!lower) return false;
-  return TEXT_IN_IMAGE_KEYWORDS.some((k) => lower.includes(k));
-}
-
-const KNOWLEDGE_DIR = process.env.COMFYUI_KNOWLEDGE_DIR?.trim() || join(process.cwd(), 'knowledge');
+const KNOWLEDGE_DIR = process.env.COMFYUI_KNOWLEDGE_DIR?.trim() || fileURLToPath(new URL('../knowledge/', import.meta.url));
 const BASE_NODES_PATH = join(KNOWLEDGE_DIR, 'base-nodes.json');
 const COMPAT_PATH = join(KNOWLEDGE_DIR, 'node-compatibility.json');
 
@@ -104,34 +87,6 @@ setHybridDiscoveryOptions({
 // Model manager (list/get/check models from object_info; workflow model analysis)
 const modelManager = new ModelManager({ getObjectInfo: () => comfyui.getObjectInfo() });
 
-/**
- * Validate workflow node references before execution.
- * Checks that all [nodeId, outputIndex] references point to existing nodes.
- */
-function validateWorkflow(workflow: ComfyUIWorkflow): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
-  const nodeIds = new Set(Object.keys(workflow));
-
-  for (const [nodeId, nodeDef] of Object.entries(workflow)) {
-    const inputs = nodeDef.inputs ?? {};
-    for (const [inputName, inputValue] of Object.entries(inputs)) {
-      if (Array.isArray(inputValue) && inputValue.length === 2) {
-        const [refNodeId, outputIndex] = inputValue;
-        if (typeof refNodeId === 'string' && typeof outputIndex === 'number') {
-          if (!nodeIds.has(refNodeId)) {
-            errors.push(`Node "${nodeId}" input "${inputName}" references non-existent node "${refNodeId}"`);
-          }
-          if (outputIndex < 0) {
-            errors.push(`Node "${nodeId}" input "${inputName}" has invalid output index ${outputIndex}`);
-          }
-        }
-      }
-    }
-  }
-
-  return { valid: errors.length === 0, errors };
-}
-
 // Plugins (templates/macros from plugins/*/plugin.json)
 let loadedPlugins: LoadedPlugin[] = [];
 
@@ -142,115 +97,16 @@ function initPlugins(): void {
 }
 
 const server = new McpServer(
-  { name: 'mcp-comfy-ui-builder', version: '2.2.0' },
+  { name: 'mcp-comfy-ui-builder', version: JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version },
   { capabilities: { tools: {} } }
 );
 
 // Load plugins at startup (safe no-op if plugins/ is absent)
 initPlugins();
-
-server.registerTool(
-  'list_node_types',
-  {
-    description: 'List ComfyUI node types from the knowledge base. Optionally filter by category or priority.',
-    inputSchema: {
-      category: z.string().optional().describe('Filter by category (e.g. loaders, sampling, image)'),
-      priority: z.enum(['high', 'medium', 'low']).optional().describe('Filter by priority'),
-    },
-  },
-  (args) => {
-    const base = loadBaseNodes();
-    let entries = Object.entries(base.nodes ?? {});
-    if (args.category) {
-      const c = args.category.toLowerCase();
-      entries = entries.filter(([, n]) => (n as NodeDescription).category?.toLowerCase() === c);
-    }
-    if (args.priority) {
-      entries = entries.filter(([, n]) => (n as NodeDescription).priority === args.priority);
-    }
-    const list = entries.map(([className, n]) => {
-      const d = n as NodeDescription;
-      return `${className}: ${d.display_name} (${d.category}, ${d.priority})`;
-    });
-    return { content: [{ type: 'text', text: list.length ? list.join('\n') : 'No nodes match the filter.' }] };
-  }
-);
-
-/** Convert live NodeInfo to NodeDescription-like shape for get_node_info response. */
-function liveNodeInfoToDescription(info: import('./node-discovery/hybrid-discovery.js').NodeInfo): Record<string, unknown> {
-  const required: Record<string, { type: string; default?: unknown; choices?: string[] }> = {};
-  for (const [name, value] of Object.entries(info.input.required ?? {})) {
-    if (Array.isArray(value) && value.length > 0) {
-      const [first, config] = value as [unknown, Record<string, unknown>?];
-      if (typeof first === 'string') {
-        required[name] = {
-          type: first,
-          ...(config?.default !== undefined && { default: config.default }),
-        };
-      } else if (Array.isArray(first) && first.every((opt) => typeof opt === 'string')) {
-        // Enum-style input (e.g. sampler_name, scheduler): expose as COMBO with choices
-        required[name] = {
-          type: 'COMBO',
-          choices: first,
-          ...(config?.default !== undefined && { default: config.default }),
-        };
-      } else {
-        required[name] = { type: 'UNKNOWN' };
-      }
-    } else if (typeof value === 'string') {
-      required[name] = { type: value };
-    } else {
-      required[name] = { type: 'UNKNOWN' };
-    }
-  }
-  return {
-    display_name: info.display_name,
-    category: info.category,
-    description: info.description ?? '',
-    input_types: { required, optional: info.input.optional ?? {} },
-    return_types: info.output,
-    return_names: info.output_name,
-    output_colors: info.output.map(() => '#888'),
-    use_cases: [],
-    compatible_outputs: {},
-    example_values: {},
-    priority: 'medium',
-    _source: 'live',
-  };
-}
-
-server.registerTool(
-  'get_node_info',
-  {
-    description:
-      'Get full node information for a ComfyUI node by its class name. Uses live ComfyUI when COMFYUI_HOST is set, otherwise knowledge base.',
-    inputSchema: {
-      node_name: z.string().describe('Node class name (e.g. KSampler, CheckpointLoaderSimple)'),
-    },
-  },
-  async (args) => {
-    if (comfyui.isComfyUIConfigured()) {
-      const hybrid = getHybridDiscovery();
-      if (hybrid) {
-        try {
-          const node = await hybrid.getNode(args.node_name);
-          if (node && node.source === 'live') {
-            const desc = liveNodeInfoToDescription(node);
-            return { content: [{ type: 'text', text: JSON.stringify(desc, null, 2) }] };
-          }
-        } catch {
-          // Fall through to knowledge base
-        }
-      }
-    }
-    const base = loadBaseNodes();
-    const node = (base.nodes ?? {})[args.node_name];
-    if (!node) {
-      return { content: [{ type: 'text', text: `Node "${args.node_name}" not found in knowledge base.` }] };
-    }
-    return { content: [{ type: 'text', text: JSON.stringify(node, null, 2) }] };
-  }
-);
+registerResourceTools(server, modelManager);
+registerNodeTools(server, getHybridDiscovery);
+registerWorkflowTools(server);
+registerExecutionTools(server);
 
 server.registerTool(
   'check_compatibility',
@@ -295,148 +151,7 @@ server.registerTool(
   }
 );
 
-server.registerTool(
-  'suggest_nodes',
-  {
-    description:
-      'Suggest ComfyUI nodes for a task (search by description/use_cases) or by output type they produce.',
-    inputSchema: {
-      task_description: z.string().optional().describe('Short task description (e.g. "load checkpoint", "decode latent")'),
-      input_type: z.string().optional().describe('Output type to match (e.g. MODEL, IMAGE, LATENT)'),
-    },
-  },
-  (args) => {
-    const base = loadBaseNodes();
-    const nodes = Object.entries(base.nodes ?? {}) as [string, NodeDescription][];
-    let filtered = nodes;
-    if (args.task_description) {
-      const q = args.task_description.toLowerCase();
-      filtered = nodes.filter(([, n]) => {
-        const desc = (n.description ?? '').toLowerCase();
-        const useCases = (n.use_cases ?? []).join(' ').toLowerCase();
-        return desc.includes(q) || useCases.includes(q) || (n.display_name ?? '').toLowerCase().includes(q);
-      });
-    }
-    if (args.input_type) {
-      const t = args.input_type.toUpperCase();
-      filtered = filtered.filter(([, n]) => (n.return_types ?? []).includes(t));
-    }
-    const list = filtered.slice(0, 20).map(([className, n]) => `${className}: ${n.display_name} — ${n.description?.slice(0, 80)}`);
-    return {
-      content: [{ type: 'text', text: list.length ? list.join('\n') : 'No matching nodes.' }],
-    };
-  }
-);
-
 // --- Node Discovery (Phase 3): live ComfyUI + knowledge base ---
-server.registerTool(
-  'discover_nodes_live',
-  {
-    description:
-      'Get all node definitions from the running ComfyUI instance (GET /object_info). Returns class names and categories. Requires ComfyUI to be running at COMFYUI_HOST.',
-    inputSchema: {},
-  },
-  async () => {
-    try {
-      const objectInfo = await comfyui.getObjectInfo();
-      const entries = Object.entries(objectInfo).map(([name, node]) => `${name}: ${node.category ?? 'unknown'}`);
-      const text =
-        entries.length > 0
-          ? `Total nodes: ${entries.length}\n` + entries.slice(0, 200).join('\n') + (entries.length > 200 ? `\n... and ${entries.length - 200} more` : '')
-          : 'No nodes returned from ComfyUI.';
-      return { content: [{ type: 'text', text }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `discover_nodes_live failed (is ComfyUI running?): ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'search_nodes',
-  {
-    description:
-      'Search nodes by query string and optional filters (category, input_type, output_type). Searches both live ComfyUI and knowledge base; live overrides KB for same class.',
-    inputSchema: {
-      query: z.string().optional().describe('Search in class name, display name, description, category'),
-      category: z.string().optional().describe('Filter by category (e.g. loaders, sampling)'),
-      input_type: z.string().optional().describe('Filter by input type (e.g. MODEL, IMAGE)'),
-      output_type: z.string().optional().describe('Filter by output type (e.g. LATENT, IMAGE)'),
-    },
-  },
-  async (args) => {
-    const hybrid = getHybridDiscovery();
-    if (!hybrid) {
-      return { content: [{ type: 'text', text: 'Node discovery not initialized.' }] };
-    }
-    try {
-      const list = await hybrid.searchNodes(args.query ?? '', {
-        category: args.category,
-        input_type: args.input_type,
-        output_type: args.output_type,
-      });
-      const text = list
-        .slice(0, 100)
-        .map((n) => `${n.class_name}: ${n.display_name} (${n.category}) [${n.source}]`)
-        .join('\n');
-      return {
-        content: [
-          {
-            type: 'text',
-            text: list.length ? `Found ${list.length} node(s):\n${text}` + (list.length > 100 ? `\n... and ${list.length - 100} more` : '') : 'No nodes match.',
-          },
-        ],
-      };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `search_nodes failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'get_node_inputs',
-  {
-    description: 'Get detailed input definitions for a node (required and optional). Uses live ComfyUI if available, otherwise knowledge base.',
-    inputSchema: {
-      node_name: z.string().describe('Node class name (e.g. KSampler, CheckpointLoaderSimple)'),
-    },
-  },
-  async (args) => {
-    const hybrid = getHybridDiscovery();
-    if (!hybrid) {
-      return { content: [{ type: 'text', text: 'Node discovery not initialized.' }] };
-    }
-    const node = await hybrid.getNode(args.node_name);
-    if (!node) {
-      return { content: [{ type: 'text', text: `Node "${args.node_name}" not found in live ComfyUI or knowledge base.` }] };
-    }
-    const payload = { required: node.input.required ?? {}, optional: node.input.optional ?? {}, source: node.source };
-    return { content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }] };
-  }
-);
-
-server.registerTool(
-  'get_node_outputs',
-  {
-    description: 'Get output types and names for a node. Uses live ComfyUI if available, otherwise knowledge base.',
-    inputSchema: {
-      node_name: z.string().describe('Node class name (e.g. KSampler, CheckpointLoaderSimple)'),
-    },
-  },
-  async (args) => {
-    const hybrid = getHybridDiscovery();
-    if (!hybrid) {
-      return { content: [{ type: 'text', text: 'Node discovery not initialized.' }] };
-    }
-    const node = await hybrid.getNode(args.node_name);
-    if (!node) {
-      return { content: [{ type: 'text', text: `Node "${args.node_name}" not found in live ComfyUI or knowledge base.` }] };
-    }
-    const payload = { output: node.output, output_name: node.output_name, source: node.source };
-    return { content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }] };
-  }
-);
 
 server.registerTool(
   'list_node_categories',
@@ -492,221 +207,12 @@ server.registerTool(
 server.registerTool(
   'list_templates',
   {
-    description: 'List available workflow template ids (e.g. txt2img). No ComfyUI connection needed.',
+    description: 'List named workflow presets accepted by build_workflow (e.g. txt2img). Works offline; does not list custom template JSON returned by create_template.',
     inputSchema: {},
   },
   () => {
     const list = listTemplates();
     return { content: [{ type: 'text', text: list.length ? list.join(', ') : 'No templates.' }] };
-  }
-);
-
-server.registerTool(
-  'build_workflow',
-  {
-    description:
-      'Build a ComfyUI workflow from a template and parameters. Returns workflow JSON ready to execute or save. For txt2img_flux, call get_system_resources first and use only when flux_ready is true (FLUX needs ~12GB+ VRAM).',
-    inputSchema: {
-      template: z.string().describe('Template id (e.g. txt2img, txt2img_flux). Use list_templates to see available.'),
-      params: z.record(z.string(), z.unknown()).optional().describe('Optional: width, height, steps, cfg, prompt, negative_prompt, seed, ckpt_name, filename_prefix, batch_size, denoise; for txt2img_flux: clip_l, t5xxl, guidance'),
-    },
-  },
-  async (args) => {
-    try {
-      if (args.template === 'txt2img_flux' && comfyui.isComfyUIConfigured()) {
-        const stats = await comfyui.getSystemStats();
-        const rec = analyzeSystemResources(stats);
-        if (!rec.flux_ready) {
-          const hints = rec.platform_hints;
-          const suggestion =
-            hints && hints.length > 0
-              ? `Call get_system_resources first. ${hints[0]} Or use txt2img (SD/SDXL) if flux_ready is false.`
-              : 'Call get_system_resources first. Use txt2img (SD/SDXL) or lower resolution if flux_ready is false.';
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(
-                  {
-                    error: 'Insufficient resources for FLUX. FLUX requires ~12GB+ VRAM (flux_ready from get_system_resources).',
-                    flux_ready: false,
-                    vram_total_gb: rec.vram_total_gb,
-                    suggestion,
-                    ...(rec.platform_hints?.length ? { platform_hints: rec.platform_hints } : {}),
-                  },
-                  null,
-                  2
-                ),
-              },
-            ],
-          };
-        }
-        const params = (args.params ?? {}) as Record<string, unknown>;
-        const width = typeof params.width === 'number' ? params.width : 1024;
-        const height = typeof params.height === 'number' ? params.height : 1024;
-        if (rec.flux_max_width > 0 && rec.flux_max_height > 0 && (width > rec.flux_max_width || height > rec.flux_max_height)) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(
-                  {
-                    error: `FLUX resolution ${width}×${height} exceeds recommended ${rec.flux_max_width}×${rec.flux_max_height} for this GPU.`,
-                    flux_max_width: rec.flux_max_width,
-                    flux_max_height: rec.flux_max_height,
-                  },
-                  null,
-                  2
-                ),
-              },
-            ],
-          };
-        }
-      }
-      const workflow = buildFromTemplate(args.template, args.params ?? {});
-      const text = JSON.stringify(workflow, null, 2);
-      return { content: [{ type: 'text', text }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `build_workflow failed: ${msg}` }] };
-    }
-  }
-);
-
-const RESTYLE_STYLE_KEYS = Object.keys(STYLE_PROMPTS).join(', ');
-
-server.registerTool(
-  'build_restyle_workflow',
-  {
-    description:
-      'Build a workflow that takes your image and outputs another image in a chosen style (cartoon, oil painting, anime, etc.). Returns workflow JSON plus a recipe (prompt and params) so you can run it or regenerate with the same settings. Image must be in ComfyUI input folder (upload first if needed). Style: keyword (' +
-      RESTYLE_STYLE_KEYS +
-      ') or any free text used as prompt.',
-    inputSchema: {
-      image: z.string().describe('Input image filename in ComfyUI input folder (e.g. from upload or prepare_image_for_workflow)'),
-      style: z.string().describe('Style: keyword (cartoon, oil_painting, anime, watercolor, sketch, comic, pixel_art, pastel, cyberpunk) or free text prompt'),
-      prompt: z.string().optional().describe('Override prompt (if set, style keyword is ignored)'),
-      negative_prompt: z.string().optional().describe('Negative prompt'),
-      denoise: z.number().min(0).max(1).optional().describe('Strength of style change (default 0.65, lower = closer to original)'),
-      steps: z.number().int().min(1).optional(),
-      cfg: z.number().optional(),
-      seed: z.number().int().optional(),
-      ckpt_name: z.string().optional().describe('Checkpoint filename'),
-      filename_prefix: z.string().optional().describe('SaveImage prefix'),
-    },
-  },
-  (args) => {
-    try {
-      const { workflow, recipe } = buildRestyleWithRecipe({
-        image: args.image,
-        style: args.style,
-        prompt: args.prompt,
-        negative_prompt: args.negative_prompt,
-        denoise: args.denoise,
-        steps: args.steps,
-        cfg: args.cfg,
-        seed: args.seed,
-        ckpt_name: args.ckpt_name,
-        filename_prefix: args.filename_prefix,
-      });
-      const text = JSON.stringify(
-        {
-          workflow: workflow,
-          recipe,
-          hint: 'Use workflow with execute_workflow or execute_workflow_sync; save with save_workflow. Recipe contains prompt and params used for regeneration.',
-        },
-        null,
-        2
-      );
-      return { content: [{ type: 'text', text }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `build_restyle_workflow failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'suggest_template_for_checkpoint',
-  {
-    description:
-      'Suggest workflow template (txt2img_flux or txt2img) from checkpoint filename. FLUX checkpoints (e.g. flux1-dev-fp8.safetensors) use txt2img_flux; SD XL / SD 1.5 use txt2img. Call before build_workflow when the user did not specify a template.',
-    inputSchema: {
-      ckpt_name: z.string().describe('Checkpoint filename (e.g. flux1-dev-fp8.safetensors, sd_xl_base_1.0.safetensors)'),
-    },
-  },
-  (args) => {
-    const name = String(args.ckpt_name).toLowerCase();
-    if (/flux|flux1|flux_/.test(name)) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                template: 'txt2img_flux',
-                ckpt_name: args.ckpt_name,
-                reason: 'Checkpoint name suggests FLUX; use template txt2img_flux. Call get_system_resources first and ensure flux_ready is true.',
-              },
-              null,
-              2
-            ),
-          },
-        ],
-      };
-    }
-    if (/sdxl|sd_xl|sd3|sd_3/.test(name)) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                template: 'txt2img',
-                ckpt_name: args.ckpt_name,
-                reason: 'Checkpoint name suggests SD XL or SD 3; use template txt2img.',
-              },
-              null,
-              2
-            ),
-          },
-        ],
-      };
-    }
-    if (/sd1\.5|sd_15|v1-5|v1_5|sd15/.test(name)) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                template: 'txt2img',
-                ckpt_name: args.ckpt_name,
-                reason: 'Checkpoint name suggests SD 1.5; use template txt2img.',
-              },
-              null,
-              2
-            ),
-          },
-        ],
-      };
-    }
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              template: 'txt2img',
-              ckpt_name: args.ckpt_name,
-              reason: 'Unknown checkpoint type; default to txt2img. For FLUX checkpoints use txt2img_flux.',
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
   }
 );
 
@@ -717,7 +223,7 @@ server.registerTool(
   'create_workflow',
   {
     description:
-      'Create a new empty workflow context. Returns workflow_id to use with add_node, connect_nodes, get_workflow_json, validate_workflow, finalize_workflow, execute_workflow.',
+      'Start manual node-by-node assembly of an empty in-memory workflow. Returns workflow_id for add_node, set_node_input, validate_workflow, and get_workflow_json. Export JSON before execution. Use build_workflow instead for a named preset.',
     inputSchema: {},
   },
   () => {
@@ -734,7 +240,7 @@ server.registerTool(
     inputSchema: {
       workflow_id: z.string().describe('Workflow id from create_workflow'),
       class_type: z.string().describe('ComfyUI node class (e.g. CheckpointLoaderSimple, CLIPTextEncode)'),
-      inputs: z.record(z.string(), z.unknown()).optional().describe('Node inputs (literal values; use connect_nodes for links)'),
+      inputs: z.record(z.string(), z.unknown()).optional().describe('Node inputs (literal values; use set_node_input for links)'),
     },
   },
   (args) => {
@@ -748,33 +254,6 @@ server.registerTool(
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       return { content: [{ type: 'text', text: `add_node failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'connect_nodes',
-  {
-    description: 'Connect an output of one node to an input of another in a dynamic workflow.',
-    inputSchema: {
-      workflow_id: z.string().describe('Workflow id from create_workflow'),
-      from_node: z.string().describe('Source node id (e.g. "1")'),
-      output_idx: z.number().int().min(0).describe('Output index (usually 0)'),
-      to_node: z.string().describe('Target node id'),
-      input_name: z.string().describe('Target input name (e.g. model, clip, positive)'),
-    },
-  },
-  (args) => {
-    const ctx = workflowStore.get(args.workflow_id);
-    if (!ctx) {
-      return { content: [{ type: 'text', text: `Workflow "${args.workflow_id}" not found or expired.` }] };
-    }
-    try {
-      connectNodes(ctx, args.from_node, args.output_idx, args.to_node, args.input_name);
-      return { content: [{ type: 'text', text: 'ok' }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `connect_nodes failed: ${msg}` }] };
     }
   }
 );
@@ -804,35 +283,9 @@ server.registerTool(
 );
 
 server.registerTool(
-  'set_node_input',
-  {
-    description: 'Set a literal input on a node in a dynamic workflow (overwrites existing value or link).',
-    inputSchema: {
-      workflow_id: z.string().describe('Workflow id from create_workflow'),
-      node_id: z.string().describe('Node id'),
-      input_name: z.string().describe('Input name (e.g. text, ckpt_name, seed)'),
-      value: z.union([z.string(), z.number(), z.boolean(), z.array(z.unknown()), z.record(z.string(), z.unknown())]).describe('Value (string, number, boolean, or [nodeId, outputIndex] for links)'),
-    },
-  },
-  (args) => {
-    const ctx = workflowStore.get(args.workflow_id);
-    if (!ctx) {
-      return { content: [{ type: 'text', text: `Workflow "${args.workflow_id}" not found or expired.` }] };
-    }
-    try {
-      setNodeInput(ctx, args.node_id, args.input_name, args.value);
-      return { content: [{ type: 'text', text: 'ok' }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `set_node_input failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
   'get_workflow_json',
   {
-    description: 'Get the current workflow JSON for a dynamic workflow (for execute_workflow or save_workflow).',
+    description: 'Export a dynamic workflow_id as workflow JSON for execution or save_workflow. Leaves the context editable; does not validate, save, or execute it. Use validate_workflow to check references first.',
     inputSchema: {
       workflow_id: z.string().describe('Workflow id from create_workflow'),
     },
@@ -870,477 +323,10 @@ server.registerTool(
 );
 
 server.registerTool(
-  'finalize_workflow',
-  {
-    description: 'Get the workflow JSON for a dynamic workflow (same as get_workflow_json). Use with execute_workflow or save_workflow.',
-    inputSchema: {
-      workflow_id: z.string().describe('Workflow id from create_workflow'),
-    },
-  },
-  (args) => {
-    const ctx = workflowStore.get(args.workflow_id);
-    if (!ctx) {
-      return { content: [{ type: 'text', text: `Workflow "${args.workflow_id}" not found or expired.` }] };
-    }
-    const workflow = getWorkflowFromContext(ctx);
-    const text = JSON.stringify(workflow, null, 2);
-    return { content: [{ type: 'text', text }] };
-  }
-);
-
-server.registerTool(
-  'execute_workflow',
-  {
-    description:
-      'Submit a ComfyUI workflow to run. Returns prompt_id. Use get_execution_status(prompt_id) to check result. Requires COMFYUI_HOST and ComfyUI running.',
-    inputSchema: {
-      workflow: z.string().describe('Workflow JSON string (from build_workflow or loaded file)'),
-    },
-  },
-  async (args) => {
-    if (!comfyui.isComfyUIConfigured()) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: 'ComfyUI is not configured. Set COMFYUI_HOST (e.g. http://127.0.0.1:8188) and ensure ComfyUI is running. Then retry execute_workflow.',
-          },
-        ],
-      };
-    }
-    let parsed: ComfyUIWorkflow;
-    try {
-      parsed = JSON.parse(args.workflow) as ComfyUIWorkflow;
-    } catch {
-      return { content: [{ type: 'text', text: 'Invalid workflow JSON.' }] };
-    }
-    const validation = validateWorkflow(parsed);
-    if (!validation.valid) {
-      return { content: [{ type: 'text', text: `Workflow validation failed:\n${validation.errors.join('\n')}` }] };
-    }
-    try {
-      const { prompt_id } = await comfyui.submitPrompt(parsed);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Workflow queued. prompt_id: ${prompt_id}. Use get_execution_status with this prompt_id to check result.`,
-          },
-        ],
-      };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `execute_workflow failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'execute_workflow_sync',
-  {
-    description:
-      'Submit a ComfyUI workflow and wait until execution completes with real-time progress (WebSocket if available, polling fallback). Returns prompt_id, status (completed/failed/timeout), and outputs. When status is error, still check outputs — if present, use download_output or get_last_output to retrieve files. When timeout_ms is omitted, uses recommended_timeout_ms from get_system_resources (higher on MPS/Apple). Requires COMFYUI_HOST.',
-    inputSchema: {
-      workflow: z.string().describe('Workflow JSON string (from build_workflow or loaded file)'),
-      timeout_ms: z.number().int().min(1000).optional().describe('Max wait in milliseconds. When omitted, uses get_system_resources recommended_timeout_ms (e.g. 1.2M on MPS).'),
-      stream_progress: z.boolean().optional().describe('Stream progress updates via WebSocket (default true)'),
-    },
-  },
-  async (args) => {
-    if (!comfyui.isComfyUIConfigured()) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: 'ComfyUI is not configured. Set COMFYUI_HOST to use execute_workflow_sync.',
-          },
-        ],
-      };
-    }
-    let parsed: ComfyUIWorkflow;
-    try {
-      parsed = JSON.parse(args.workflow) as ComfyUIWorkflow;
-    } catch {
-      return { content: [{ type: 'text', text: 'Invalid workflow JSON.' }] };
-    }
-    const validation = validateWorkflow(parsed);
-    if (!validation.valid) {
-      return { content: [{ type: 'text', text: `Workflow validation failed:\n${validation.errors.join('\n')}` }] };
-    }
-    let rec: ReturnType<typeof analyzeSystemResources> | undefined;
-    try {
-      const stats = await comfyui.getSystemStats();
-      rec = analyzeSystemResources(stats);
-      const dims = getWorkflowResolution(parsed);
-      if (dims && (dims.width > rec.max_width || dims.height > rec.max_height)) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  status: 'failed',
-                  error: `Requested resolution ${dims.width}×${dims.height} exceeds recommended ${rec.max_width}×${rec.max_height} for this GPU (${rec.gpu_name}, ${rec.vram_total_gb}GB VRAM). Call get_system_resources or lower width/height to avoid OOM.`,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
-      }
-    } catch {
-      // If get_system_stats fails (e.g. ComfyUI busy), proceed without resolution guard
-    }
-    const timeoutMs = args.timeout_ms ?? rec?.recommended_timeout_ms ?? 300_000;
-    const streamProgress = args.stream_progress ?? true;
-    const progressUpdates: string[] = [];
-    let prompt_id: string | undefined;
-    try {
-      const submitted = await comfyui.submitPrompt(parsed);
-      prompt_id = submitted.prompt_id;
-      const result = await comfyui.waitForCompletion(
-        prompt_id,
-        timeoutMs,
-        streamProgress
-          ? (progress) => {
-              const nodeStr =
-                progress.current_node != null
-                  ? String(progress.current_node)
-                  : 'waiting';
-              const status = `[${progress.status}] ${nodeStr}`;
-              const progressPct = progress.current_node_progress
-                ? ` (${Math.round(progress.current_node_progress * 100)}%)`
-                : '';
-              progressUpdates.push(status + progressPct);
-            }
-          : undefined
-      );
-      const hasOutputs =
-        result.outputs != null && Object.keys(result.outputs).length > 0;
-      const output: Record<string, unknown> = {
-        prompt_id: result.prompt_id,
-        status: result.status === 'failed' ? 'error' : result.status,
-        ...(result.outputs != null && { outputs: result.outputs }),
-        ...(result.error != null && { error: result.error }),
-        ...(progressUpdates.length > 0 && { progress_log: progressUpdates }),
-        ...(result.status === 'failed' &&
-          hasOutputs && {
-            outputs_present_hint:
-              'Outputs are present; use download_output or get_last_output to retrieve files even when status is error.',
-          }),
-      };
-      return { content: [{ type: 'text', text: JSON.stringify(output, null, 2) }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      const hint =
-        ' If the workflow was already submitted, use get_history(limit=5) or get_last_output() to find the run and prompt_id.';
-      if (prompt_id != null) {
-        const partial = JSON.stringify(
-          { prompt_id, status: 'failed', error: msg },
-          null,
-          2
-        );
-        return { content: [{ type: 'text', text: `${partial}\n${hint}` }] };
-      }
-      return { content: [{ type: 'text', text: `execute_workflow_sync failed: ${msg}.${hint}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'get_execution_status',
-  {
-    description:
-      'Get execution status and outputs for a prompt. Returns status, image filenames, and view URLs. Requires COMFYUI_HOST.',
-    inputSchema: {
-      prompt_id: z.string().describe('Prompt id returned by execute_workflow'),
-    },
-  },
-  async (args) => {
-    if (!comfyui.isComfyUIConfigured()) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: 'ComfyUI is not configured. Set COMFYUI_HOST to use get_execution_status.',
-          },
-        ],
-      };
-    }
-    try {
-      const entries = await comfyui.getHistory(args.prompt_id);
-      if (entries.length === 0) {
-        return { content: [{ type: 'text', text: `No history found for prompt_id: ${args.prompt_id}. It may still be running or not yet recorded.` }] };
-      }
-      const entry = entries[0];
-      const outputs = entry.outputs ?? {};
-      const statusObj = entry.status as { status_str?: string; messages?: unknown[] } | undefined;
-      const statusStr = statusObj?.status_str;
-      const messages = statusObj?.messages ?? [];
-      const lines: string[] = [`prompt_id: ${args.prompt_id}`];
-      if (statusStr) lines.push(`status: ${statusStr}`);
-      if (messages.length > 0) {
-        lines.push('errors:');
-        for (const m of messages) {
-          if (m && typeof m === 'object' && 'node_id' in m) {
-            const msg = m as { node_id?: string; exception_message?: string; exception_type?: string; traceback?: string[] };
-            lines.push(`  node ${msg.node_id ?? '?'}: [${msg.exception_type ?? 'Error'}] ${msg.exception_message ?? String(m)}`);
-            if (Array.isArray(msg.traceback) && msg.traceback.length > 0) {
-              msg.traceback.slice(0, 5).forEach((t) => lines.push(`    ${t}`));
-            }
-          } else {
-            lines.push(`  ${String(m)}`);
-          }
-        }
-      }
-      for (const [nodeId, out] of Object.entries(outputs)) {
-        const nodeOut = out as { images?: Array<{ filename: string; subfolder?: string }>; text?: string[]; string?: string[] };
-        const images = nodeOut.images;
-        if (images?.length) {
-          lines.push(`node ${nodeId} images: ${images.map((i) => i.filename).join(', ')}`);
-          const base = process.env.COMFYUI_HOST?.replace(/\/$/, '') ?? 'http://127.0.0.1:8188';
-          for (const img of images) {
-            const sub = img.subfolder ? `&subfolder=${encodeURIComponent(img.subfolder)}` : '';
-            lines.push(`  view: ${base}/view?filename=${encodeURIComponent(img.filename)}&type=output${sub}`);
-          }
-        }
-        const textOutput = nodeOut.text ?? nodeOut.string;
-        if (Array.isArray(textOutput) && textOutput.length) {
-          lines.push(`node ${nodeId} text: ${textOutput.join(' | ')}`);
-        } else if (typeof textOutput === 'string') {
-          lines.push(`node ${nodeId} text: ${textOutput}`);
-        }
-      }
-      return { content: [{ type: 'text', text: lines.join('\n') }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `get_execution_status failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'get_error_details',
-  {
-    description:
-      'Get full error details for a prompt (node_id, exception_type, exception_message, full traceback). Use when execute_workflow_sync failed or get_execution_status shows errors. Returns structured errors from ComfyUI history status.messages. Requires COMFYUI_HOST.',
-    inputSchema: {
-      prompt_id: z.string().describe('Prompt id from execute_workflow or execute_workflow_sync'),
-    },
-  },
-  async (args) => {
-    if (!comfyui.isComfyUIConfigured()) {
-      return {
-        content: [{ type: 'text', text: 'ComfyUI is not configured. Set COMFYUI_HOST to use get_error_details.' }],
-      };
-    }
-    try {
-      const entries = await comfyui.getHistory(args.prompt_id);
-      if (entries.length === 0) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                { prompt_id: args.prompt_id, error: 'No history found for this prompt_id. It may still be running or not yet recorded.' },
-                null,
-                2
-              ),
-            },
-          ],
-        };
-      }
-      const entry = entries[0];
-      const statusObj = entry.status as { status_str?: string; messages?: unknown[] } | undefined;
-      const statusStr = statusObj?.status_str;
-      const messages = statusObj?.messages ?? [];
-      const errors: Array<{
-        node_id?: string;
-        exception_type?: string;
-        exception_message?: string;
-        traceback?: string[];
-      }> = [];
-      for (const m of messages) {
-        if (m && typeof m === 'object' && ('node_id' in m || 'exception_message' in m)) {
-          const msg = m as {
-            node_id?: string;
-            exception_message?: string;
-            exception_type?: string;
-            traceback?: string[];
-          };
-          errors.push({
-            node_id: msg.node_id,
-            exception_type: msg.exception_type,
-            exception_message: msg.exception_message,
-            traceback: Array.isArray(msg.traceback) ? msg.traceback : undefined,
-          });
-        } else {
-          errors.push({ exception_message: String(m) });
-        }
-      }
-      const out = {
-        prompt_id: args.prompt_id,
-        status: statusStr,
-        errors: errors.length ? errors : undefined,
-        message: errors.length ? undefined : 'No error messages in history for this prompt.',
-      };
-      return { content: [{ type: 'text', text: JSON.stringify(out, null, 2) }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `get_error_details failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'get_execution_progress',
-  {
-    description:
-      'Get real-time execution progress for a prompt (WebSocket if available, polling fallback). Returns status, current_node, progress%, queue_position, and outputs. Requires COMFYUI_HOST.',
-    inputSchema: {
-      prompt_id: z.string().describe('Prompt id returned by execute_workflow or execute_workflow_sync'),
-    },
-  },
-  async (args) => {
-    if (!comfyui.isComfyUIConfigured()) {
-      return {
-        content: [{ type: 'text', text: 'ComfyUI is not configured. Set COMFYUI_HOST to use get_execution_progress.' }],
-      };
-    }
-    try {
-      // Try WebSocket first for real-time progress
-      if (await comfyui.isWebSocketAvailable()) {
-        const { getWSClient } = await import('./comfyui-ws-client.js');
-        const wsClient = getWSClient();
-        const progress = wsClient.getProgress(args.prompt_id);
-
-        if (progress) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(
-                  {
-                    ...progress,
-                    method: 'websocket',
-                  },
-                  null,
-                  2
-                ),
-              },
-            ],
-          };
-        }
-      }
-
-      // Fallback to polling (existing implementation)
-      const entries = await comfyui.getHistory(args.prompt_id);
-      if (entries.length === 0) {
-        return { content: [{ type: 'text', text: `No history for prompt_id: ${args.prompt_id}. Still running or not recorded.` }] };
-      }
-      const entry = entries[0];
-      const outputs = entry.outputs ?? {};
-      const lines: string[] = [`prompt_id: ${args.prompt_id}`, 'method: polling'];
-      const statusStr = (entry.status as { status_str?: string })?.status_str;
-      if (statusStr) lines.push(`status: ${statusStr}`);
-      for (const [nodeId, out] of Object.entries(outputs)) {
-        const nodeOut = out as { images?: Array<{ filename: string; subfolder?: string }> };
-        if (nodeOut.images?.length) {
-          lines.push(`node ${nodeId} images: ${nodeOut.images.map((i) => i.filename).join(', ')}`);
-        }
-      }
-      return { content: [{ type: 'text', text: lines.join('\n') }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `get_execution_progress failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'execute_workflow_stream',
-  {
-    description:
-      'Execute workflow with streaming real-time progress updates. Requires WebSocket support. Returns result and progress event history. Use for monitoring execution progress. Requires COMFYUI_HOST and WebSocket connection.',
-    inputSchema: {
-      workflow: z.string().describe('Workflow JSON string (from build_workflow or loaded file)'),
-      timeout_ms: z.number().int().min(1000).optional().describe('Max wait in milliseconds (default 300000)'),
-    },
-  },
-  async (args) => {
-    if (!comfyui.isComfyUIConfigured()) {
-      return {
-        content: [{ type: 'text', text: 'ComfyUI is not configured. Set COMFYUI_HOST.' }],
-      };
-    }
-
-    // Check WebSocket availability
-    if (!(await comfyui.isWebSocketAvailable())) {
-      try {
-        const { getWSClient } = await import('./comfyui-ws-client.js');
-        const wsClient = getWSClient();
-        await wsClient.connect();
-      } catch {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: 'WebSocket not available. Use execute_workflow_sync for polling-based execution.',
-            },
-          ],
-        };
-      }
-    }
-
-    let parsed: ComfyUIWorkflow;
-    try {
-      parsed = JSON.parse(args.workflow) as ComfyUIWorkflow;
-    } catch {
-      return { content: [{ type: 'text', text: 'Invalid workflow JSON.' }] };
-    }
-
-    const validation = validateWorkflow(parsed);
-    if (!validation.valid) {
-      return { content: [{ type: 'text', text: `Workflow validation failed:\n${validation.errors.join('\n')}` }] };
-    }
-
-    try {
-      type ExecutionProgress = import('./types/comfyui-api-types.js').ExecutionProgress;
-      const events: ExecutionProgress[] = [];
-
-      const result = await comfyui.submitPromptAndWaitWithProgress(parsed, args.timeout_ms, (progress) => {
-        events.push({ ...progress });
-      });
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                result,
-                event_count: events.length,
-                events: events.slice(-10), // Last 10 events
-              },
-              null,
-              2
-            ),
-          },
-        ],
-      };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `execute_workflow_stream failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
   'execute_batch',
   {
     description:
-      'Execute multiple workflows in batch. Submits each workflow and waits for completion (polling). Optional concurrency and stop_on_error. Requires COMFYUI_HOST.',
+      'Submit multiple independent workflow JSON documents and wait for their results, with bounded concurrency and optional stop on error. Use execute_chain when later workflows need earlier outputs, or execute_workflow for one workflow. Requires COMFYUI_HOST.',
     inputSchema: {
       workflows: z.array(z.string()).describe('Array of workflow JSON strings'),
       concurrency: z.number().int().min(1).optional().describe('Max workflows running at once (default 1)'),
@@ -1379,7 +365,7 @@ server.registerTool(
   'get_history',
   {
     description:
-      'Get ComfyUI execution history (GET /history) without prompt_id. Returns last N prompts with prompt_id, status, outputs (filenames), elapsed. Use when execute_workflow_sync did not return prompt_id (e.g. WebSocket timeout) to find the latest run and its outputs. Requires COMFYUI_HOST.',
+      'Get ComfyUI execution history (GET /history) without prompt_id. Returns last N prompts with prompt_id, status, outputs (filenames), elapsed. Use when execute_workflow did not return prompt_id (e.g. WebSocket timeout) to find the latest run and its outputs. Requires COMFYUI_HOST.',
     inputSchema: {
       limit: z.number().int().min(1).max(50).optional().describe('Number of recent history entries (default 5)'),
     },
@@ -1405,417 +391,7 @@ server.registerTool(
   }
 );
 
-server.registerTool(
-  'get_last_output',
-  {
-    description:
-      'Get info for the most recent prompt that has image output (skips failed prompts). Use when prompt_id was lost (e.g. execute_workflow_sync timed out). Returns prompt_id, filename, subfolder, view_url. Then use download_by_filename to save the file. Requires COMFYUI_HOST.',
-    inputSchema: {},
-  },
-  async () => {
-    if (!comfyui.isComfyUIConfigured()) {
-      return { content: [{ type: 'text', text: 'ComfyUI is not configured. Set COMFYUI_HOST to use get_last_output.' }] };
-    }
-    try {
-      const entries = await comfyui.getHistory();
-      if (entries.length === 0) {
-        return { content: [{ type: 'text', text: 'No prompts in history.' }] };
-      }
-      // Entries are newest first. Return first (newest) that has image output (skip failed prompts).
-      let ref: { filename: string; subfolder?: string; type?: string } | null = null;
-      let chosenEntry: (typeof entries)[0] | null = null;
-      for (const entry of entries) {
-        const r = comfyui.getFirstOutputImageRef([entry]);
-        if (r) {
-          ref = r;
-          chosenEntry = entry;
-          break;
-        }
-      }
-      if (!ref || !chosenEntry) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                message: 'No prompt in history has image output (all failed or no images).',
-                latest_prompt_id: entries[0]?.prompt_id ?? null,
-              }),
-            },
-          ],
-        };
-      }
-      const promptId = chosenEntry.prompt_id ?? '(unknown)';
-      const base = process.env.COMFYUI_HOST?.replace(/\/$/, '') ?? 'http://127.0.0.1:8188';
-      const params = new URLSearchParams({
-        filename: ref.filename,
-        type: ref.type ?? 'output',
-        ...(ref.subfolder ? { subfolder: ref.subfolder } : {}),
-      });
-      const viewUrl = `${base}/view?${params.toString()}`;
-      const out = {
-        prompt_id: promptId,
-        filename: ref.filename,
-        subfolder: ref.subfolder,
-        type: ref.type ?? 'output',
-        view_url: viewUrl,
-      };
-      return { content: [{ type: 'text', text: JSON.stringify(out, null, 2) }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `get_last_output failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'list_outputs',
-  {
-    description: 'List all output files (images, gifs) for a completed prompt. Returns prompt_id, node_id, type, filename, url. Requires COMFYUI_HOST.',
-    inputSchema: {
-      prompt_id: z.string().describe('Prompt id from execute_workflow or execute_workflow_sync'),
-    },
-  },
-  async (args) => {
-    if (!comfyui.isComfyUIConfigured()) {
-      return { content: [{ type: 'text', text: 'ComfyUI is not configured. Set COMFYUI_HOST to use list_outputs.' }] };
-    }
-    try {
-      const files = await listOutputs(args.prompt_id);
-      const text = files.length ? JSON.stringify(files, null, 2) : `No outputs for prompt_id: ${args.prompt_id}.`;
-      return { content: [{ type: 'text', text }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `list_outputs failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'download_output',
-  {
-    description: 'Download a single output file to a local path. Use list_outputs to get file info. Use output_format to convert to png, jpeg, or webp. Requires COMFYUI_HOST.',
-    inputSchema: {
-      prompt_id: z.string().describe('Prompt id'),
-      node_id: z.string().describe('Node id (from list_outputs)'),
-      filename: z.string().describe('Filename (from list_outputs)'),
-      dest_path: z.string().describe('Local path to save the file'),
-      subfolder: z.string().optional().describe('Subfolder (from list_outputs)'),
-      output_format: z.enum(['png', 'jpeg', 'webp']).optional().describe('Convert image to this format (png, jpeg, or webp)'),
-      convert_quality: z.number().min(1).max(100).optional().describe('Quality for jpeg/webp (default 85)'),
-    },
-  },
-  async (args) => {
-    if (!comfyui.isComfyUIConfigured()) {
-      return { content: [{ type: 'text', text: 'ComfyUI is not configured. Set COMFYUI_HOST to use download_output.' }] };
-    }
-    try {
-      const files = await listOutputs(args.prompt_id);
-      const file = files.find(
-        (f) => f.node_id === args.node_id && f.filename === args.filename && (args.subfolder == null || f.subfolder === args.subfolder)
-      );
-      if (!file) {
-        return { content: [{ type: 'text', text: `No matching output for prompt_id=${args.prompt_id}, node_id=${args.node_id}, filename=${args.filename}` }] };
-      }
-      if (args.output_format && file.type === 'image') {
-        const result = await downloadByFilename(file.filename, args.dest_path, {
-          subfolder: file.subfolder || undefined,
-          type: 'output',
-          output_format: args.output_format,
-          convert_quality: args.convert_quality,
-        });
-        const path = 'path' in result ? result.path : args.dest_path;
-        return { content: [{ type: 'text', text: `Saved: ${path}` }] };
-      }
-      const path = await downloadOutput(file, args.dest_path);
-      return { content: [{ type: 'text', text: `Saved: ${path}` }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `download_output failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'download_by_filename',
-  {
-    description:
-      'Download an output file by filename (no prompt_id needed). Uses GET /view. Use when you have filename from get_history or get_last_output. If return_base64 is true, file is not written to disk; returns base64 data. When size > 800 KB, automatically converts to WebP to stay under 1MB base64 limits. Use output_format to convert to png, jpeg, or webp. Requires COMFYUI_HOST.',
-    inputSchema: {
-      filename: z.string().describe('Output filename (e.g. from get_last_output or get_history)'),
-      dest_path: z.string().describe('Local path to save the file (ignored when return_base64 is true)'),
-      subfolder: z.string().optional().describe('Subfolder (default empty)'),
-      type: z.string().optional().describe('View type (default "output")'),
-      return_base64: z.boolean().optional().describe('If true, return file as base64 (auto WebP when > 800 KB)'),
-      max_base64_bytes: z.number().int().min(0).optional().describe('When return_base64 and file size > this, convert to WebP (default 819200). Set 0 to disable.'),
-      convert_quality: z.number().min(1).max(100).optional().describe('WebP/JPEG quality when converting (default 85)'),
-      output_format: z.enum(['png', 'jpeg', 'webp']).optional().describe('Convert image to this format (png, jpeg, or webp) before saving or returning base64'),
-    },
-  },
-  async (args) => {
-    if (!comfyui.isComfyUIConfigured()) {
-      return { content: [{ type: 'text', text: 'ComfyUI is not configured. Set COMFYUI_HOST to use download_by_filename.' }] };
-    }
-    try {
-      const result = await downloadByFilename(args.filename, args.dest_path, {
-        subfolder: args.subfolder,
-        type: args.type ?? 'output',
-        returnBase64: args.return_base64 ?? false,
-        max_base64_bytes: args.max_base64_bytes,
-        convert_quality: args.convert_quality,
-        output_format: args.output_format,
-      });
-      return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `download_by_filename failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'download_all_outputs',
-  {
-    description: 'Download all output files for a prompt into a directory. Returns list of saved paths. Requires COMFYUI_HOST.',
-    inputSchema: {
-      prompt_id: z.string().describe('Prompt id from execute_workflow or execute_workflow_sync'),
-      dest_dir: z.string().describe('Local directory path to save files'),
-      prefix_node_id: z.boolean().optional().describe('Prefix filename with node_id to avoid collisions (default true)'),
-    },
-  },
-  async (args) => {
-    if (!comfyui.isComfyUIConfigured()) {
-      return { content: [{ type: 'text', text: 'ComfyUI is not configured. Set COMFYUI_HOST to use download_all_outputs.' }] };
-    }
-    try {
-      const paths = await downloadAllOutputs(args.prompt_id, args.dest_dir, {
-        prefixNodeId: args.prefix_node_id ?? true,
-      });
-      const text = paths.length ? paths.join('\n') : `No outputs for prompt_id: ${args.prompt_id}.`;
-      return { content: [{ type: 'text', text }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `download_all_outputs failed: ${msg}` }] };
-    }
-  }
-);
-
 // --- Model Management (Phase 5) ---
-const MODEL_TYPE_ENUM = z.enum([
-  'checkpoint',
-  'lora',
-  'vae',
-  'controlnet',
-  'upscale',
-  'embedding',
-  'clip',
-]);
-
-server.registerTool(
-  'list_models',
-  {
-    description:
-      'List models available on the ComfyUI server (from object_info). Optionally filter by type: checkpoint, lora, vae, controlnet, upscale, embedding, clip. Requires COMFYUI_HOST.',
-    inputSchema: {
-      type: MODEL_TYPE_ENUM.optional().describe('Filter by model type (omit for all types)'),
-    },
-  },
-  async (args) => {
-    if (!comfyui.isComfyUIConfigured()) {
-      return { content: [{ type: 'text', text: 'ComfyUI is not configured. Set COMFYUI_HOST to use list_models.' }] };
-    }
-    try {
-      const list = await modelManager.listModels(args.type);
-      const text = list.length
-        ? list.map((m) => `${m.type}: ${m.name}`).join('\n')
-        : args.type
-          ? `No ${args.type} models found on server.`
-          : 'No models found (ComfyUI may not expose model lists in object_info).';
-      return { content: [{ type: 'text', text }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `list_models failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'get_model_info',
-  {
-    description:
-      'Get info for a model by name and type. Returns name, type, path; null if not found. Requires COMFYUI_HOST.',
-    inputSchema: {
-      name: z.string().describe('Model filename (e.g. sd_xl_base_1.0.safetensors)'),
-      type: MODEL_TYPE_ENUM.describe('Model type: checkpoint, lora, vae, controlnet, upscale, embedding, clip'),
-    },
-  },
-  async (args) => {
-    if (!comfyui.isComfyUIConfigured()) {
-      return { content: [{ type: 'text', text: 'ComfyUI is not configured. Set COMFYUI_HOST to use get_model_info.' }] };
-    }
-    try {
-      const info = await modelManager.getModelInfo(args.name, args.type);
-      const text = info ? JSON.stringify(info, null, 2) : `Model "${args.name}" (${args.type}) not found on server.`;
-      return { content: [{ type: 'text', text }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `get_model_info failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'check_model_exists',
-  {
-    description: 'Check if a model exists on the ComfyUI server (in object_info model lists). Requires COMFYUI_HOST.',
-    inputSchema: {
-      name: z.string().describe('Model filename'),
-      type: MODEL_TYPE_ENUM.describe('Model type'),
-    },
-  },
-  async (args) => {
-    if (!comfyui.isComfyUIConfigured()) {
-      return { content: [{ type: 'text', text: 'ComfyUI is not configured. Set COMFYUI_HOST to use check_model_exists.' }] };
-    }
-    try {
-      const exists = await modelManager.checkModelExists(args.name, args.type);
-      return { content: [{ type: 'text', text: exists ? 'yes' : 'no' }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `check_model_exists failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'get_workflow_models',
-  {
-    description:
-      'Extract required models from a workflow (loader nodes: CheckpointLoaderSimple, LoraLoader, VAELoader, ControlNetLoader, UpscaleModelLoader, etc.). Returns list of { name, type, nodeId, nodeClass, inputName }. No ComfyUI connection needed.',
-    inputSchema: {
-      workflow: z.string().describe('Workflow JSON string'),
-    },
-  },
-  (args) => {
-    let parsed: ComfyUIWorkflow;
-    try {
-      parsed = JSON.parse(args.workflow) as ComfyUIWorkflow;
-    } catch {
-      return { content: [{ type: 'text', text: 'Invalid workflow JSON.' }] };
-    }
-    const required = modelManager.getWorkflowModels(parsed);
-    const text = required.length ? JSON.stringify(required, null, 2) : 'No model inputs found in workflow.';
-    return { content: [{ type: 'text', text }] };
-  }
-);
-
-server.registerTool(
-  'check_workflow_models',
-  {
-    description:
-      'Check which models required by a workflow exist on the ComfyUI server. Returns ready (boolean), missing, and found lists. Requires COMFYUI_HOST.',
-    inputSchema: {
-      workflow: z.string().describe('Workflow JSON string'),
-    },
-  },
-  async (args) => {
-    if (!comfyui.isComfyUIConfigured()) {
-      return { content: [{ type: 'text', text: 'ComfyUI is not configured. Set COMFYUI_HOST to use check_workflow_models.' }] };
-    }
-    let parsed: ComfyUIWorkflow;
-    try {
-      parsed = JSON.parse(args.workflow) as ComfyUIWorkflow;
-    } catch {
-      return { content: [{ type: 'text', text: 'Invalid workflow JSON.' }] };
-    }
-    try {
-      const result = await modelManager.checkWorkflowModels(parsed);
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `check_workflow_models failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'get_system_resources',
-  {
-    description:
-      'Get ComfyUI station resources (GPU/VRAM/RAM) and recommendations for model size, resolution, and batch size. Returns flux_ready (desktop FLUX needs ~12GB+ VRAM) and platform_hints (e.g. Apple Silicon: M-Flux as quantized/MLX variant — different model or FLUX via custom nodes). Call this first before building or executing workflows to avoid OOM. Requires COMFYUI_HOST.',
-    inputSchema: {},
-  },
-  async () => {
-    if (!comfyui.isComfyUIConfigured()) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: 'ComfyUI is not configured. Set COMFYUI_HOST to use get_system_resources.',
-          },
-        ],
-      };
-    }
-    try {
-      const stats = await comfyui.getSystemStats();
-      const rec = analyzeSystemResources(stats);
-      const text = JSON.stringify(rec, null, 2);
-      return { content: [{ type: 'text', text }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `get_system_resources failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'get_generation_recommendations',
-  {
-    description:
-      'Get recommendations for image generation: system resources (max resolution, model size, batch) and, if the user prompt suggests text/letters in the image, advice on models and settings. Many base models (SD 1.5, SD XL) render text poorly; FLUX, SD 3, or checkpoints trained for text work better. Call when planning a txt2img or img2img workflow; pass the user\'s image description as prompt to get text-in-image advice when relevant. Requires COMFYUI_HOST for resource stats.',
-    inputSchema: {
-      prompt: z.string().optional().describe('User\'s image description or goal (e.g. "a sign that says Hello"). If it suggests text/letters in the image, recommendations will include model and setting advice for legible text.'),
-    },
-  },
-  async (args) => {
-    const result: {
-      system?: Record<string, unknown>;
-      text_in_image_advice?: string;
-      summary: string[];
-    } = { summary: [] };
-
-    if (comfyui.isComfyUIConfigured()) {
-      try {
-        const stats = await comfyui.getSystemStats();
-        const rec = analyzeSystemResources(stats);
-        result.system = rec as unknown as Record<string, unknown>;
-        result.summary.push(rec.summary);
-        if (rec.warnings?.length) {
-          result.summary.push(...rec.warnings);
-        }
-        if (rec.platform_hints?.length) {
-          result.summary.push(...rec.platform_hints);
-        }
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        result.summary.push(`System resources unavailable: ${msg}. Use conservative defaults (512×512, light model, batch 1).`);
-      }
-    } else {
-      result.summary.push('ComfyUI not configured; use conservative defaults (512×512, light model, batch 1).');
-    }
-
-    const prompt = (args.prompt ?? '').trim();
-    if (prompt && promptSuggestsTextInImage(prompt)) {
-      result.text_in_image_advice =
-        'Legible text in image: many base models (SD 1.5, SD XL base) render text poorly (blurry, wrong letters). ' +
-        'Prefer FLUX, SD 3, or checkpoints known for text rendering (e.g. FLUX.1 dev/schnell, SD3 medium). ' +
-        'Consider 25–30 steps and CFG 7–8 for clearer detail. If only SD 1.5/XL is available, set user expectations: text may be imperfect.';
-      result.summary.push(result.text_in_image_advice);
-    }
-
-    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-  }
-);
 
 // --- Workflow Composition (Phase 6) ---
 const parameterBindingSchema = z.object({
@@ -1836,7 +412,7 @@ server.registerTool(
   'create_template',
   {
     description:
-      'Create a parameterized workflow template from a workflow and parameter definitions. Returns template JSON for use with apply_template or validate_template_params. Parameters bind to node inputs via nodeBindings (nodeId, inputName).',
+      'Convert existing workflow JSON into a custom parameterized template JSON using node input bindings. Returns the template without saving it or adding it to list_templates. Use apply_template to instantiate it; build_workflow uses named presets instead.',
     inputSchema: {
       workflow: z.string().describe('Workflow JSON string'),
       params: z.array(parameterDefinitionSchema).describe('Parameter definitions with nodeBindings'),
@@ -1863,55 +439,6 @@ server.registerTool(
       const msg = e instanceof Error ? e.message : String(e);
       return { content: [{ type: 'text', text: `create_template failed: ${msg}` }] };
     }
-  }
-);
-
-server.registerTool(
-  'apply_template',
-  {
-    description:
-      'Apply parameter values to a workflow template. Returns workflow JSON ready to execute or save. Use create_template to build a template, then apply_template with values.',
-    inputSchema: {
-      template: z.string().describe('Template JSON string (from create_template)'),
-      values: z.record(z.string(), z.unknown()).describe('Parameter values (e.g. { prompt: "a cat", seed: 42 })'),
-    },
-  },
-  (args) => {
-    let template: WorkflowTemplate;
-    try {
-      template = JSON.parse(args.template) as WorkflowTemplate;
-    } catch {
-      return { content: [{ type: 'text', text: 'Invalid template JSON.' }] };
-    }
-    try {
-      const workflow = applyTemplate(template, args.values ?? {});
-      return { content: [{ type: 'text', text: JSON.stringify(workflow, null, 2) }] };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return { content: [{ type: 'text', text: `apply_template failed: ${msg}` }] };
-    }
-  }
-);
-
-server.registerTool(
-  'validate_template_params',
-  {
-    description: 'Validate that parameter values satisfy a workflow template (required params, types).',
-    inputSchema: {
-      template: z.string().describe('Template JSON string'),
-      values: z.record(z.string(), z.unknown()).describe('Parameter values'),
-    },
-  },
-  (args) => {
-    let template: WorkflowTemplate;
-    try {
-      template = JSON.parse(args.template) as WorkflowTemplate;
-    } catch {
-      return { content: [{ type: 'text', text: 'Invalid template JSON.' }] };
-    }
-    const result = validateTemplateParams(template, args.values ?? {});
-    const text = result.valid ? 'valid' : `invalid:\n${result.errors.join('\n')}`;
-    return { content: [{ type: 'text', text }] };
   }
 );
 
@@ -1980,7 +507,7 @@ server.registerTool(
               .object({
                 step: z.number().int().min(0),
                 outputNode: z.string(),
-                outputIndex: z.number().int().min(0),
+                outputIndex: z.number().int().min(0).describe('Zero-based image index in the selected output node images array'),
               })
               .optional()
               .describe('Take image from this previous step'),
@@ -2116,7 +643,7 @@ server.registerTool(
   'prepare_image_for_workflow',
   {
     description:
-      'Fetch the first output image from a completed prompt and upload it to ComfyUI input folder. Returns the filename to use in LoadImage for a follow-up workflow (e.g. image caption / verification). Use after get_execution_status confirms the prompt finished with image output. Requires COMFYUI_HOST.',
+      'Fetch the first output image from a completed prompt and upload it to ComfyUI input folder. Returns the filename to use in LoadImage for a follow-up workflow (e.g. image caption / verification). Use after get_execution confirms the prompt finished with image output. Requires COMFYUI_HOST.',
     inputSchema: {
       prompt_id: z.string().describe('Prompt id from execute_workflow (run must be completed with image output)'),
     },
@@ -2185,7 +712,7 @@ server.registerTool(
 
 function isPromptInQueue(queue: { queue_running: unknown[]; queue_pending: unknown[] }, promptId: string): boolean {
   const match = (item: unknown) =>
-    (Array.isArray(item) && item[0] === promptId) ||
+    (Array.isArray(item) && item[1] === promptId) ||
     (item && typeof item === 'object' && (item as { prompt_id?: string }).prompt_id === promptId);
   return (
     queue.queue_running.some(match) ||
@@ -2243,7 +770,7 @@ server.registerTool(
 server.registerTool(
   'clear_queue',
   {
-    description: 'Clear ComfyUI queue: remove all pending and stop/clear running. Requires COMFYUI_HOST.',
+    description: 'Remove all pending ComfyUI queue items. Does not send an interrupt; use interrupt_execution to stop the running workflow. Requires COMFYUI_HOST.',
     inputSchema: {},
   },
   async () => {
@@ -2309,7 +836,7 @@ server.registerTool(
       'Install one or more custom nodes via ComfyUI-Manager cm-cli (e.g. ComfyUI-Blip, WAS-Node-Suite). Requires COMFYUI_PATH and ComfyUI-Manager installed in custom_nodes. ComfyUI-Manager cm-cli requires Python package "rich" (pip install rich in your ComfyUI Python environment). Restart ComfyUI after install to load new nodes.',
     inputSchema: {
       node_names: z
-        .array(z.string())
+        .array(z.string().min(1)).min(1)
         .describe('Node pack names as in ComfyUI-Manager (e.g. ComfyUI-Blip, ComfyUI-Impact-Pack)'),
       channel: z.string().optional().describe('Optional channel (see cm-cli docs)'),
       mode: z.enum(['remote', 'local', 'cache']).optional().describe('Optional mode'),
@@ -2351,6 +878,7 @@ server.registerTool(
       url: z.string().url().describe('Direct download URL (e.g. from Civitai, HuggingFace)'),
       model_type: z
         .string()
+        .regex(/^[a-z][a-z0-9_]*$/i, 'Model type must be a category without path separators')
         .default('checkpoint')
         .describe('Type: checkpoint, lora, vae, controlnet, clip, embeddings, hypernetwork, upscale_models, clip_vision, unet, diffusers'),
     },

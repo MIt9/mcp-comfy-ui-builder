@@ -6,6 +6,29 @@ Project change history. Knowledge base (nodes) → [knowledge/CHANGELOG.md](know
 
 ## [Unreleased]
 
+## [3.0.0] – 2026-10-26
+
+### Breaking changes — consolidated MCP tools
+
+- The public API now exposes 40 tools, with no compatibility aliases. Node searches use `search_nodes(source=...)`; node port projections use `get_node_info(section=...)`.
+- Single-workflow execution uses `execute_workflow(wait, include_events, progress_transport)`; inspection uses `get_execution(view=summary|progress|errors)`.
+- File retrieval uses `download_outputs` with typed source/destination objects. `list_outputs(selector=latest_image)` finds recent output when the prompt id is unknown.
+- Model lookups use `list_models(name?, type?)`; workflow model checks use `get_workflow_models(check_availability=true)`. Resource advice and checkpoint filename suggestions use `get_generation_recommendations`.
+- Restyle uses `build_workflow(template=restyle, params=...)`; connections use `set_node_input(connection=...)`; custom template validation uses `apply_template(validate_only=true)`. Removed the duplicate `finalize_workflow`.
+- Updated tool-selection guidance, parameter validation, protocol tests, and current documentation. See [MCP setup](doc/MCP-SETUP.md) for the complete API.
+- Requires Node.js 22.12+; CI and Docker use Node.js 22. Updated the MCP SDK, sharp, Vitest, and transitive dependencies to resolve reported advisories.
+
+### Fixed
+
+- WebSocket submissions share the connection client id; cached completion and fast-run history reconciliation retain outputs. Normal lifecycle history events no longer mark successful workflows as failed.
+- Batch stop-on-error prevents new submissions after a failure. Chain dependencies select the requested output image and reject missing or failed upstream steps.
+- ComfyUI restart uses the installation's Python environment and loopback listener. Model downloads stream through temporary files, and output downloads reject directory traversal.
+- Bundled knowledge resolves relative to the package, with a runnable npm binary and synchronized package/server versions.
+
+### Validation
+
+- Added `npm run test:live` for checkpoint-free MCP checks against a running ComfyUI, with separate opt-ins for queue and administrative changes.
+
 ## [2.4.1] – 2026-02-03
 
 ### Fixed (TypeScript build)

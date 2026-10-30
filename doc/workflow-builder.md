@@ -60,7 +60,7 @@ Example: `build_workflow("txt2img", { width: 512, height: 768, prompt: "a cat", 
 
 ### txt2img_flux
 
-FLUX text-to-image: CheckpointLoaderSimple → CLIPTextEncodeFlux (clip_l, t5xxl, guidance) → ModelSamplingFlux → EmptyLatentImage → KSampler (cfg=1) → VAEDecode → SaveImage. **Call get_system_resources first** and use only when **flux_ready** is true (~12GB+ VRAM). Use ckpt_name like `flux1-dev-fp8.safetensors` or `flux1-schnell-fp8.safetensors`.
+FLUX text-to-image: CheckpointLoaderSimple → CLIPTextEncodeFlux (clip_l, t5xxl, guidance) → ModelSamplingFlux → EmptyLatentImage → KSampler (cfg=1) → VAEDecode → SaveImage. **Call get_generation_recommendations first** and inspect **recommendations.flux_ready** and the recommended FLUX resolution limits. Use ckpt_name like `flux1-dev-fp8.safetensors` or `flux1-schnell-fp8.safetensors`.
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
@@ -77,7 +77,7 @@ FLUX text-to-image: CheckpointLoaderSimple → CLIPTextEncodeFlux (clip_l, t5xxl
 | filename_prefix | string | ComfyUI_flux | SaveImage prefix |
 | batch_size | number | 1 | EmptyLatentImage batch |
 
-Example: `build_workflow("txt2img_flux", { prompt: "a crocodile toy", width: 1024, height: 1024 })`. Use **suggest_template_for_checkpoint(ckpt_name)** to pick template from checkpoint filename.
+Example arguments: `{ "template": "txt2img_flux", "params": { "prompt": "a crocodile toy", "width": 1024, "height": 1024 } }`. Pass `checkpoint` to **get_generation_recommendations** for a filename-based template suggestion; it is a heuristic, not architecture verification.
 
 ### img2img
 
@@ -99,11 +99,11 @@ Example: `build_workflow("img2img", { image: "photo.png", prompt: "oil painting 
 
 ### restyle
 
-Image-to-image in a chosen style (cartoon, oil painting, anime, etc.). Same pipeline as img2img; **style** is mapped to a prompt (or use free text). Returns workflow + **recipe** (prompt and params) so you can regenerate or tweak. Use **build_restyle_workflow** to get workflow JSON and recipe in one call.
+Image-to-image in a chosen style (cartoon, oil painting, anime, etc.). Same pipeline as img2img; **style** is mapped to a prompt (or use free text). Use **build_workflow** with `template="restyle"` and `params.image` / `params.style`. Returns `{ workflow, recipe }`; serialize the `workflow` field for execution or saving. Other named presets return workflow JSON directly.
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
-| image | string | input.png | Input image filename (in ComfyUI input folder; upload first if needed) |
+| image | string | required | Input image filename (in ComfyUI input folder; upload first if needed) |
 | style | string | — | Keyword: cartoon, oil_painting, anime, watercolor, sketch, comic, pixel_art, pastel, cyberpunk — or any free text used as prompt |
 | prompt | string | — | Override prompt (if set, style keyword is ignored) |
 | negative_prompt | string | '' | Negative prompt |
@@ -114,7 +114,7 @@ Image-to-image in a chosen style (cartoon, oil painting, anime, etc.). Same pipe
 | ckpt_name | string | sd_xl_base_1.0.safetensors | Checkpoint filename |
 | filename_prefix | string | ComfyUI_img2img | SaveImage prefix |
 
-Example: `build_workflow("restyle", { image: "photo.png", style: "cartoon" })`. Or use **build_restyle_workflow(image, style)** to get `{ workflow, recipe }` with prompt and params for regeneration.
+Example arguments: `{ "template": "restyle", "params": { "image": "photo.png", "style": "cartoon" } }`. The returned recipe records the prompt and parameters for regeneration.
 
 ### image_caption
 
@@ -221,19 +221,34 @@ Example: `build_workflow("batch", { base_params: { width: 512, prompt: "x" }, va
 
 ***
 
-## Dynamic workflow (create_workflow, add_node, connect_nodes, …)
+## Dynamic workflow
 
 Build a workflow step by step instead of from a template:
 
 1. **create_workflow** — returns `workflow_id` (e.g. `wf_xxx`).
 2. **add_node**(workflow_id, class_type, inputs?) — returns node id (`"1"`, `"2"`, …). Use for literal inputs (ckpt_name, text, seed, etc.).
-3. **connect_nodes**(workflow_id, from_node, output_idx, to_node, input_name) — connect output of one node to input of another (e.g. `"1"`, 1, `"2"`, `"clip"`).
-4. **set_node_input**(workflow_id, node_id, input_name, value) — set or overwrite a literal input.
+3. **set_node_input** with `connection: { node_id, output_index }` — connect a source node's output to the target `node_id` / `input_name`.
+4. **set_node_input** with `value` — set or overwrite a literal input. Provide exactly one of `value` or `connection`; node-reference tuples belong in `connection`, not `value`.
 5. **remove_node**(workflow_id, node_id) — remove a node (validation will report dangling refs).
-6. **get_workflow_json**(workflow_id) or **finalize_workflow**(workflow_id) — get workflow JSON for **execute_workflow** or **save_workflow**.
+6. **get_workflow_json**(workflow_id) — get workflow JSON for **execute_workflow** or **save_workflow**.
 7. **validate_workflow**(workflow_id) — check that all node references exist.
 
-Workflows expire after 30 minutes if not used. Example: create_workflow → add_node(CheckpointLoaderSimple) → add_node(CLIPTextEncode, {text: "a cat"}) → connect_nodes(…, "1", 1, "2", "clip") → … → get_workflow_json → execute_workflow.
+Dynamic contexts are in memory and subject to cleanup after the configured TTL (30 minutes by default). Example connection arguments:
+
+```json
+{
+  "workflow_id": "wf_xxx",
+  "node_id": "2",
+  "input_name": "clip",
+  "connection": { "node_id": "1", "output_index": 1 }
+}
+```
+
+Flow: create_workflow → add_node → set_node_input → validate_workflow → get_workflow_json → execute_workflow.
+
+## Custom parameterized templates
+
+**create_template(workflow, params, ...)** returns custom template JSON without saving it or adding it to `list_templates`. Pass it to **apply_template** with `values` to validate and instantiate workflow JSON. Set `validate_only=true` to return `{ valid, errors }` without instantiation; invalid values prevent normal instantiation. These custom templates are separate from named presets accepted by `build_workflow`.
 
 ***
 
@@ -249,13 +264,15 @@ Flow: `build_workflow` → optional `save_workflow` → later `load_workflow` �
 
 ## Execution (requires ComfyUI)
 
-Set **COMFYUI_HOST** (default `http://127.0.0.1:8188`). Then:
+Set **COMFYUI_HOST**, for example `http://127.0.0.1:8188`, and keep ComfyUI running.
 
-1. **execute_workflow(workflow)** — POST workflow to ComfyUI; returns `prompt_id`.
-2. **get_execution_status(prompt_id)** — GET history; returns status and image filenames/URLs.
-3. **list_queue** — GET queue (running and pending).
+1. **execute_workflow** takes a workflow JSON string and waits for completion by default. Returns `prompt_id`, status, and outputs. Set `wait=false` to submit and return immediately.
+2. **get_execution(prompt_id, view)** inspects an existing run. Use `view="summary"` (default) for recorded results and image URLs, `"progress"` for current progress / queue state, or `"errors"` for exception details and traceback.
+3. **list_queue** lists running and pending prompts.
 
-**Sync run (submit and wait):** **execute_workflow_sync(workflow, timeout?)** — submits and polls until done; returns prompt_id and outputs. **get_execution_progress(prompt_id)** — progress while running (e.g. current node). **execute_batch(workflows, concurrency?)** — run multiple workflows.
+For execution, `progress_transport="auto"` (default) uses WebSocket with polling fallback; `"websocket"` requires WebSocket; `"polling"` uses history polling. Set `include_events=true` with `wait=true` and a non-polling transport to return the total event count and last 10 progress events. `timeout_ms` limits completion waiting; when omitted, resource recommendations determine the timeout, or 300000 ms is used if unavailable. With `wait=false`, omit timeout, event collection, and transport options.
+
+**execute_batch(workflows, concurrency?)** waits for independent workflows. Use **execute_chain** for dependent steps.
 
 See [MCP-SETUP.md](MCP-SETUP.md) and [comfyui-api-quick-reference.md](comfyui-api-quick-reference.md).
 
@@ -265,12 +282,24 @@ See [MCP-SETUP.md](MCP-SETUP.md) and [comfyui-api-quick-reference.md](comfyui-ap
 
 After execution:
 
-- **get_history(limit?)** — get ComfyUI execution history without prompt_id (last N prompts with prompt_id, status, outputs). Use when execute_workflow_sync did not return prompt_id (e.g. WebSocket timeout).
-- **get_last_output()** — get the most recent completed prompt’s first image (prompt_id, filename, view_url). Then use **download_by_filename** to save.
-- **list_outputs(prompt_id)** — list output files (images, etc.) for a prompt.
-- **download_output(prompt_id, node_id, filename, dest_path, subfolder?, output_format?, convert_quality?)** — save one file locally (requires prompt_id). Use output_format (png/jpeg/webp) to convert image before saving.
-- **download_by_filename(filename, dest_path, subfolder?, type?, return_base64?, output_format?, convert_quality?)** — save an output file by filename (no prompt_id). Use output_format (png/jpeg/webp) to convert image. Use when you have filename from get_history or get_last_output.
-- **download_all_outputs(prompt_id, dest_dir, prefix_node_id?)** — save all outputs to a directory.
+- **get_history(limit?)** — find recent prompt ids and outputs when a tool result was lost.
+- **list_outputs** accepts exactly one of `prompt_id` or `selector="latest_image"`. The selector finds the newest history entry containing an image, then returns `{ prompt_id, files }` for that entry.
+- **download_outputs** accepts typed `source` and `destination` objects. A single file can be saved to disk or returned as base64; all outputs of a prompt require a directory destination. Disk writes may overwrite files.
+
+Single-file download arguments:
+
+```json
+{
+  "source": { "kind": "file", "filename": "ComfyUI_00001.png", "type": "output", "prompt_id": "prompt-id", "node_id": "9" },
+  "destination": { "kind": "file", "path": "/tmp/result.webp" },
+  "output_format": "webp",
+  "convert_quality": 85
+}
+```
+
+`prompt_id` and `node_id` are optional for a known filename; `node_id` requires `prompt_id`. Supplying `prompt_id` verifies output ownership. Preserve `subfolder` from `list_outputs` when present. For inline data, use `destination: { "kind": "base64", "max_bytes": 819200 }`; large images can be converted to WebP. `max_bytes=0` disables automatic size-based conversion.
+
+Download every output with `{ "source": { "kind": "prompt", "prompt_id": "prompt-id" }, "destination": { "kind": "directory", "path": "/tmp/results", "prefix_node_id": true } }`. Format conversion options apply only to single-file sources.
 
 ***
 
@@ -284,8 +313,14 @@ Example: step 1 txt2img → step 2 upscale (image from step 1) → step 3 img2im
 
 ***
 
-## Models (requires ComfyUI)
+## Models and generation recommendations
 
-- **get_workflow_models(workflow)** — list models required by a workflow (checkpoint, lora, vae, controlnet, upscale, etc.).
-- **check_workflow_models(workflow)** — check which of those models are missing on the server.
-- **list_models(model_type?)** — list available models by type. **get_model_info(name, model_type)**, **check_model_exists(name, model_type)** — single-model info/check.
+- **get_workflow_models(workflow, check_availability=false)** extracts dependencies offline and returns `required`. Set `check_availability=true` to also return `ready`, `found`, and `missing` using the running ComfyUI instance.
+- **list_models(type?, name?)** lists models or searches an exact filename. Returns `{ found, models }`; supported types include checkpoint, lora, vae, controlnet, upscale, embedding, and clip. Requires ComfyUI.
+- **get_generation_recommendations(prompt?, checkpoint?)** returns `resources`, nested `recommendations`, `warnings`, optional text-rendering advice, and a filename-based `template_suggestion`. Inspect `recommendations.max_width`, `max_height`, `max_batch_size`, `suggested_model_size`, and `flux_ready` before generation. If ComfyUI is unavailable, resources and recommendations may be null; follow the conservative advice in warnings.
+
+## Node discovery
+
+**search_nodes** supports `source="local"` for offline knowledge, `"live"` for installed-only nodes (fails without ComfyUI), and `"merged"` (default) for live-first merged results. Filter by `query`, `task`, `category`, `priority`, `input_type`, or `output_type`; paginate with `limit` and `offset`. It returns `{ total, offset, nodes }`.
+
+Use **get_node_info(node_name, section="all")** for a normalized definition, `section="inputs"` for required/optional input definitions including enum choices, or `section="outputs"` for output types and names. Results identify the source. **check_compatibility**, **list_node_categories**, and **sync_nodes_to_knowledge** remain separate tools; sync writes newly discovered definitions to the knowledge base.

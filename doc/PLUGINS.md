@@ -202,7 +202,7 @@ High-level flow:
    - `create_workflow` → `wf_123`,
    - `insert_macro(wf_123, "example:upscale_simple", { image: "input.png" })`,
    - `get_workflow_json(wf_123)` → JSON with LoadImage/UpscaleModelLoader/ImageUpscaleWithModel/SaveImage,
-   - `execute_workflow` or `execute_workflow_sync` on that JSON.
+- `execute_workflow` on that JSON; use `wait=false` to queue without waiting.
 
 No changes to core TypeScript code are needed to add/remove such macros; only plugin JSON.
 

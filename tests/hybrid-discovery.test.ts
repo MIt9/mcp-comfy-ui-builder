@@ -39,7 +39,7 @@ const baseNodes: BaseNodesJson = {
       return_types: ['CONDITIONING'],
       return_names: ['CONDITIONING'],
       output_colors: [],
-      use_cases: [],
+      use_cases: ['describe a scene'],
       compatible_outputs: {},
       example_values: {},
       priority: 'high',
@@ -100,6 +100,38 @@ describe('HybridNodeDiscovery', () => {
     const list = await hybrid.searchNodes('', { category: 'sampling' });
     expect(list.every((n) => n.category === 'sampling')).toBe(true);
     expect(list.some((n) => n.class_name === 'KSampler')).toBe(true);
+  });
+
+  it('local search never requests live data and filters task, priority, and port types', async () => {
+    const getObjectInfo = vi.fn().mockRejectedValue(new Error('offline'));
+    const local = new HybridNodeDiscovery({ getObjectInfo, loadBaseNodes: () => baseNodes });
+    const nodes = await local.searchNodes('', {
+      task: 'describe a scene', priority: 'high', input_type: 'clip', output_type: 'conditioning',
+    }, 'local');
+    expect(nodes.map((node) => node.class_name)).toEqual(['CLIPTextEncode']);
+    expect(getObjectInfo).not.toHaveBeenCalled();
+  });
+
+  it('live-only search excludes local nodes and fails rather than falling back', async () => {
+    const nodes = await hybrid.searchNodes('', undefined, 'live');
+    expect(nodes.map((node) => node.class_name)).not.toContain('CLIPTextEncode');
+    const offline = new HybridNodeDiscovery({
+      getObjectInfo: vi.fn().mockRejectedValue(new Error('offline')),
+      loadBaseNodes: () => baseNodes,
+    });
+    await expect(offline.searchNodes('', undefined, 'live')).rejects.toThrow('unavailable');
+    expect(await offline.searchNodes('', undefined, 'merged')).toHaveLength(1);
+  });
+
+  it('merged search preserves local task/priority metadata while preferring live ports', async () => {
+    const merged = new HybridNodeDiscovery({
+      getObjectInfo: async () => ({ CLIPTextEncode: mockObjectInfo.KSampler }),
+      loadBaseNodes: () => baseNodes,
+    });
+    const nodes = await merged.searchNodes('', { task: 'describe a scene', priority: 'high' });
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].source).toBe('live');
+    expect(nodes[0].output).toEqual(['LATENT']);
   });
 
   it('listNodeCategories returns unique categories', async () => {
