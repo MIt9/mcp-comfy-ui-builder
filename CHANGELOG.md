@@ -6,6 +6,12 @@ Project change history. Knowledge base (nodes) → [knowledge/CHANGELOG.md](know
 
 ## [Unreleased]
 
+## [3.0.1] – 2026-10-30
+
+- Added an SDXL text-to-image workflow at 1024×1024 with Lanczos scaling to 2048×2048 and both image outputs.
+- Increased the live smoke test's custom-node installation request timeout to at least 330 seconds.
+- Recorded final local validation results and remaining administrative verification limits.
+
 ## [3.0.0] – 2026-10-26
 
 ### Breaking changes — consolidated MCP tools
